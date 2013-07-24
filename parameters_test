@@ -1,0 +1,36 @@
+filedir		cubes	 			!Directory with object spec
+objfile		NGC4676_CALIFA_obj.fits		!Object file
+errfile		NGC4676_CALIFA_err.fits		!Errorbar file 
+rootname	CALIFA				!Root of output file names
+tempdir		templates			!Directory with template spec
+tempatefile	CB09_0.008_1.000.fits		!Initial template
+tempmatchfile	templist			!File with template list
+esterr		0				!estimate errors 
+modkeep		80				!prob in % of keep template
+kinbootstrap	0				!include kinematics
+agebinfile	agebins.txt			!age bins for SFH output 
+velocity	6739.				!object minus templates
+sigmaxcorr	50.0				!velocity dispersion guess
+ifix		0				!Keep dispersion fixed at input?
+ivfix		0				!Keep velocity fixed at input?
+delfileo	excl.obs			!Excluded regions restframe
+delfiler	excl.rest			!Exclreg observed frame
+delfilec	excl.cont			!Excl reg continuum restfram
+delfilfib	excl.fib			!Excl fibers from fit 
+iclip		0				!Number of clipped pixels
+nf		150				!First pixel used in fit
+nl		1727				!Last pixel used in fit
+ndelt		60				!maximal shift range in pixels
+npoly		100				!No. of orthog polynomials to fit
+nwidth		100				!Width of running mean in pixels
+interp		3				!interpolation method resampling
+matching	1				!Match a stellar population?
+herm		0				!fit hermite polynomials?
+Ael		0.0				!extinction at efflam
+efflam		0.5494				!effective wavelength micrometer
+Rv		3.08				!Rv = Av / E(B-V)
+verbose		0				!screen and log output for humans
+writespec	2				!write spectra or cubes 
+outsamp		1				!output sampling of data 
+btsfhverb	0				!more info on bootstrap SFH
+btspecverb	0				!more info on bootstrap spectra
