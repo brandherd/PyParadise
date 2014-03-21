@@ -13,15 +13,19 @@ import copy_reg
 
 class ParadiseApp(object):
     def __init__(self, input_file, outprefix, instrFWHM):
-        #try:
-        self.__inputData = loadCube(input_file)
-        self.__inputData.correctError()
-        self.__cube = True
-        #except IndexError:
-         #   try:
-        #        self.__inputData = loadRSS(input_file)
-         #   except:
-         #      sys.exit()
+        try:
+            self.__inputData = loadCube(input_file)
+            self.__inputData.correctError()
+            self.__cube = True
+            self.__rss = False
+        except IndexError:
+            try:
+                self.__inputData = loadRSS(input_file)
+                self.__inputData.correctError()
+                self.__cube = True
+                self.__rss = True
+            except:
+                sys.exit()
 
         self.__outPrefix = outprefix
         self.__instrFWHM = instrFWHM
@@ -85,7 +89,14 @@ class ParadiseApp(object):
                 print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
-        if self.__cube is True:
+        if self.__rss:
+            cube_model_out = RSS(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave, data=cube_model,
+                header=self.__inputData.getHeader())
+            cube_model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
+            cube_res_out = RSS(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave,
+                data=self.__inputData.subCubeWave(start_wave, end_wave)._data - cube_model, header=self.__inputData.getHeader())
+            cube_res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
+        elif self.__cube:
             cube_model_out = Cube(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave, data=cube_model,
                 header=self.__inputData.getHeader())
             cube_model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
