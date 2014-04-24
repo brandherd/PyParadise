@@ -1,5 +1,9 @@
-from lib import *
-
+from cube import *
+from ssplibrary import *
+import fit_profile
+from header import *
+from parameters import *
+from spectrum1d import *
 import exceptions, copy_reg
 from types import *
 
@@ -11,7 +15,7 @@ def _pickle_method(method):
 	cls_name = cls.__name__.lstrip('_')
 	if cls_name: func_name = '_' + cls_name + func_name
       return _unpickle_method, (func_name, obj, cls)
-    
+
 def _unpickle_method(func_name, obj, cls):
       for cls in cls.mro():
 	try:
