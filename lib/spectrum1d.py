@@ -13,6 +13,30 @@ from types import *
 
 
 class Spectrum1D(object):
+    """A class representing 1D spectrum.
+
+    `Spectrum1D` is a class which allows for handling and organizing a one-
+    dimensional spectrum.
+
+    Parameters
+    ----------
+    wave : `numpy.ndarray`
+        The wavelength at each point of the `data` array.
+    data : `numpy.ndarray`
+        The spectrum. Should be of the same size as `wave`.
+    error : `numpy.ndarray`, optional
+        The error spectrum.
+        If `error` equals None, it is assumed the error spetrum is not
+        known.
+    mask : `numpy.ndarray`
+        A boolean array where True represents a masked (invalid) data point
+        and False a good data point.
+    normalization : `numpy.ndarray`
+        An array which is used to normalize the data/error; both data and
+        error are divided by `normalization`.
+    inst_fwhm : float
+        The instrumental FWHM in the same units as `wavelength`.
+    """
     def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None):
         self.__wave = wave
         self.__data = data
