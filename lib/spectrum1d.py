@@ -247,6 +247,17 @@ class Spectrum1D(object):
         return spec_out
 
     def correctExtinction(self, A_V, mode='correct', law='Cardelli', R_V=3.1):
+        """
+        Parameters
+        ----------
+        A_V : 
+        mode : 
+        Cardelli : 
+        R_V : 
+
+        Returns : 
+        spec_out : 
+        """
         micron = self.__wave / 10000.0
         wave_number = 1.0 / micron
         y = wave_number - 1.82
