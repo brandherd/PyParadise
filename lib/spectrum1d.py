@@ -338,6 +338,24 @@ class Spectrum1D(object):
         return tempSpec
 
     def normalizeSpec(self, pixel_width, mask_norm=None):
+        """Calculates a normalized version of the spectrum by dividing the
+        spectrum and the error by a running mean.
+
+        Parameters
+        ----------
+        pixel_width : int
+            Defines the width over which the running mean is calculated.
+        mask_norm : numpy.ndarray, optional
+            If provided, it combines `mask_norm` with `mask`, if
+            available, which masks out the elements for determining
+            `normalization`.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object to which the normalization is
+            applied.
+        """
         mean = numpy.zeros(len(self.__data), dtype=numpy.float32)
         data_temp = numpy.zeros(len(self.__data), dtype=numpy.float32)
         data_temp[:] = self.__data
