@@ -288,6 +288,19 @@ class Spectrum1D(object):
         return spec_out
 
     def randomizeSpectrum(self):
+        """Draw a new spectrum by assuming that the `error` corresponding
+        to `data` follows a normal distribution.
+        
+        Returns
+        -------
+        spec_out : Spectrum1D
+            A new Spectrum1D object representing the new spectrum.
+
+        Notes
+        -----
+        In the case that the `error` equals None, a copy of the original
+        Spectrum1D object is returned.
+        """
         if self.__error is not None:
             data_new = numpy.random.Normal(self.__data, self.__error)
             spec_out = Spectrum1D(data=data_new, error=self.__error, mask=self.__mask)
