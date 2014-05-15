@@ -135,6 +135,35 @@ class Spectrum1D(object):
         return self.__vel_sampling
 
     def resampleSpec(self, ref_wave, method='spline', err_sim=500, replace_error=1e10):
+        """Returns a new Spectrum1D object resampled to a new wavelength grid
+
+        The interpolation is perfomed based on the `method`-argument.
+
+        Parameters
+        ----------
+        ref_wave : numpy.ndarray
+            The new wavelength array to which the spectrum will be
+            resampled.
+        method : {'spline', 'linear', 'hann', 'lanczos2', 'lanczos3'}, optional
+            Specifies the resampling method.
+            'spline' : 3rd degree spline interpolation without smoothing
+            'linear' : linear interpolation
+            'hann' : *Not implemented*, uses a Hann window for resampling
+            'lanczos2' : *Not implemented*, uses a Lanczos kernel for
+            resampling with the window parameter set at a = 2.
+            'lanczos3' : *Not implemented*, uses a Lanczos kernel for
+            resampling with the window parameter set at a = 3. It is
+            therefore broader than `lanczos2`-kernel.
+        err_sim : *Not implemented* int
+        replace_error : *Not implemented* int
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new `Spectrum1D` instance resampled to the new wavelength grid.
+            Currently, the masks, errors and normalization are not
+            propagated in `spec`.
+        """
         # perform the interpolation on the data
         if method == 'spline':
             intp = interpolate.UnivariateSpline(self.__wave, self.__data, s=0, k=3)
