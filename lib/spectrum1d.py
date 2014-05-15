@@ -312,6 +312,27 @@ class Spectrum1D(object):
             spec_out = self
 
     def applyKin(self, vel, disp_vel, wave):
+        """Shifts and broadens the spectrum and resamples it to a new
+        wavelength grid.
+
+        Parameters
+        ----------
+        vel : float
+            The `wave` is redshifted according to `vel`, which should
+            be specified in km/s.
+        disp_vel : float
+            The velocity dispersion value in km/s, which will be used
+            for the Gaussian broadening of the data.
+        wave : numpy.ndarray
+            The new wavelength grid on which the broadened and redshifted
+            spectra will be sampled.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object representing the spectrum after the
+            kinematic transformation.
+        """
         tempSpec = self.applyGaussianLOSVD(vel, disp_vel)
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
