@@ -215,6 +215,27 @@ class Spectrum1D(object):
         return new_spec
 
     def applyGaussianLOSVD(self, vel, disp_vel):
+        """Returns a broadened copy of the spectrum.
+        
+        Parameters
+        ----------
+        vel : float
+            The `wave` is redshifted according to `vel`, which should
+            be specified in km/s.
+        disp_vel : float
+            The velocity dispersion value in km/s, which will be used
+            for the Gaussian broadening of the data.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object which is redshifted and broadened.
+
+        Notes
+        -----
+        No correction is applied to `error`, `mask`, and
+        `normalization`.
+        """
         disp_pix = disp_vel / self.__vel_sampling
         new_data = ndimage.filters.gaussian_filter(self.__data, disp_pix, mode='constant')
         wave = self.__wave * (1 + vel / 300000.0)
