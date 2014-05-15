@@ -385,6 +385,8 @@ class Spectrum1D(object):
         return spec_out
 
     def unnormalizedSpec(self):
+        """Creates a copy for which the normalization is removed.
+        """
         data = self.__data * self.__normalization
         if self.__error is not None:
             error = self.__error * self.__normalization
