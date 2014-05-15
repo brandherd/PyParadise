@@ -92,6 +92,20 @@ class Spectrum1D(object):
                 self.__error = self.__error / normalization
 
     def subWave(self,select_wave):
+        """Obtain a copy of Spectrum1D within a certain wavelength range.
+
+        Parameters
+        ----------
+        select_wave : numpy.ndarray
+            A 1D boolean array where the True value represents which elements
+            in the `wave`, `data`, `error`, `mask` and `normalization`
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new `Spectrum1D` instance containing only the elements
+            according to `select_wave`.
+        """
         if self.getError() is not None:
             new_error = self.getError()[select_wave]
         else:
@@ -214,6 +228,7 @@ class Spectrum1D(object):
                 pass
         else:
             spec_out = self
+
     def applyKin(self, vel, disp_vel, wave):
         tempSpec = self.applyGaussianLOSVD(vel, disp_vel)
         tempSpec = tempSpec.resampleSpec(wave)
