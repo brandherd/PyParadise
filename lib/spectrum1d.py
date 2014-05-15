@@ -200,6 +200,14 @@ class Spectrum1D(object):
         return spec_out
 
     def rebinLogarithmic(self):
+        """Rebin the spectrum from a linear wavelength grid to a logarithmic
+        wavelength grid.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object with the `data` in logarithmic base.
+        """
         wave_log = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
         - numpy.log10(self.__wave[0])) / len(self.__wave))
         new_spec = self.resampleSpec(wave_log)
