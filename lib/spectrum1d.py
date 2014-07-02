@@ -434,6 +434,38 @@ class Spectrum1D(object):
         return libFit.getCoeff(), bestfit_spec, chi2
 
     def fitKinMCMC_fixedpop(self, spec_model, vel_min, vel_max, vel_disp_min, vel_disp_max, burn=1000, samples=3000, thin=2):
+        """Fits a spectrum according to Markov chain Monte Carlo
+        algorithm to obtain statistics on the kinematics. This uses the
+        PyMC library.
+
+        Parameters
+        ----------
+        spec_model : Spectrum1D
+            A single spectrum from a SSP library used to fit the data of the
+            current spectrum with.
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC.
+        vel_disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        vel_disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        burn : int, optional
+            The burn-in parameter that is often applied in MCMC
+            implementations. The first `burn` samples will be discarded
+            in the further analysis.
+        samples : int, optional
+            The number of iterations runned by PyMC.
+        thin : int, optional
+            Only keeps every `thin`th sample, this argument should
+            circumvent any possible autocorrelation among the samples.
+
+        Returns
+        -------
+        M : pymc.MCMC
+            Contains all the relevant information from the PyMC-run.
+        """
         valid_pix = numpy.logical_not(self.__mask)
         wave = self.__wave[valid_pix]
 
