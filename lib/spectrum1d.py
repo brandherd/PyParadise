@@ -396,6 +396,28 @@ class Spectrum1D(object):
         return spec_out
 
     def fitSuperposition(self, SSPLibrary, negative=False):
+        """Fits a superposition of template spectra to the data.
+
+        Parameters
+        ----------
+        SSPLibrary : SSPlibrary
+            Contains a library of template spectra which are used for
+            the fitting.
+        negative : bool, optional
+            When `negative` is False, it will apply non-negative least
+            squares to determine the best fit. If `negative` is True,
+            ordinary least squares fitting will be applied.
+
+        Returns
+        -------
+        coeff : numpy.ndarray
+            The coefficients of the best fit.
+        bestfit_spec : Spectrum1D
+            The spectrum which resembles the best combination of
+            template spectra.
+        chisq : float
+            The chi^2 value corresponding to `bestfit_spec`.
+        """
         valid_pix = numpy.logical_not(self.__mask)
         if self.__error is None:
             error = numpy.ones((self.__dim), dtype=numpy.float32)
