@@ -641,6 +641,30 @@ class Spectrum1D(object):
         return numpy.std(mass_weighted_pars,0), numpy.std(lum_weighted_pars,0), lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):
+        """Fits the spectrum and determines the parameters and the corresponding
+        errors of the fit.
+
+        Parameters
+        ----------
+        par : parFile
+            The object containing all the constraints on the parameters.
+        err_sim : int, optional
+            The number of simulations which will be runned to estimate the
+            errors.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        method : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+        """
         static_par = deepcopy(par)
 
         if self.getError() is not None:
