@@ -486,6 +486,60 @@ class Spectrum1D(object):
 
     def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None,
          iterations=3, burn=50, samples=200, thin=1):
+        """Fits template spectra according to Markov chain Monte Carlo
+        algorithm. This uses the PyMC library.
+
+        Parameters
+        ----------
+        lib_SSP : SSPlibrary
+            The library containing the template spectra.
+        nlib_guess : int
+            The initial guess for the best fitting template spectrum.
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC.
+        disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        mask_fit : numpy.ndarray
+            A boolean array representing any regions which are masked
+            out during the fitting.
+        iterations : int
+            The number of iterations applied to determine the best
+            combination of velocity, velocity dispersion and the
+            coefficients for the set of template spectra.
+        burn : int, optional
+            The burn-in parameter that is often applied in MCMC
+            implementations. The first `burn` samples will be discarded
+            in the further analysis.
+        samples : int, optional
+            the number of iterations runned by PyMC.
+        thin : int, optional
+            Only keeps every `thin`th sample, this argument should
+            circumvent any possible autocorrelation among the samples.
+
+        Returns
+        -------
+        vel : float
+            The average velocity from the MCMC-sample.
+        vel_err : float
+            The standard deviation in the velocity from the MCMC-sample.
+        disp : float
+            The average velocity dispersion from the MCMC-sample.
+        disp_err : float
+            The standard devation in the velocity dispersion from the
+            MCMC-sample.
+        bestfit_spec : Spectrum1D
+            The best fitted spectrum obtained from the linear
+            combination of template spectra.
+        coeff : numpy.ndarray
+            The coefficients of the SSP library which will produce the best fit
+            to the data.
+        chisq : float
+            The chi^2 value between `bestfit_spec` and `data`.
+        """
         spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         if mask_fit is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
