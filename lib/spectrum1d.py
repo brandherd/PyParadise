@@ -682,6 +682,44 @@ class Spectrum1D(object):
 
     def fitELines(self, par, select_wave, method='leastsq', guess_window=0.0, spectral_res=0.0, ftol=1e-4,
     xtol=1e-4, parallel='auto'):
+        """This routine fits a set of emission lines to a spectrum
+
+        Parameters
+        ----------
+        par : parFile
+            The object containing all the constraints on the parameters.
+        select_wave : numpy.ndarray
+            A 1D boolean array where the True value represents which elements
+            in the wave, data, error, mask and normalization.
+        method : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        guess_window : float, optional
+            The wavelength region in which the emission line will be fitted.
+        spectral_res : float, optional
+            The spectral resolution of the line.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        out_model : dictionary
+            The flux and the velocity shift of each line
+        best_fit : numpy.ndarray
+            A 1D numpy array representing the best fitted values at the
+            wavelength range `select_wave`.
+        best_res : numpy.ndarray
+            A 1D numpy array representing the residuals at the wavelength range
+            `select_wave`.
+        """
         spec_res = float(spectral_res / 2.354)
         #par = fit_profile.parFile(par_file, spec_res)
         fit_par = deepcopy(par)
