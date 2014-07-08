@@ -19,15 +19,9 @@ class Header(object):
         """
         if header != None:
             # Assign private variable and convert header to card list
-            self._cardlist = header.ascardlist()
             self._header = header
-        elif cardlist != None and header==None:
-            # Assign private variable and convert card list  to header
-            self._cardlist = cardlist
-            self._header = pyfits.Header(cardlist)
         else:
             # Create empty Header and CardList objects
-            self._cardlist = None
             self._header = None
         
         # Set the Fits file origin of the header if given
@@ -38,7 +32,6 @@ class Header(object):
             
     def setHeader(self, header, origin=None):
         self._header = header
-        self._cardlist = header.ascardlist()
         self._origin=origin
     
     def loadFitsHeader(self, filename,  extension = 0, removeEmpty=0):    
@@ -56,7 +49,6 @@ class Header(object):
                         Removes empty entries from the header if set to 1.
         """
         self._header = pyfits.getheader(filename, ext = extension)
-        self._cardlist = self._header.ascardlist()
         self._origin = filename
         if removeEmpty==1:
             self.removeHdrEntries()
@@ -83,23 +75,7 @@ class Header(object):
         hdu[extension].header = self._header
         hdu[extension].update_header()
         hdu.flush()
-    
-    def removeHdrEntries(self, keywords=['']):
-        """
-            Removes keywords from the Header
-            
-            Parameters:
-            ---------------
-            keywords : list of strings, optional
-                        list of keywords that are removed from the header
-        """
-        keys = self._cardlist.keys()
-        new_cards = []
-        for k in keys:
-            if not k in keywords:
-                new_cards += [self._cardlist[k]]
-        self._cardlist = pyfits.CardList(new_cards)
-        self._header = pyfits.Header(self._cardlist)
+
     
     def getHdrValue(self, keyword):
         """
@@ -117,8 +93,6 @@ class Header(object):
         """
         return self._header[keyword]
         
-    def getHdrCard(self, keyword):
-        return self._cardlist[keyword]
 
     def getHdrKeys(self):
         """
@@ -134,18 +108,16 @@ class Header(object):
     def getHeader(self):
         return self._header
     
-    def getHdrCardlist(self):
-        return self._cardlist
         
-    def copyHdrKey(self, Header, key):
-        new_cardlist = self._cardlist+[Header.getHdrCard(key)]
-        self._cardlist = pyfits.CardList(new_cardlist)
-        self._header = pyfits.Header(self._cardlist)
+    #def copyHdrKey(self, Header, key):
+        #new_cardlist = self._cardlist+[Header.getHdrCard(key)]
+        #self._cardlist = pyfits.CardList(new_cardlist)
+        #self._header = pyfits.Header(self._cardlist)
         
-    def appendHeader(self, Header):
-        new_cardlist = self._cardlist+Header.getHdrCardlist()
-        self._cardlist = pyfits.CardList(new_cardlist)
-        self._header = pyfits.Header(self._cardlist)
+    #def appendHeader(self, Header):
+        #new_cardlist = self._cardlist+Header.getHdrCardlist()
+        #self._cardlist = pyfits.CardList(new_cardlist)
+        #self._header = pyfits.Header(self._cardlist)
         
         
     def setHdrValue(self,  keyword,  value,  comment=None):
@@ -155,7 +127,6 @@ class Header(object):
             self._header.update(keyword, value)
         else:
             self._header.update(keyword, value, comment)
-        self._cardlist = self._header.ascardlist()
         
     def extendHierarch(self, keyword, add_prefix, verbose=1):
         if self._header!=None:
@@ -166,22 +137,21 @@ class Header(object):
                     print "The keyword %s does already exists!"%(add_prefix.upper()+' '+keyword.upper())
         else:
             pass
-        self._cardlist = self._header.ascardlist()
-
-def combineHdr(headers):
-    combHdr = []
-    for i in range(len(headers)):
-        if i==0:
-            final_card = headers[i]._header.ascardlist()
-        final_keys = final_card.keys()
-        if i>0:
-            card = headers[i]._header.ascardlist()
-            keys = card.keys()
-            for k in keys:
-                if not k in final_keys:
-                    final_card=final_card+[card[k]]
-            final_card = pyfits.CardList(final_card)
-    outHdr = Header(pyfits.Header(cards=final_card))
-    return outHdr
+       
+#def combineHdr(headers):
+    #combHdr = []
+    #for i in range(len(headers)):
+        #if i==0:
+            #final_card = headers[i]._header.ascardlist()
+        #final_keys = final_card.keys()
+        #if i>0:
+            #card = headers[i]._header.ascardlist()
+            #keys = card.keys()
+            #for k in keys:
+                #if not k in final_keys:
+                    #final_card=final_card+[card[k]]
+            #final_card = pyfits.CardList(final_card)
+    #outHdr = Header(pyfits.Header(cards=final_card))
+    #return outHdr
     
     
