@@ -137,6 +137,26 @@ class CustomMasks(UserDict):
         return mask
 
     def maskPixelsRest(self, wave, redshift, init_mask=None):
+        """Create a mask for the wavelengths in the rest-frame. The
+        observed-frame masking specifications will be redshifted.
+
+        Parameters
+        ----------
+        wave : numpy.ndarray
+            The wavelengths for which the mask will be created.
+        redshift : float
+            The redshift-correction to be applied to the observed-frame mask
+            windows.
+        init_mask : numpy.ndarray, optional
+            An initial mask, where some values are already masked out to which
+            the mask created by this function will be added.
+
+        Returns
+        -------
+        mask : numpy.ndarray
+            A boolean array of the same shape as `wave` where the elements
+            are true represent masked values.
+        """
         if init_mask is None:
             mask = numpy.zeros(len(wave), dtype="bool")
         else:
