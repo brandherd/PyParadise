@@ -434,6 +434,24 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def matchInstFWHM(self, instFWHM, obs_velocity):
+        """Obtain a new SSP library where the spectra are broadened to match the
+        instrumental resolution and shifted to the velocity of the object.
+
+        Parameters
+        ----------
+        instFWHM : float
+            the instrumental resolution in FWHM in the same units as the
+            wavelength grid.
+        obs_velocity : float
+            the velocity of the object in km/s to which the template spectra
+            will be moved.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with the spectra broadened and
+            shifted.
+        """
         redshift = (1 + obs_velocity / 300000.0)
         wave = self.__wave * redshift
         if instFWHM > self.__spectralFWHM * redshift:
