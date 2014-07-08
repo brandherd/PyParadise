@@ -497,6 +497,19 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def applyExtinction(self, A_V, law='Cardelli', R_V=3.1):
+        """Applies an extiction law to the template spectra.
+
+        Parameters
+        ----------
+        A_V : float
+        law : {'Cardelli'}
+        R_V : float
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+
+        """
         micron = self.__wave / 10000.0
         wave_number = 1.0 / micron
         y = wave_number - 1.82
