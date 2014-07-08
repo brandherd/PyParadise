@@ -560,6 +560,51 @@ class Spectrum1D(object):
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
         method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
         parallel=1):
+        """
+
+        Parameters
+        ----------
+        lib_SSP : SSPlibrary
+            The library containing the template spectra.
+        vel : float
+            The redshift of the object in km/s.
+        disp : float
+            The velocity dispersion value in km/s, which will be used
+            for the Gaussian broadening of the template spectra.
+        vel_err : float, optional
+            ???Unused???
+        disp_err : float, optional
+            ???Unused???
+        par_eline : parFile, optional
+            A list of emission lines that will be included in the bootstrap
+            fitting procedure.
+        select_wave_eline : numpy.ndarray
+            A 1D boolean array where the True value represents which wavelength
+            elements will be used in the emission line fitting.
+        method_eline : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        guess_window : float, optional
+            The wavelength region in which the emission line will be fitted.
+        spectral_res : float, optional
+            The spectral resolution of the line.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        bootstraps : int, optional
+            The number of bootstraps runs that will be performed.
+        modkeep : float
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        """
         mass_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(self.getWave())
