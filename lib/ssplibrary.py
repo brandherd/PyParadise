@@ -264,6 +264,25 @@ class SSPlibrary(UserDict):
         return compositeSpec
 
     def lumWeightedPars(self, coefficients, min_age=None, max_age=None):
+        """From the weights of the template spectra in the library, this
+        function computes the parameters by taking luminosity-weighted averages.
+
+        Parameters
+        ----------
+        coefficients : numpy.ndarray
+            The weights that each template spectrum has.
+        min_age : float, optional
+            Ignore the spectra with ages below a certain threshold.
+        max_age : float, optional
+            Ignore the spectra with ages above a certain threshold.
+
+        Returns
+        -------
+        mean : numpy.ndarray
+            Luminosity-weighted averages stored in a 1D numpy array. The first
+            value is age, the second value the mass-to-light ratio, the third
+            value [Fe/H], and the fourth value [alpha/Fe]
+        """
         parameters = ['age', 'mass-to-light', '[Fe/H]', '[A/Fe]']
 
         select_age = self['age'] > 0
