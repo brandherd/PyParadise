@@ -26,7 +26,7 @@ class Spectrum1D(object):
         The spectrum. Should be of the same size as `wave`.
     error : `numpy.ndarray`, optional
         The error spectrum.
-        If `error` equals None, it is assumed the error spetrum is not
+        If `error` equals None, it is assumed the error spectrum is not
         known.
     mask : `numpy.ndarray`
         A boolean array where True represents a masked (invalid) data point
@@ -49,21 +49,46 @@ class Spectrum1D(object):
         self.__inst_fwhm = inst_fwhm
 
     def getWave(self):
+        """Obtain the wavelength grid as a 1D numpy array."""
         return self.__wave
 
     def getData(self):
+        """Obtain the spectrum as a 1D numpy array."""
         return self.__data
 
     def setData(self, data):
+        """Change the spectrum by providing a 1D numpy array. The array should
+        be of the same shape as the wavelength grid."""
         self.__data = data
 
     def getError(self):
+        """Obtain the error associated to the spectrum as a 1D numpy array."""
         return self.__error
 
     def setError(self, error):
+        """Set the error of the wavelength grid by providing a 1D numpy array.
+        The array should be of the same shape as the spectrum."""
         self.__error = error
 
     def hasData(self, start_wave=None, end_wave=None):
+        """Check if there is any unmasked data available between the provided
+        wavelength limits.
+
+        Parameters
+        ----------
+        start_wave : float, optional
+            The lower wavelength limit. The standard value is the lowest value
+            in the wavelength grid.
+        end_wave : float, optional
+            The upper wavelength limit. The standard value is the lowest value
+            in the wavelength grid.
+
+        Returns
+        -------
+        dataAvailable : bool
+            True if there is unmasked data with the wavelength limits, otherwise
+            False.
+        """
         if start_wave is not None:
             self.__mask = numpy.logical_or(self.__mask, self.__wave<start_wave)
         if end_wave is not None:
@@ -74,18 +99,25 @@ class Spectrum1D(object):
             return False
 
     def getMask(self):
+        """Obtain the mask as a 1D numpy array."""
         return self.__mask
 
     def setMask(self, mask):
+        """Change the mask by providing a 1D numpy array. The mask should be of
+        the same shape as the spectrum."""
         self.__mask = mask
 
     def getNormalization(self):
+        """Obtain the normalization of the spectrum as a 1D numpy array."""
         return self.__normalization
 
     def setNormalization(self, normalization):
+        """Change the normalization array of the spectrum by providing a 1D
+        numpy array. The mask should be of the same shape as the spectrum."""
         self.__normalization = normalization
 
     def applyNormalization(self, normalization):
+        """Apply the normalization to the data and the errors."""
         if self.__normalization is None:
             self.__data = self.__data / normalization
             if self.__error is not None:
@@ -123,15 +155,20 @@ class Spectrum1D(object):
         return spec
 
     def getFWHM(self):
+        """Obtain the FWHM of the spectra, provided in the same units as the
+        wavelength grid."""
         return self.__inst_fwhm
 
     def setFWHM(self, FWHM):
+        """Change the value of the FWHM of the spectra."""
         self.__inst_fwhm = FWHM
 
     def setVelSampling(self, vel_sampling):
+        """Change the velocity sampling of the spectra (float, km/s)."""
         self.__vel_sampling = vel_sampling
 
     def getVelSampling(self):
+        """Obtain the velocity sampling of the spectra in km/s."""
         return self.__vel_sampling
 
     def resampleSpec(self, ref_wave, method='spline', err_sim=500, replace_error=1e10):
