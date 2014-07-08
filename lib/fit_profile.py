@@ -8,9 +8,9 @@ from copy import deepcopy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 try:
-  import pylab
+    import pylab
 except:
-  pass
+    pass
 
 
 fact = numpy.sqrt(2.*numpy.pi)
@@ -72,7 +72,7 @@ class fit_profile1D(object):
 
 
     def residuum(self, par, x, y, sigma=1.0):
-	self._par = par
+        self._par = par
         return numpy.sum(((y-self(x))/sigma)**2)
 
     def chisq(self, x, y, sigma=1.0):
@@ -83,20 +83,20 @@ class fit_profile1D(object):
             self._guess_par(x, y)
         p0 = self._par
         if method=='leastsq':
-	   try:
-	      model = optimize.fmin(self.res, p0, (x, y, sigma), maxfev=maxfev, ftol=ftol, xtol=xtol,warning=warning)
-            #model = optimize.leastsq(self.res, p0, (x, y, sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None, warning)
-	   except TypeError:
-	      model = optimize.leastsq(self.res, p0, (x, y, sigma), maxfev=maxfev,ftol=ftol, xtol=xtol)
-	   self._par = model[0]
+            try:
+                model = optimize.fmin(self.res, p0, (x, y, sigma), maxfev=maxfev, ftol=ftol, xtol=xtol,warning=warning)
+                #model = optimize.leastsq(self.res, p0, (x, y, sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None, warning)
+            except TypeError:
+                model = optimize.leastsq(self.res, p0, (x, y, sigma), maxfev=maxfev,ftol=ftol, xtol=xtol)
+            self._par = model[0]
 
-	if method=='simplex':
-	    try:
-	      model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0, full_output=0,warning=warning)
-            #model = optimize.leastsq(self.res, p0, (x, y, sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None, warning)
-	    except TypeError:
-	      model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0,full_output=0)
-	    self._par = model
+        if method=='simplex':
+            try:
+                model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0, full_output=0,warning=warning)
+                #model = optimize.leastsq(self.res, p0, (x, y, sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None, warning)
+            except TypeError:
+                model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0,full_output=0)
+            self._par = model
             #model = optimize.leastsq(self.res, p0, (x, y, sigma),None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None)
 
         if err_sim!=0:
@@ -111,31 +111,31 @@ class fit_profile1D(object):
                 for i in xrange(err_sim):
                     perr = deepcopy(self)
                     if method=='leastsq':
-		      results.append(pool.apply_async(optimize.leastsq, args=(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100, None)))
-		    if method=='simplex':
-		      results.append(pool.apply_async(optimize.fmin, args=(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), xtol, ftol, maxfev, None, 0, 0, 0)))
+                       results.append(pool.apply_async(optimize.leastsq, args=(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100, None)))
+                    if method=='simplex':
+                        results.append(pool.apply_async(optimize.fmin, args=(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), xtol, ftol, maxfev, None, 0, 0, 0)))
                 pool.close()
                 pool.join()
                 for i in xrange(err_sim):
-		    if method=='leastsq':
-		      self._par_err_models[i, :]= results[i].get()[0]
-		    elif method=='simplex':
-		      self._par_err_models[i, :]= results[i].get()
+                    if method=='leastsq':
+                        self._par_err_models[i, :]= results[i].get()[0]
+                    elif method=='simplex':
+                        self._par_err_models[i, :]= results[i].get()
             else:
                 for i in xrange(err_sim):
                     perr = deepcopy(self)
                     if method=='leastsq':
-			try:
-			    model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol, warning=warning)
-			except TypeError:
-			    model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol)
-			self._par_err_models[i, :] = model_err[0]
-		    if method=='simplex':
-			try:
-			    model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0,ftol=ftol, xtol=xtol, warning=warning)
-			except TypeError:
-			    model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0, ftol=ftol, xtol=xtol)
-			self._par_err_models[i, :] = model_err
+                        try:
+                            model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol, warning=warning)
+                        except TypeError:
+                            model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol)
+                        self._par_err_models[i, :] = model_err[0]
+                    if method=='simplex':
+                        try:
+                            model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0,ftol=ftol, xtol=xtol, warning=warning)
+                        except TypeError:
+                            model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0, ftol=ftol, xtol=xtol)
+                        self._par_err_models[i, :] = model_err
 
             self._par_err = numpy.std(self._par_err_models, 0)
         else:
