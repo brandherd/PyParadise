@@ -170,6 +170,21 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def randomSubLibrary(self, modkeep):
+        """Obtain a library with a random sample of template spectra.
+
+        Parameters
+        ----------
+        modkeep : float
+            The percentage of template spectra that will be saved in the random
+            sample.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance with only the randomized sample of template spectra.
+        select : numpy.ndarray
+            The indices of the selected sample of template spectra.
+        """
         select = (numpy.random.random(self.getBaseNumber()) <= modkeep)
         return self.subLibrary(select), select
 
