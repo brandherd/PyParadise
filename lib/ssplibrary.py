@@ -237,6 +237,21 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def compositeSpectrum(self, coefficients=None):
+        """Calculates a spectrum by multiplying every template spectra with
+        weights and then adding them together.
+
+        Parameters
+        ----------
+        coefficients : numpy.ndarray, optional
+            The coefficients that will be used to combine the template spectra
+            into a single spectrum.
+
+        Returns
+        -------
+        compositeSpec : Spectrum1D
+            The spectrum composed by adding the template spectra weighted by the
+            coefficients.
+        """
         if coefficients is not None:
             coeff = coefficients
         else:
