@@ -529,6 +529,27 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def modelSpec(self, vel, vel_disp, A_V, wave, coeff=None):
+        """Builds a models spectrum given a velocity, velocity dispersion and
+        an extinction.
+
+        Parameters
+        ----------
+        vel : float
+            The velocity of the object in km/s to which the template spectra
+            will be moved.
+        disp_vel : float
+            The velocity dispersion of the object in km/s to which the template
+            spectra will be broadened.
+        A_V : float
+        wave : numpy.ndarray
+        coeff : numpy.ndarray, optional
+            The weights that each template spectrum has.
+
+        Returns
+        -------
+        compSpec : Spectrum1D
+            The model spectrum build given the constraints on the parameters.
+        """
         if A_V <= 0:
             A_V = 0
         if vel_disp <= 0:
