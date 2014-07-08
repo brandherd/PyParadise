@@ -64,6 +64,23 @@ class ParameterList(UserDict):
 
 
 class CustomMasks(UserDict):
+    """Handles the masked regions in a spectrum. At initialization, the class
+    receives a filename consisting of wavelength regions which are masked out
+    in some parts of the fitting procedure.
+
+    Example
+    -------
+    An example of an exclude file is like:
+    [rest-frame]
+    5705  5735
+    5866  5916
+    6075  6100
+    6700  6740
+
+    [observed-frame]
+    5570 5582
+    5890 5910
+    """
     def __init__(self, filename):
         UserDict.__init__(self)
         infile = open(filename, 'r')
