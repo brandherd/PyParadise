@@ -169,6 +169,22 @@ class CustomMasks(UserDict):
         return mask
 
     def maskSpectrum(self, inputSpec, redshift):
+        """Creates a Spectrum1D object for which the masked regions are
+        included.
+
+        Parameters
+        ----------
+        inputSpec : Spectrum1D
+            The spectrum which will be used to construct a masked spectrum.
+        redshift : float
+            The redshift at which the object resides. This will be used to move
+            the rest frame wavelength window masks accordingly.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A Spectrum1D object with the regions masked out.
+        """
         wave = inputSpec.getWave()
         values = inputSpec.getData()
         error = inputSpec.getError()
