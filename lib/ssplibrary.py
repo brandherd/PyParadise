@@ -116,6 +116,21 @@ class SSPlibrary(UserDict):
         return self.__vel_sampling
 
     def subWaveLibrary(self, min_wave=None, max_wave=None):
+        """Applies a wavelength cut and returns a new library with the
+        wavelength cut applied to.
+
+        Parameters
+        ----------
+        min_wave : float, optional
+            The minimum wavelength of the new library.
+        max_wave : float, optional
+            The maximum wavelength of the new library.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance where the wavelength cut has been applied to.
+        """
         select_wave = numpy.ones(len(self.__wave), dtype='bool')
         if min_wave is not None:
             select_wave[self.__wave <= min_wave] = False
