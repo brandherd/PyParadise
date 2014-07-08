@@ -11,6 +11,30 @@ from UserDict import UserDict
 
 
 class SSPlibrary(UserDict):
+    """A library of template spectra that can be used to fit an observed
+    spectrum.
+
+    Parameters
+    ----------
+    data : numpy.ndarray, optional
+        A 2D numpy array containing the template spectra. This parameter
+        will be ignored when `filename` is provided.
+    wave : numpy.ndarray, optional
+        A 1D numpy array with the wavelength values corresponding to
+        `data`. This parameter will be ignored when `filename` is provided.
+    spectralFWHM : numpy.ndarray, optional
+        The spectral resolution in the same units as `wave`. This
+        parameter will be ignored when `filename` is provided.
+    infoSSP : pyfits.tableHDU, optional
+        A table containing information on the template spectra. This
+        parameter will be ignored when `filename` is provided.
+    coefficients : nummpy.ndarray, optional
+        The weights that each template spectrum has???
+    normalization : bool???, optional
+        Whether the spectrum is normalized???
+    filename : string, optional
+        A pyfits-file containing the template spectra.
+    """
     def __init__(self, data=None, wave=None, spectralFWHM=None, infoSSP=None,
          coefficients=None, normalization=None, filename=None):
         UserDict.__init__(self)
