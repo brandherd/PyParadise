@@ -4,6 +4,16 @@ import Paradise
 import pylab
 
 class Parameter(object):
+    """A container for storing a parameter value and the corresponding
+    description.
+
+    Parameters
+    ----------
+    value : float
+        The value of the parameter that we want to store.
+    description : string, optional
+        The type of object that is stored.
+    """
     def __init__(self, value, description=''):
         self.setValue(value)
         self.setDescription(description)
