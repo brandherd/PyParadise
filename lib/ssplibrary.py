@@ -11,6 +11,30 @@ from UserDict import UserDict
 
 
 class SSPlibrary(UserDict):
+    """A library of template spectra that can be used to fit an observed
+    spectrum.
+
+    Parameters
+    ----------
+    data : numpy.ndarray, optional
+        A 2D numpy array containing the template spectra. This parameter
+        will be ignored when `filename` is provided.
+    wave : numpy.ndarray, optional
+        A 1D numpy array with the wavelength values corresponding to
+        `data`. This parameter will be ignored when `filename` is provided.
+    spectralFWHM : numpy.ndarray, optional
+        The spectral resolution in the same units as `wave`. This
+        parameter will be ignored when `filename` is provided.
+    infoSSP : pyfits.tableHDU, optional
+        A table containing information on the template spectra. This
+        parameter will be ignored when `filename` is provided.
+    coefficients : nummpy.ndarray, optional
+        The weights that each template spectrum has???
+    normalization : bool???, optional
+        Whether the spectrum is normalized???
+    filename : string, optional
+        A pyfits-file containing the template spectra.
+    """
     def __init__(self, data=None, wave=None, spectralFWHM=None, infoSSP=None,
          coefficients=None, normalization=None, filename=None):
         UserDict.__init__(self)
@@ -44,15 +68,19 @@ class SSPlibrary(UserDict):
         self.__vel_sampling = None
 
     def getBase(self):
+        """Obtain all template spectra as a 2D numpy array."""
         return self.__data
 
     def getBaseNumber(self):
+        """Obtain the number of template spectra."""
         return self.__nbasis
 
     def getWave(self):
+        """Obtain the wavelength grid as a 1D numpy array."""
         return self.__wave
 
     def getSpec(self, i):
+        """Obtain the ith template spectrum as a Spectrum1D object."""
         spec = Paradise.Spectrum1D(wave=self.__wave, data=self.__data[:, i])
         try:
             spec.setVelSampling(self.getVelSampling())
@@ -61,24 +89,48 @@ class SSPlibrary(UserDict):
         return spec
 
     def getCoefficients(self):
+        """Get the weights/coefficients associated with the template spectra
+        as a 1D numpy array."""
         return self.__coefficients
 
     def setCoefficients(self, coeff):
+        """Change the weights/coefficients associated with the template spectra
+        by providing a 1D numpy array."""
         self.__coefficients = coeff
 
     def getNormalization(self):
+        """Obtain the normalization applied to all the template spectra as a
+        2D numpy array."""
         return self.__normalization
 
     def getData(self):
+        """Has the same functionality as SSPlibrary.getBase()."""
         return self.__data
 
     def setVelSampling(self, vel_sampling):
+        """Adjust the velocity sampling applied to the template spectra."""
         self.__vel_sampling = vel_sampling
 
     def getVelSampling(self):
+        """Obtain the velocity sampling applied to the template spectra."""
         return self.__vel_sampling
 
     def subWaveLibrary(self, min_wave=None, max_wave=None):
+        """Applies a wavelength cut and returns a new library with the
+        wavelength cut applied to.
+
+        Parameters
+        ----------
+        min_wave : float, optional
+            The minimum wavelength of the new library.
+        max_wave : float, optional
+            The maximum wavelength of the new library.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance where the wavelength cut has been applied to.
+        """
         select_wave = numpy.ones(len(self.__wave), dtype='bool')
         if min_wave is not None:
             select_wave[self.__wave <= min_wave] = False
@@ -93,6 +145,20 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def subLibrary(self, select):
+        """Obtain a library where only a selected sample of template spectra is
+        used.
+
+        Parameters
+        ----------
+        select : numpy.ndarray
+            An array with the indices of the template spectra that will be
+            saved.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance with only the selected sample of template spectra.
+        """
         data = self.__data[:, select]
         coefficients = self.__coefficients[select]
         infoSSP = {}
@@ -104,10 +170,43 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def randomSubLibrary(self, modkeep):
+        """Obtain a library with a random sample of template spectra.
+
+        Parameters
+        ----------
+        modkeep : float
+            The percentage of template spectra that will be saved in the random
+            sample.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance with only the randomized sample of template spectra.
+        select : numpy.ndarray
+            The indices of the selected sample of template spectra.
+        """
         select = (numpy.random.random(self.getBaseNumber()) <= modkeep)
         return self.subLibrary(select), select
 
     def normalizeBase(self, pixel_width, exclude_obj=None, redshift=None):
+        """This function returns a normalized version of the template spectra by
+        division through a running mean.
+
+        Parameters
+        ----------
+        pixel_width : int
+            The window over which the running mean will be calculated.
+        exclude_obj : CustomMasks, optional
+            The intervals that will be used to mask out regions.
+        redshift : float, optional
+            The redshift information will be used to shift the `exclude_obj`
+            information to the right wavelengths.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance with only the template spectra normalized.
+        """
         if exclude_obj is not None and redshift is not None:
             mask = exclude_obj.maskPixelsRest(self.__wave, redshift)
         else:
@@ -130,11 +229,29 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def unnormalizedBased(self):
+        """Returns an object in which the normalization is removed from the
+        template spectra.
+        """
         new_SSP = SSPlibrary(data=self.__data * self.__normalization, wave=self.__wave, spectralFWHM=self.__spectralFWHM,
              infoSSP=self, coefficients=self.__coefficients, normalization=None)
         return new_SSP
 
     def compositeSpectrum(self, coefficients=None):
+        """Calculates a spectrum by multiplying every template spectra with
+        weights and then adding them together.
+
+        Parameters
+        ----------
+        coefficients : numpy.ndarray, optional
+            The coefficients that will be used to combine the template spectra
+            into a single spectrum.
+
+        Returns
+        -------
+        compositeSpec : Spectrum1D
+            The spectrum composed by adding the template spectra weighted by the
+            coefficients.
+        """
         if coefficients is not None:
             coeff = coefficients
         else:
@@ -147,6 +264,25 @@ class SSPlibrary(UserDict):
         return compositeSpec
 
     def lumWeightedPars(self, coefficients, min_age=None, max_age=None):
+        """From the weights of the template spectra in the library, this
+        function computes the parameters by taking luminosity-weighted averages.
+
+        Parameters
+        ----------
+        coefficients : numpy.ndarray
+            The weights that each template spectrum has.
+        min_age : float, optional
+            Ignore the spectra with ages below a certain threshold.
+        max_age : float, optional
+            Ignore the spectra with ages above a certain threshold.
+
+        Returns
+        -------
+        mean : numpy.ndarray
+            Luminosity-weighted averages stored in a 1D numpy array. The first
+            value is age, the second value the mass-to-light ratio, the third
+            value [Fe/H], and the fourth value [alpha/Fe]
+        """
         parameters = ['age', 'mass-to-light', '[Fe/H]', '[A/Fe]']
 
         select_age = self['age'] > 0
@@ -172,6 +308,25 @@ class SSPlibrary(UserDict):
         return numpy.array(mean_out)
 
     def massWeightedPars(self, coefficients, min_age=None, max_age=None):
+        """From the weights of the template spectra in the library, this
+        function computes the parameters by taking mass-weighted averages.
+
+        Parameters
+        ----------
+        coefficients : numpy.ndarray
+            The weights that each template spectrum has.
+        min_age : float, optional
+            Ignore the spectra with ages below a certain threshold.
+        max_age : float, optional
+            Ignore the spectra with ages above a certain threshold.
+
+        Returns
+        -------
+        mean : numpy.ndarray
+            Mass-weighted averages stored in a 1D numpy array. The first
+            value is age, the second value the mass-to-light ratio, the third
+            value [Fe/H], and the fourth value [alpha/Fe]
+        """
         parameters = ['age', 'mass-to-light', '[Fe/H]', '[A/Fe]']
 
         select_age = self['age'] > 0
@@ -199,6 +354,20 @@ class SSPlibrary(UserDict):
         return numpy.array(mean_out)
 
     def resampleBase(self, new_wave):
+        """Returns an object with the template spectra resampled on a new
+        wavelength grid.
+
+        Parameters
+        ----------
+        new_wave : numpy.ndarray
+            The new wavelength array on which the spectra will be resampled.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with a new wavelength grid and
+            resampled spectra.
+        """
         data = numpy.zeros((len(new_wave), self.__nbasis), dtype=numpy.float32)
         if self.__normalization is not None:
             normalization = numpy.zeros((len(new_wave), self.__nbasis), dtype=numpy.float32)
@@ -215,6 +384,23 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def resampleWaveStepLinear(self, step, redshift):
+        """Returns a new library with the template spectra resampled to a new
+        linear wavelength grid.
+
+        Parameters
+        ----------
+        step : float
+            the new linear step size in the new wavelength grid
+        redshift : float
+            the redshift in which the object resides and to which the
+            wavelengths will be shifted to.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with a new wavelength grid and
+            resampled spectra.
+        """
         new_wave = numpy.arange(self.__wave[0], self.__wave[-1], step / (1 + float(redshift)))
         data = numpy.zeros((len(new_wave), self.__nbasis), dtype=numpy.float32)
         if self.__normalization is not None:
@@ -232,6 +418,15 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def rebinLogarithmic(self):
+        """Rebin the template spectra from a linear wavelength grid to a
+        logarithmic wavelength grid.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with a logarithmic wavelength grid
+            and resampled spectra.
+        """
         wave_log = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
         - numpy.log10(self.__wave[0])) / len(self.__wave))
         new_SSP = self.resampleBase(wave_log)
@@ -239,6 +434,24 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def matchInstFWHM(self, instFWHM, obs_velocity):
+        """Obtain a new SSP library where the spectra are broadened to match the
+        instrumental resolution and shifted to the velocity of the object.
+
+        Parameters
+        ----------
+        instFWHM : float
+            the instrumental resolution in FWHM in the same units as the
+            wavelength grid.
+        obs_velocity : float
+            the velocity of the object in km/s to which the template spectra
+            will be moved.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with the spectra broadened and
+            shifted.
+        """
         redshift = (1 + obs_velocity / 300000.0)
         wave = self.__wave * redshift
         if instFWHM > self.__spectralFWHM * redshift:
@@ -253,6 +466,24 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def applyGaussianLOSVD(self, vel, disp_vel):
+        """Obtain a new SSP library where the spectra are broadened with a
+        Gaussian profile and shifted to the velocity of the object.
+
+        Parameters
+        ----------
+        vel : float
+            The velocity of the object in km/s to which the template spectra
+            will be moved.
+        disp_vel : float
+            The velocity dispersion of the object in km/s to which the template
+            spectra will be broadened.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with the spectra broadened and
+            shifted.
+        """
         disp_pix = disp_vel / self.__vel_sampling
         data = ndimage.filters.gaussian_filter1d(self.__data, numpy.fabs(disp_pix), axis=0, mode='constant')
         if self.__normalization is not None:
@@ -266,6 +497,19 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def applyExtinction(self, A_V, law='Cardelli', R_V=3.1):
+        """Applies an extiction law to the template spectra.
+
+        Parameters
+        ----------
+        A_V : float
+        law : {'Cardelli'}
+        R_V : float
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+
+        """
         micron = self.__wave / 10000.0
         wave_number = 1.0 / micron
         y = wave_number - 1.82
@@ -285,6 +529,27 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def modelSpec(self, vel, vel_disp, A_V, wave, coeff=None):
+        """Builds a models spectrum given a velocity, velocity dispersion and
+        an extinction.
+
+        Parameters
+        ----------
+        vel : float
+            The velocity of the object in km/s to which the template spectra
+            will be moved.
+        disp_vel : float
+            The velocity dispersion of the object in km/s to which the template
+            spectra will be broadened.
+        A_V : float
+        wave : numpy.ndarray
+        coeff : numpy.ndarray, optional
+            The weights that each template spectrum has.
+
+        Returns
+        -------
+        compSpec : Spectrum1D
+            The model spectrum build given the constraints on the parameters.
+        """
         if A_V <= 0:
             A_V = 0
         if vel_disp <= 0:
@@ -297,6 +562,33 @@ class SSPlibrary(UserDict):
         return tempLib.compositeSpectrum(coeff)
 
     def fitMCMC(self, vel_min, vel_max, vel_disp_min, vel_disp_max, A_V_min, A_V_max, inputSpec):
+        """Will fit the input spectrum with the templates and the constraints
+        on the parameters in order to determine the best fit and the
+        corresponding errors.
+
+        Parameters
+        ----------
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC.
+        vel_disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        vel_disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        A_V_min : float
+            The minimum possible extinction used in the MCMC.
+        A_V_max : float
+            The maximum possible extinction used in the MCMC.
+        inputSpec : Spectrum1D
+            The spectrum which will be fitted by the library given the
+            constraints.
+
+        Returns
+        -------
+        M : pymc.MCMC
+            An object which contains all the information from the fit.
+        """
         valid_pix = numpy.logical_not(inputSpec._mask)
         wave = inputSpec._wave[valid_pix]
 
@@ -315,6 +607,18 @@ class SSPlibrary(UserDict):
         return M
 
     def residuumFullFit(self, parameters, inputSpec):
+        """
+
+        Parameters
+        ----------
+        parameters : list
+            The list contains the parameters velocity, velocity dispersion and
+            extinction.
+        inputSpec : ???
+
+        Returns
+        -------
+        """
         vel = parameters[0]
         vel_disp = parameters[1]
         extinction = parameters[2]

@@ -13,6 +13,30 @@ from types import *
 
 
 class Spectrum1D(object):
+    """A class representing 1D spectrum.
+
+    `Spectrum1D` is a class which allows for handling and organizing a one-
+    dimensional spectrum.
+
+    Parameters
+    ----------
+    wave : `numpy.ndarray`
+        The wavelength at each point of the `data` array.
+    data : `numpy.ndarray`
+        The spectrum. Should be of the same size as `wave`.
+    error : `numpy.ndarray`, optional
+        The error spectrum.
+        If `error` equals None, it is assumed the error spectrum is not
+        known.
+    mask : `numpy.ndarray`
+        A boolean array where True represents a masked (invalid) data point
+        and False a good data point.
+    normalization : `numpy.ndarray`
+        An array which is used to normalize the data/error; both data and
+        error are divided by `normalization`.
+    inst_fwhm : float
+        The instrumental FWHM in the same units as `wavelength`.
+    """
     def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None):
         self.__wave = wave
         self.__data = data
@@ -25,21 +49,46 @@ class Spectrum1D(object):
         self.__inst_fwhm = inst_fwhm
 
     def getWave(self):
+        """Obtain the wavelength grid as a 1D numpy array."""
         return self.__wave
 
     def getData(self):
+        """Obtain the spectrum as a 1D numpy array."""
         return self.__data
 
     def setData(self, data):
+        """Change the spectrum by providing a 1D numpy array. The array should
+        be of the same shape as the wavelength grid."""
         self.__data = data
 
     def getError(self):
+        """Obtain the error associated to the spectrum as a 1D numpy array."""
         return self.__error
 
     def setError(self, error):
+        """Set the error of the wavelength grid by providing a 1D numpy array.
+        The array should be of the same shape as the spectrum."""
         self.__error = error
 
     def hasData(self, start_wave=None, end_wave=None):
+        """Check if there is any unmasked data available between the provided
+        wavelength limits.
+
+        Parameters
+        ----------
+        start_wave : float, optional
+            The lower wavelength limit. The standard value is the lowest value
+            in the wavelength grid.
+        end_wave : float, optional
+            The upper wavelength limit. The standard value is the lowest value
+            in the wavelength grid.
+
+        Returns
+        -------
+        dataAvailable : bool
+            True if there is unmasked data with the wavelength limits, otherwise
+            False.
+        """
         if start_wave is not None:
             self.__mask = numpy.logical_or(self.__mask, self.__wave<start_wave)
         if end_wave is not None:
@@ -50,24 +99,45 @@ class Spectrum1D(object):
             return False
 
     def getMask(self):
+        """Obtain the mask as a 1D numpy array."""
         return self.__mask
 
     def setMask(self, mask):
+        """Change the mask by providing a 1D numpy array. The mask should be of
+        the same shape as the spectrum."""
         self.__mask = mask
 
     def getNormalization(self):
+        """Obtain the normalization of the spectrum as a 1D numpy array."""
         return self.__normalization
 
     def setNormalization(self, normalization):
+        """Change the normalization array of the spectrum by providing a 1D
+        numpy array. The mask should be of the same shape as the spectrum."""
         self.__normalization = normalization
 
     def applyNormalization(self, normalization):
+        """Apply the normalization to the data and the errors."""
         if self.__normalization is None:
             self.__data = self.__data / normalization
             if self.__error is not None:
                 self.__error = self.__error / normalization
 
     def subWave(self,select_wave):
+        """Obtain a copy of Spectrum1D within a certain wavelength range.
+
+        Parameters
+        ----------
+        select_wave : numpy.ndarray
+            A 1D boolean array where the True value represents which elements
+            in the `wave`, `data`, `error`, `mask` and `normalization`
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new `Spectrum1D` instance containing only the elements
+            according to `select_wave`.
+        """
         if self.getError() is not None:
             new_error = self.getError()[select_wave]
         else:
@@ -85,18 +155,52 @@ class Spectrum1D(object):
         return spec
 
     def getFWHM(self):
+        """Obtain the FWHM of the spectra, provided in the same units as the
+        wavelength grid."""
         return self.__inst_fwhm
 
     def setFWHM(self, FWHM):
+        """Change the value of the FWHM of the spectra."""
         self.__inst_fwhm = FWHM
 
     def setVelSampling(self, vel_sampling):
+        """Change the velocity sampling of the spectra (float, km/s)."""
         self.__vel_sampling = vel_sampling
 
     def getVelSampling(self):
+        """Obtain the velocity sampling of the spectra in km/s."""
         return self.__vel_sampling
 
     def resampleSpec(self, ref_wave, method='spline', err_sim=500, replace_error=1e10):
+        """Returns a new Spectrum1D object resampled to a new wavelength grid
+
+        The interpolation is perfomed based on the `method`-argument.
+
+        Parameters
+        ----------
+        ref_wave : numpy.ndarray
+            The new wavelength array to which the spectrum will be
+            resampled.
+        method : {'spline', 'linear', 'hann', 'lanczos2', 'lanczos3'}, optional
+            Specifies the resampling method.
+            'spline' : 3rd degree spline interpolation without smoothing
+            'linear' : linear interpolation
+            'hann' : *Not implemented*, uses a Hann window for resampling
+            'lanczos2' : *Not implemented*, uses a Lanczos kernel for
+            resampling with the window parameter set at a = 2.
+            'lanczos3' : *Not implemented*, uses a Lanczos kernel for
+            resampling with the window parameter set at a = 3. It is
+            therefore broader than `lanczos2`-kernel.
+        err_sim : *Not implemented* int
+        replace_error : *Not implemented* int
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new `Spectrum1D` instance resampled to the new wavelength grid.
+            Currently, the masks, errors and normalization are not
+            propagated in `spec`.
+        """
         # perform the interpolation on the data
         if method == 'spline':
             intp = interpolate.UnivariateSpline(self.__wave, self.__data, s=0, k=3)
@@ -133,6 +237,14 @@ class Spectrum1D(object):
         return spec_out
 
     def rebinLogarithmic(self):
+        """Rebin the spectrum from a linear wavelength grid to a logarithmic
+        wavelength grid.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object with the `data` in logarithmic base.
+        """
         wave_log = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
         - numpy.log10(self.__wave[0])) / len(self.__wave))
         new_spec = self.resampleSpec(wave_log)
@@ -140,6 +252,27 @@ class Spectrum1D(object):
         return new_spec
 
     def applyGaussianLOSVD(self, vel, disp_vel):
+        """Returns a broadened copy of the spectrum.
+        
+        Parameters
+        ----------
+        vel : float
+            The `wave` is redshifted according to `vel`, which should
+            be specified in km/s.
+        disp_vel : float
+            The velocity dispersion value in km/s, which will be used
+            for the Gaussian broadening of the data.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object which is redshifted and broadened.
+
+        Notes
+        -----
+        No correction is applied to `error`, `mask`, and
+        `normalization`.
+        """
         disp_pix = disp_vel / self.__vel_sampling
         new_data = ndimage.filters.gaussian_filter(self.__data, disp_pix, mode='constant')
         wave = self.__wave * (1 + vel / 300000.0)
@@ -151,6 +284,17 @@ class Spectrum1D(object):
         return spec_out
 
     def correctExtinction(self, A_V, mode='correct', law='Cardelli', R_V=3.1):
+        """
+        Parameters
+        ----------
+        A_V : 
+        mode : 
+        Cardelli : 
+        R_V : 
+
+        Returns : 
+        spec_out : 
+        """
         micron = self.__wave / 10000.0
         wave_number = 1.0 / micron
         y = wave_number - 1.82
@@ -181,6 +325,19 @@ class Spectrum1D(object):
         return spec_out
 
     def randomizeSpectrum(self):
+        """Draw a new spectrum by assuming that the `error` corresponding
+        to `data` follows a normal distribution.
+        
+        Returns
+        -------
+        spec_out : Spectrum1D
+            A new Spectrum1D object representing the new spectrum.
+
+        Notes
+        -----
+        In the case that the `error` equals None, a copy of the original
+        Spectrum1D object is returned.
+        """
         if self.__error is not None:
             data_new = numpy.random.Normal(self.__data, self.__error)
             spec_out = Spectrum1D(data=data_new, error=self.__error, mask=self.__mask)
@@ -190,12 +347,52 @@ class Spectrum1D(object):
                 pass
         else:
             spec_out = self
+
     def applyKin(self, vel, disp_vel, wave):
+        """Shifts and broadens the spectrum and resamples it to a new
+        wavelength grid.
+
+        Parameters
+        ----------
+        vel : float
+            The `wave` is redshifted according to `vel`, which should
+            be specified in km/s.
+        disp_vel : float
+            The velocity dispersion value in km/s, which will be used
+            for the Gaussian broadening of the data.
+        wave : numpy.ndarray
+            The new wavelength grid on which the broadened and redshifted
+            spectra will be sampled.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object representing the spectrum after the
+            kinematic transformation.
+        """
         tempSpec = self.applyGaussianLOSVD(vel, disp_vel)
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
 
     def normalizeSpec(self, pixel_width, mask_norm=None):
+        """Calculates a normalized version of the spectrum by dividing the
+        spectrum and the error by a running mean.
+
+        Parameters
+        ----------
+        pixel_width : int
+            Defines the width over which the running mean is calculated.
+        mask_norm : numpy.ndarray, optional
+            If provided, it combines `mask_norm` with `mask`, if
+            available, which masks out the elements for determining
+            `normalization`.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A new Spectrum1D object to which the normalization is
+            applied.
+        """
         mean = numpy.zeros(len(self.__data), dtype=numpy.float32)
         data_temp = numpy.zeros(len(self.__data), dtype=numpy.float32)
         data_temp[:] = self.__data
@@ -225,6 +422,8 @@ class Spectrum1D(object):
         return spec_out
 
     def unnormalizedSpec(self):
+        """Creates a copy for which the normalization is removed.
+        """
         data = self.__data * self.__normalization
         if self.__error is not None:
             error = self.__error * self.__normalization
@@ -234,6 +433,28 @@ class Spectrum1D(object):
         return spec_out
 
     def fitSuperposition(self, SSPLibrary, negative=False):
+        """Fits a superposition of template spectra to the data.
+
+        Parameters
+        ----------
+        SSPLibrary : SSPlibrary
+            Contains a library of template spectra which are used for
+            the fitting.
+        negative : bool, optional
+            When `negative` is False, it will apply non-negative least
+            squares to determine the best fit. If `negative` is True,
+            ordinary least squares fitting will be applied.
+
+        Returns
+        -------
+        coeff : numpy.ndarray
+            The coefficients of the best fit.
+        bestfit_spec : Spectrum1D
+            The spectrum which resembles the best combination of
+            template spectra.
+        chisq : float
+            The chi^2 value corresponding to `bestfit_spec`.
+        """
         valid_pix = numpy.logical_not(self.__mask)
         if self.__error is None:
             error = numpy.ones((self.__dim), dtype=numpy.float32)
@@ -250,6 +471,38 @@ class Spectrum1D(object):
         return libFit.getCoeff(), bestfit_spec, chi2
 
     def fitKinMCMC_fixedpop(self, spec_model, vel_min, vel_max, vel_disp_min, vel_disp_max, burn=1000, samples=3000, thin=2):
+        """Fits a spectrum according to Markov chain Monte Carlo
+        algorithm to obtain statistics on the kinematics. This uses the
+        PyMC library.
+
+        Parameters
+        ----------
+        spec_model : Spectrum1D
+            A single spectrum from a SSP library used to fit the data of the
+            current spectrum with.
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC.
+        vel_disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        vel_disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        burn : int, optional
+            The burn-in parameter that is often applied in MCMC
+            implementations. The first `burn` samples will be discarded
+            in the further analysis.
+        samples : int, optional
+            The number of iterations runned by PyMC.
+        thin : int, optional
+            Only keeps every `thin`th sample, this argument should
+            circumvent any possible autocorrelation among the samples.
+
+        Returns
+        -------
+        M : pymc.MCMC
+            Contains all the relevant information from the PyMC-run.
+        """
         valid_pix = numpy.logical_not(self.__mask)
         wave = self.__wave[valid_pix]
 
@@ -270,6 +523,60 @@ class Spectrum1D(object):
 
     def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None,
          iterations=3, burn=50, samples=200, thin=1):
+        """Fits template spectra according to Markov chain Monte Carlo
+        algorithm. This uses the PyMC library.
+
+        Parameters
+        ----------
+        lib_SSP : SSPlibrary
+            The library containing the template spectra.
+        nlib_guess : int
+            The initial guess for the best fitting template spectrum.
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC.
+        disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        mask_fit : numpy.ndarray
+            A boolean array representing any regions which are masked
+            out during the fitting.
+        iterations : int
+            The number of iterations applied to determine the best
+            combination of velocity, velocity dispersion and the
+            coefficients for the set of template spectra.
+        burn : int, optional
+            The burn-in parameter that is often applied in MCMC
+            implementations. The first `burn` samples will be discarded
+            in the further analysis.
+        samples : int, optional
+            the number of iterations runned by PyMC.
+        thin : int, optional
+            Only keeps every `thin`th sample, this argument should
+            circumvent any possible autocorrelation among the samples.
+
+        Returns
+        -------
+        vel : float
+            The average velocity from the MCMC-sample.
+        vel_err : float
+            The standard deviation in the velocity from the MCMC-sample.
+        disp : float
+            The average velocity dispersion from the MCMC-sample.
+        disp_err : float
+            The standard devation in the velocity dispersion from the
+            MCMC-sample.
+        bestfit_spec : Spectrum1D
+            The best fitted spectrum obtained from the linear
+            combination of template spectra.
+        coeff : numpy.ndarray
+            The coefficients of the SSP library which will produce the best fit
+            to the data.
+        chisq : float
+            The chi^2 value between `bestfit_spec` and `data`.
+        """
         spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         if mask_fit is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
@@ -290,6 +597,51 @@ class Spectrum1D(object):
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
         method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
         parallel=1):
+        """
+
+        Parameters
+        ----------
+        lib_SSP : SSPlibrary
+            The library containing the template spectra.
+        vel : float
+            The redshift of the object in km/s.
+        disp : float
+            The velocity dispersion value in km/s, which will be used
+            for the Gaussian broadening of the template spectra.
+        vel_err : float, optional
+            ???Unused???
+        disp_err : float, optional
+            ???Unused???
+        par_eline : parFile, optional
+            A list of emission lines that will be included in the bootstrap
+            fitting procedure.
+        select_wave_eline : numpy.ndarray
+            A 1D boolean array where the True value represents which wavelength
+            elements will be used in the emission line fitting.
+        method_eline : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        guess_window : float, optional
+            The wavelength region in which the emission line will be fitted.
+        spectral_res : float, optional
+            The spectral resolution of the line.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        bootstraps : int, optional
+            The number of bootstraps runs that will be performed.
+        modkeep : float
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        """
         mass_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(self.getWave())
@@ -371,6 +723,30 @@ class Spectrum1D(object):
         return numpy.std(mass_weighted_pars,0), numpy.std(lum_weighted_pars,0), lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):
+        """Fits the spectrum and determines the parameters and the corresponding
+        errors of the fit.
+
+        Parameters
+        ----------
+        par : parFile
+            The object containing all the constraints on the parameters.
+        err_sim : int, optional
+            The number of simulations which will be runned to estimate the
+            errors.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        method : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+        """
         static_par = deepcopy(par)
 
         if self.getError() is not None:
@@ -388,6 +764,44 @@ class Spectrum1D(object):
 
     def fitELines(self, par, select_wave, method='leastsq', guess_window=0.0, spectral_res=0.0, ftol=1e-4,
     xtol=1e-4, parallel='auto'):
+        """This routine fits a set of emission lines to a spectrum
+
+        Parameters
+        ----------
+        par : parFile
+            The object containing all the constraints on the parameters.
+        select_wave : numpy.ndarray
+            A 1D boolean array where the True value represents which elements
+            in the wave, data, error, mask and normalization.
+        method : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        guess_window : float, optional
+            The wavelength region in which the emission line will be fitted.
+        spectral_res : float, optional
+            The spectral resolution of the line.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        out_model : dictionary
+            The flux and the velocity shift of each line
+        best_fit : numpy.ndarray
+            A 1D numpy array representing the best fitted values at the
+            wavelength range `select_wave`.
+        best_res : numpy.ndarray
+            A 1D numpy array representing the residuals at the wavelength range
+            `select_wave`.
+        """
         spec_res = float(spectral_res / 2.354)
         #par = fit_profile.parFile(par_file, spec_res)
         fit_par = deepcopy(par)
@@ -441,21 +855,21 @@ class Spectrum1D(object):
 
 
 def _pickle_method(method):
-      func_name = method.im_func.__name__
-      obj = method.im_self
-      cls = method.im_class
-      if func_name.startswith('__') and not func_name.endswith('__'):
-	cls_name = cls.__name__.lstrip('_')
-	if cls_name: func_name = '_' + cls_name + func_name
-      return _unpickle_method, (func_name, obj, cls)
+    func_name = method.im_func.__name__
+    obj = method.im_self
+    cls = method.im_class
+    if func_name.startswith('__') and not func_name.endswith('__'):
+        cls_name = cls.__name__.lstrip('_')
+    if cls_name: func_name = '_' + cls_name + func_name
+        return _unpickle_method, (func_name, obj, cls)
 
 def _unpickle_method(func_name, obj, cls):
-      for cls in cls.mro():
-	try:
-	  func = cls.__dict__[func_name]
-	except KeyError:
-	  pass
-	else:
-	  break
-      return func.__get__(obj, cls)
+    for cls in cls.mro():
+        try:
+            func = cls.__dict__[func_name]
+        except KeyError:
+            pass
+    else:
+        break
+    return func.__get__(obj, cls)
 copy_reg.pickle(MethodType,_pickle_method, _unpickle_method)

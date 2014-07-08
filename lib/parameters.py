@@ -4,24 +4,50 @@ import Paradise
 import pylab
 
 class Parameter(object):
+    """A container for storing a parameter value and the corresponding
+    description.
+
+    Parameters
+    ----------
+    value : float
+        The value of the parameter that we want to store.
+    description : string, optional
+        The type of object that is stored.
+    """
     def __init__(self, value, description=''):
         self.setValue(value)
         self.setDescription(description)
 
     def getValue(self):
+        """Obtain the value of the parameter."""
         return self.__value
 
     def getDescription(self):
+        """Get the description of the parameter as a string."""
         return self.__description
 
     def setValue(self, value):
+        """Change the value of the parameter."""
         self.__value = value
 
     def setDescription(self, description):
+        """Change the description of the parameter by providing a string."""
         self.__description = description
 
 
 class ParameterList(UserDict):
+    """A container class consisting of the parameter name as the key and a
+    Parameter object (consisting of value and description) as its value.
+
+    Parameters
+    ----------
+    filename : string, None, optional
+        If a filename is given, the parameters will be read in from the file as
+        following:
+        parameterName1 parameterValue1                    !description1
+        parameterName2 parameterValue2                    !description2
+        ...
+    """
     def __init__(self, filename=None):
         UserDict.__init__(self)
         if filename is not None:
@@ -38,6 +64,23 @@ class ParameterList(UserDict):
 
 
 class CustomMasks(UserDict):
+    """Handles the masked regions in a spectrum. At initialization, the class
+    receives a filename consisting of wavelength regions which are masked out
+    in some parts of the fitting procedure.
+
+    Example
+    -------
+    An example of an exclude file is like:
+    [rest-frame]
+    5705  5735
+    5866  5916
+    6075  6100
+    6700  6740
+
+    [observed-frame]
+    5570 5582
+    5890 5910
+    """
     def __init__(self, filename):
         UserDict.__init__(self)
         infile = open(filename, 'r')
@@ -63,6 +106,25 @@ class CustomMasks(UserDict):
         self['rest_frame'] = numpy.array(rest_frame)
 
     def maskPixelsObserved(self, wave, redshift, init_mask=None):
+        """Create a mask for the wavelengths at a particular redshift. The
+        rest-frame masking specifications will be redshifted.
+
+        Parameters
+        wave : numpy.ndarray
+            The wavelengths for which the mask will be created.
+        redshift : float
+            The redshift-correction to be applied to the rest-frame mask
+            windows.
+        init_mask : numpy.ndarray, optional
+            An initial mask, where some values are already masked out to which
+            the mask created by this function will be added.
+
+        Returns
+        mask : numpy.ndarray
+            A boolean array of the same shape as `wave` where the elements
+            are true represent masked values.
+        -------
+        """
         if init_mask is None:
             mask = numpy.zeros(len(wave), dtype="bool")
         else:
@@ -75,6 +137,26 @@ class CustomMasks(UserDict):
         return mask
 
     def maskPixelsRest(self, wave, redshift, init_mask=None):
+        """Create a mask for the wavelengths in the rest-frame. The
+        observed-frame masking specifications will be redshifted.
+
+        Parameters
+        ----------
+        wave : numpy.ndarray
+            The wavelengths for which the mask will be created.
+        redshift : float
+            The redshift-correction to be applied to the observed-frame mask
+            windows.
+        init_mask : numpy.ndarray, optional
+            An initial mask, where some values are already masked out to which
+            the mask created by this function will be added.
+
+        Returns
+        -------
+        mask : numpy.ndarray
+            A boolean array of the same shape as `wave` where the elements
+            are true represent masked values.
+        """
         if init_mask is None:
             mask = numpy.zeros(len(wave), dtype="bool")
         else:
@@ -87,6 +169,22 @@ class CustomMasks(UserDict):
         return mask
 
     def maskSpectrum(self, inputSpec, redshift):
+        """Creates a Spectrum1D object for which the masked regions are
+        included.
+
+        Parameters
+        ----------
+        inputSpec : Spectrum1D
+            The spectrum which will be used to construct a masked spectrum.
+        redshift : float
+            The redshift at which the object resides. This will be used to move
+            the rest frame wavelength window masks accordingly.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            A Spectrum1D object with the regions masked out.
+        """
         wave = inputSpec.getWave()
         values = inputSpec.getData()
         error = inputSpec.getError()
