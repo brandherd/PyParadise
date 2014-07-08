@@ -131,7 +131,7 @@ class Cube(Header):
             mask = numpy.logical_or(self._mask, mask_norm[:, numpy.newaxis, numpy.newaxis])
             select_bad = mask
         else:
-            mask = mask_norm
+            mask = mask_norm[:, numpy.newaxis, numpy.newaxis]
             select_bad = mask
         data_temp[select_bad] = 0.0
         uniform = ndimage.filters.convolve(data_temp, numpy.ones((pixel_width, 1, 1), dtype=numpy.int16), mode='nearest')
