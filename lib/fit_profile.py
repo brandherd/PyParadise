@@ -327,7 +327,14 @@ class fit_profile1D(object):
         pylab.show()
 
 class parFile(fit_profile1D):
+    """Handles the storage guessing and loading of the parameters to the class
+    fit_profile1D.
+
+    self._par is a list
+    self._parameters is a dictionary with the names as a key
+    """
     def freePar(self):
+        """Saves all the fixed parameters?"""
         parameters=[]
         for n in self._names:
             if self._profile_type[n]=='Gauss':
@@ -343,6 +350,7 @@ class parFile(fit_profile1D):
         self._par = parameters
 
     def restoreResult(self):
+        """No clue..."""
         m=0
         for n in self._names:
             if self._profile_type[n]=='TemplateScale':
@@ -396,6 +404,8 @@ class parFile(fit_profile1D):
                         self._parameters[n]['disp'] = self._parameters[self._parameters[n]['disp']]['disp']
 
     def guessPar(self, x, y):
+        """Make an educated guess to what the parameters should be based on the
+        data"""
         w = self._guess_window
         dx = numpy.median(x[1:]-x[:-1])
         temp_y = deepcopy(y)
@@ -479,6 +489,49 @@ class parFile(fit_profile1D):
         return y
 
     def __init__(self, file,spec_res=0):
+        """Reads in a parameter file and stores the profile type, the name of
+        the line and the wavelength, the flux velocity and dispersion guess.
+
+        Parameters
+        ----------
+        file : str
+            The filename of the parameter file.
+        spec_res : float, optional
+            The spectral resolution?
+
+        Example
+        -------
+        The different emission lines should be seperated by at least one empty
+        line. The first block of lines describing an emission line, should have
+        the format "a: b"; there is no space between "a" and the colon. "a"
+        represents the type of emission line (i.e. "Gauss") and "b" the name of
+        the emission line. Not that there should not be any spaces in the name
+        of "b": "OIII5007" is valid but "OIII 5007" not. Following the first
+        line of each block, should be the properties/initial guesses of the
+        line. For example, "restwave 5006.84" represents that the position line
+        is guessed to be at 5006.84 and "vel 3700.0 1" represents that the
+        velocity of the line is fixed (described by the 1) at 3700 km/s.
+
+        An example of how the contents of a parameter file can be given:
+
+        Gauss: Halpha
+        restwave 6562.80
+        flux 10.0 1
+        vel 3700.0 1
+        disp 200.0 1
+
+        Gauss: Hbeta
+        restwave 4861.33
+        flux 10.0 1
+        vel Halpha
+        disp Halpha
+
+        Gauss: OIII5007
+        restwave 5006.84
+        flux 10.0 1
+        vel Halpha
+        disp Halpha
+        """
         fpar = open(file, 'r')
         lines = fpar.readlines()
         self._names=[]
