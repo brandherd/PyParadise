@@ -36,6 +36,18 @@ class Parameter(object):
 
 
 class ParameterList(UserDict):
+    """A container class consisting of the parameter name as the key and a
+    Parameter object (consisting of value and description) as its value.
+
+    Parameters
+    ----------
+    filename : string, None, optional
+        If a filename is given, the parameters will be read in from the file as
+        following:
+        parameterName1 parameterValue1                    !description1
+        parameterName2 parameterValue2                    !description2
+        ...
+    """
     def __init__(self, filename=None):
         UserDict.__init__(self)
         if filename is not None:
