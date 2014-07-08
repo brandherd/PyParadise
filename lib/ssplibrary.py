@@ -145,6 +145,20 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def subLibrary(self, select):
+        """Obtain a library where only a selected sample of template spectra is
+        used.
+
+        Parameters
+        ----------
+        select : numpy.ndarray
+            An array with the indices of the template spectra that will be
+            saved.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance with only the selected sample of template spectra.
+        """
         data = self.__data[:, select]
         coefficients = self.__coefficients[select]
         infoSSP = {}
