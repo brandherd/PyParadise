@@ -104,7 +104,24 @@ class fit_linearComb(object):
 
 
 class fit_profile1D(object):
+    """This class handles the fitting of line profiles.
+    """
     def __init__(self, par, func, guess_par=None, args=None):
+        """
+        Parameters
+        ----------
+        par : list of dicts
+            The parameters of the emission lines and additional properties.
+            Each element in the list represents one emission line and the dict
+            consists of the properties and corresponding values of the
+            emission line.
+        func : function
+            A python function that will be used to fit the line profile.
+        guess_par : list of dicts
+            ?
+        args : ?
+            ?
+        """
         self._par = par
         self._func = func
         self._guess_par = guess_par
@@ -114,21 +131,121 @@ class fit_profile1D(object):
         return self._func(x)
 
     def getPar(self):
+        """Obtain a list of dictionaries describing the properties of the
+        emission lines."""
         return self._par
 
     def res(self, par, x, y, sigma=1.0):
+        """Calculates the residuals between the best fit and the data points
+        supplied to the function.
+
+        Parameters
+        ----------
+        par : list of dictionaries
+            Stores the parameters of the emission lines and additional
+            properties. Each element in the list represents one emission line
+            and the dict consists of the properties and corresponding values of
+            the emission line.
+        x : numpy.ndarray or float
+            The `x` points corresponding to the `y` measurements.
+        y : numpy.ndarray or float
+            The measurements at `x`. Should be of the same shape as `x`.
+        sigma : numpy.ndarray or float, optional
+            The errors for the measurements.
+
+        Returns
+        -------
+        residuals : numpy.ndarray or float
+            The residuals at each data point `x`.
+        """
         self._par = par
         return (y-self(x))/sigma
 
 
     def residuum(self, par, x, y, sigma=1.0):
+        """Calculates the sum of the residuals between the best fit and the
+        data points.
+
+        Parameters
+        ----------
+        par : list
+            Stores the parameters of the emission lines and additional
+            properties. Each element in the list represents one emission line
+            and the dict consists of the properties and corresponding values of
+            the emission line.
+        x : numpy.ndarray or float
+            The `x` points corresponding to the `y` measurements.
+        y : numpy.ndarray or float
+            The measurements at `x`. Should be of the same shape as `x`.
+        sigma : numpy.ndarray or float, optional
+            The errors for the measurements.
+
+        Returns
+        -------
+        residuals : float
+            The sum of the residuals from each data point.
+        """
         self._par = par
         return numpy.sum(((y-self(x))/sigma)**2)
 
     def chisq(self, x, y, sigma=1.0):
+        """Calculates the sum of the residuals between the current best fit and
+        the data points.
+
+        Parameters
+        ----------
+        x : numpy.ndarray or float
+            The `x` points corresponding to the `y` measurements.
+        y : numpy.ndarray or float
+            The measurements at `x`. Should be of the same shape as `x`.
+        sigma : numpy.ndarray or float, optional
+            The errors for the measurements.
+
+        Returns
+        -------
+        residuals : float
+            The sum of the residuals from each data point.
+        """
         return numpy.sum(((y-self(x))/sigma)**2)
 
     def fit(self, x, y, sigma=1.0, p0=None, ftol=1e-8, xtol=1e-8, maxfev=9999, err_sim=0, warning=True, method='leastsq',parallel='auto'):
+        """Fits the provided set of data. The parameters of the fit and the
+        corresponding errors are stored in the class. The parameters are
+        available by calling the function `getPar`.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            The independent variable.
+        y : numpy.ndarray
+            The dependent variable.
+        sigma : numpy.ndarray or float, optional
+            The error associated with `y`.
+        p0 : list of dictionaries, optional
+            The initial estimates used in fitting. Each element in the list
+            represents one emission line and the dict consists of the properties
+            and corresponding values of the emission line.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        maxfev : int, optional
+            The maximum number of calls to the function for convergence.
+        err_sim : int, optional
+            The number of times the fit is repeated to determine the standard
+            deviation of the fit.
+        warning : bool, optional
+            ?
+        method : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+        """
         if  p0 == None and self._guess_par!=None:
             self._guess_par(x, y)
         p0 = self._par
@@ -193,6 +310,17 @@ class fit_profile1D(object):
 
 
     def plot(self, x, y=None):
+        """Plots the data and best fit. This requires the matplotlib package to
+        be available. The data will be plotted as black circles and the best
+        fit as a red line.
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            The `x` positions for which the best fit will be plotted.
+        y : numpy.ndarray, optional
+            The data points at the `x positions.`
+        """
         if y!=None:
             pylab.plot(x, y, 'ok')
         pylab.plot(x, self(x), '-r')
