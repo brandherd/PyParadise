@@ -189,6 +189,24 @@ class SSPlibrary(UserDict):
         return self.subLibrary(select), select
 
     def normalizeBase(self, pixel_width, exclude_obj=None, redshift=None):
+        """This function returns a normalized version of the template spectra by
+        division through a running mean.
+
+        Parameters
+        ----------
+        pixel_width : int
+            The window over which the running mean will be calculated.
+        exclude_obj : CustomMasks, optional
+            The intervals that will be used to mask out regions.
+        redshift : float, optional
+            The redshift information will be used to shift the `exclude_obj`
+            information to the right wavelengths.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance with only the template spectra normalized.
+        """
         if exclude_obj is not None and redshift is not None:
             mask = exclude_obj.maskPixelsRest(self.__wave, redshift)
         else:
