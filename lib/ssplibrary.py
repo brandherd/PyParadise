@@ -466,6 +466,24 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def applyGaussianLOSVD(self, vel, disp_vel):
+        """Obtain a new SSP library where the spectra are broadened with a
+        Gaussian profile and shifted to the velocity of the object.
+
+        Parameters
+        ----------
+        vel : float
+            The velocity of the object in km/s to which the template spectra
+            will be moved.
+        disp_vel : float
+            The velocity dispersion of the object in km/s to which the template
+            spectra will be broadened.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with the spectra broadened and
+            shifted.
+        """
         disp_pix = disp_vel / self.__vel_sampling
         data = ndimage.filters.gaussian_filter1d(self.__data, numpy.fabs(disp_pix), axis=0, mode='constant')
         if self.__normalization is not None:
