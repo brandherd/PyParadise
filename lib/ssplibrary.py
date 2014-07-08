@@ -418,6 +418,15 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def rebinLogarithmic(self):
+        """Rebin the template spectra from a linear wavelength grid to a
+        logarithmic wavelength grid.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with a logarithmic wavelength grid
+            and resampled spectra.
+        """
         wave_log = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
         - numpy.log10(self.__wave[0])) / len(self.__wave))
         new_SSP = self.resampleBase(wave_log)
