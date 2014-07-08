@@ -568,6 +568,11 @@ class parFile(fit_profile1D):
 
 
 class Gaussian(fit_profile1D):
+    """Represents a 1D Gaussian profile following fit_profile1D.
+
+    `par` will be of the form [A, mu, sigma] and the profile is of the form
+    A * e^(-(x - mu)^2 / (2 * sigma^2))
+    """
     def _profile(self, x):
         return self._par[0]*numpy.exp(-0.5*((x-self._par[1])/abs(self._par[2]))**2)/(fact*abs(self._par[2]))
 
@@ -583,6 +588,13 @@ class Gaussian(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile, self._guess_par)
 
 class Gaussian_const(fit_profile1D):
+    """Represents a 1D Gaussian profile following fit_profile1D. This function
+    differs from Gaussian because it allows a y-offset to be applied to the
+    gaussian function.
+
+    `par` will be of the form [A, mu, sigma, y_off] and the profile is of the form
+    y_off + A * e^(-(x - mu)^2 / (2 * sigma^2))
+    """
     def _profile(self, x):
         return self._par[0]*numpy.exp(-0.5*((x-self._par[1])/self._par[2])**2)/(fact*self._par[2]) + self._par[3]
 
@@ -600,6 +612,14 @@ class Gaussian_const(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile, self._guess_par)
 
 class Gaussian_poly(fit_profile1D):
+    """Represents a 1D Gaussian profile where the y-offset is represented by a
+    polynomial.
+
+    `par` will be of the form [A, mu, sigma, y_off, a1, a2, ...] and the
+    profile is of the form A * e^(-(x - mu)^2 / (2 * sigma^2)) + polynomial.
+    The polynomial is of the form a1 * x^(n-1) + a2 * x^(n-2) with the
+    polynomial coefficients a1, a2, ...
+    """
     def _profile(self, x):
         return self._par[0]*numpy.exp(-0.5*((x-self._par[1])/self._par[2])**2)/(fact*self._par[2]) + numpy.polyval(self._par[3:],x)
 
@@ -615,6 +635,8 @@ class Gaussian_poly(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile, self._guess_par)
 
 class Gaussians(fit_profile1D):
+    """Represents a sum of 1D Gaussian profiles. The parameters are like for
+    Gaussian1D, except that their are repeated n times for n Gaussians."""
     def _profile(self, x):
         y = numpy.zeros(len(x), dtype=numpy.float32)
         ncomp = len(self._par)/3
@@ -626,6 +648,9 @@ class Gaussians(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile)
 
 class Gaussians_width(fit_profile1D):
+    """Represents a sum of 1D Gaussian profiles, like Gaussians, but with the
+    difference that they can all have the same width.
+    """
     def _profile(self, x):
         y = numpy.zeros(len(x))
         ncomp = len(self._args)
@@ -637,6 +662,9 @@ class Gaussians_width(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile, args=args)
 
 class Gaussians_offset(fit_profile1D):
+    """Represents a sum of 1D Gaussian profiles, like Gaussians_width, but were
+    the mean position is offsetted.
+    """
     def _profile(self, x):
         y = numpy.zeros(len(x))
         ncomp = len(self._args)
@@ -650,6 +678,11 @@ class Gaussians_offset(fit_profile1D):
 
 
 class Gauss_Hermite(fit_profile1D):
+    """Represents a Gauss-Hermite quadrature profile.
+
+    `par` will be of the form [a, mu, sigma, h3, h4] where h3 and h4 are
+    the roots of the third and the fourth hermite polynomial.
+    """
     def _profile(self, x):
         a, mean, sigma, h3, h4 = self._par
         w  = (x-mean)/sigma
@@ -670,6 +703,11 @@ class Gauss_Hermite(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile, self._guess_par)
 
 class Exponential_constant(fit_profile1D):
+    """Represents an exponential profile with a y-offset.
+
+    `par` will be of the form [A, time, y_off] representing the
+    function A * e^(t/time) + y_off
+    """
     def _profile(self, x):
         scale, time, const = self._par
         y = scale*numpy.exp(x/time)+const
@@ -679,6 +717,8 @@ class Exponential_constant(fit_profile1D):
         fit_profile1D.__init__(self, par, self._profile)
 
 class LegandrePoly(object):
+    """Represents a legendre polynomial profile.
+    """
     def __init__(self, coeff, min_x=None, max_x=None):
         self._min_x = min_x
         self._max_x = max_x
