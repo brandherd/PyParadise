@@ -229,6 +229,9 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def unnormalizedBased(self):
+        """Returns an object in which the normalization is removed from the
+        template spectra.
+        """
         new_SSP = SSPlibrary(data=self.__data * self.__normalization, wave=self.__wave, spectralFWHM=self.__spectralFWHM,
              infoSSP=self, coefficients=self.__coefficients, normalization=None)
         return new_SSP
