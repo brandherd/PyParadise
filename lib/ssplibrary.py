@@ -384,6 +384,23 @@ class SSPlibrary(UserDict):
         return new_SSP
 
     def resampleWaveStepLinear(self, step, redshift):
+        """Returns a new library with the template spectra resampled to a new
+        linear wavelength grid.
+
+        Parameters
+        ----------
+        step : float
+            the new linear step size in the new wavelength grid
+        redshift : float
+            the redshift in which the object resides and to which the
+            wavelengths will be shifted to.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with a new wavelength grid and
+            resampled spectra.
+        """
         new_wave = numpy.arange(self.__wave[0], self.__wave[-1], step / (1 + float(redshift)))
         data = numpy.zeros((len(new_wave), self.__nbasis), dtype=numpy.float32)
         if self.__normalization is not None:
