@@ -354,6 +354,20 @@ class SSPlibrary(UserDict):
         return numpy.array(mean_out)
 
     def resampleBase(self, new_wave):
+        """Returns an object with the template spectra resampled on a new
+        wavelength grid.
+
+        Parameters
+        ----------
+        new_wave : numpy.ndarray
+            The new wavelength array on which the spectra will be resampled.
+
+        Returns
+        -------
+        new_SSP : SSPlibrary
+            A new instance of the SSPlibrary with a new wavelength grid and
+            resampled spectra.
+        """
         data = numpy.zeros((len(new_wave), self.__nbasis), dtype=numpy.float32)
         if self.__normalization is not None:
             normalization = numpy.zeros((len(new_wave), self.__nbasis), dtype=numpy.float32)
