@@ -562,6 +562,33 @@ class SSPlibrary(UserDict):
         return tempLib.compositeSpectrum(coeff)
 
     def fitMCMC(self, vel_min, vel_max, vel_disp_min, vel_disp_max, A_V_min, A_V_max, inputSpec):
+        """Will fit the input spectrum with the templates and the constraints
+        on the parameters in order to determine the best fit and the
+        corresponding errors.
+
+        Parameters
+        ----------
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC.
+        vel_disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        vel_disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        A_V_min : float
+            The minimum possible extinction used in the MCMC.
+        A_V_max : float
+            The maximum possible extinction used in the MCMC.
+        inputSpec : Spectrum1D
+            The spectrum which will be fitted by the library given the
+            constraints.
+
+        Returns
+        -------
+        M : pymc.MCMC
+            An object which contains all the information from the fit.
+        """
         valid_pix = numpy.logical_not(inputSpec._mask)
         wave = inputSpec._wave[valid_pix]
 
