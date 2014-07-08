@@ -19,15 +19,19 @@ class Parameter(object):
         self.setDescription(description)
 
     def getValue(self):
+        """Obtain the value of the parameter."""
         return self.__value
 
     def getDescription(self):
+        """Get the description of the parameter as a string."""
         return self.__description
 
     def setValue(self, value):
+        """Change the value of the parameter."""
         self.__value = value
 
     def setDescription(self, description):
+        """Change the description of the parameter by providing a string."""
         self.__description = description
 
 
