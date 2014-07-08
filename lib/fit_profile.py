@@ -16,7 +16,21 @@ except:
 fact = numpy.sqrt(2.*numpy.pi)
 
 class fit_linearComb(object):
+    """This class performs and stores results from the least squares fitting.
+    """
     def __init__(self, basis, coeff=None):
+        """Create an instance of fit_linearComb by supplying the template
+        spectra or restore an instance by supplying the template spectra and
+        the coefficients of a fit.
+
+        Parameters
+        ----------
+        basis : numpy.ndarray
+            A set of template spectra supplied as a 2D numpy array.
+        coeff : numpy.ndarray, optional
+            A 1D numpy array representing the combination of spectra in `basis`
+            which provides the best fit to a certain spectrum.
+        """
         self._basis = basis
         if coeff==None:
             self._coeff = numpy.zeros(self._basis.shape[1], dtype=numpy.float32)
@@ -24,12 +38,27 @@ class fit_linearComb(object):
             self._coeff = coeff
 
     def __call__(self):
+        """Returns the spectrum which best fitted the spectrum in the function
+        `fit_linearComb.fit`.
+        """
         return numpy.dot(self._basis, self._coeff)
 
     def getCoeff(self):
         return self._coeff
 
     def chisq(self, y, sigma=1.0, mask=None):
+        """Returns the chi^2 value between the best fit and the spectrum.
+
+        Parameters
+        ----------
+        y : numpy.ndarray
+            The observed spectrum as a 1D numpy array.
+        sigma : float, optional
+            The error spectrum corresponding to `y`.
+        mask : numpy.ndarray, optional
+            A mask, as a 1D boolean numpy array, representing any regions which
+            where masked out during the fitting.
+        """
         if mask==None:
             valid_pix = numpy.ones(len(y), dtype="bool")
         else:
@@ -37,6 +66,27 @@ class fit_linearComb(object):
         return numpy.sum((((y-self())/sigma)**2)[valid_pix])
 
     def fit(self, y, sigma=1.0, mask=None, negative=False):
+        """Performs a least squares fit.
+
+        Parameters
+        ----------
+        y : numpy.ndarray
+            The observed spectrum as a 1D numpy array.
+        sigma : float, optional
+            The error spectrum corresponding to `y`.
+        mask : numpy.ndarray, optional
+            A mask, as a 1D boolean numpy array, representing any regions which
+            will be masked out during the fitting.
+        negative : boolean, optional
+            When `negative` is False, it will apply non-negative least
+            squares to determine the best fit. If `negative` is True,
+            ordinary least squares fitting will be applied.
+
+        Notes
+        -----
+        It is recommended to set `negative` to False in the case that it is
+        expected that the flux in the spectrum cannot be less than zero.
+        """
         if len(sigma)==0:
             error = numpy.ones(len(y), dtype=numpy.float32)
         else:
