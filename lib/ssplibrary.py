@@ -607,6 +607,18 @@ class SSPlibrary(UserDict):
         return M
 
     def residuumFullFit(self, parameters, inputSpec):
+        """
+
+        Parameters
+        ----------
+        parameters : list
+            The list contains the parameters velocity, velocity dispersion and
+            extinction.
+        inputSpec : ???
+
+        Returns
+        -------
+        """
         vel = parameters[0]
         vel_disp = parameters[1]
         extinction = parameters[2]
