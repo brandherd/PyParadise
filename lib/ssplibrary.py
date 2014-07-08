@@ -68,15 +68,19 @@ class SSPlibrary(UserDict):
         self.__vel_sampling = None
 
     def getBase(self):
+        """Obtain all template spectra as a 2D numpy array."""
         return self.__data
 
     def getBaseNumber(self):
+        """Obtain the number of template spectra."""
         return self.__nbasis
 
     def getWave(self):
+        """Obtain the wavelength grid as a 1D numpy array."""
         return self.__wave
 
     def getSpec(self, i):
+        """Obtain the ith template spectrum as a Spectrum1D object."""
         spec = Paradise.Spectrum1D(wave=self.__wave, data=self.__data[:, i])
         try:
             spec.setVelSampling(self.getVelSampling())
@@ -85,21 +89,30 @@ class SSPlibrary(UserDict):
         return spec
 
     def getCoefficients(self):
+        """Get the weights/coefficients associated with the template spectra
+        as a 1D numpy array."""
         return self.__coefficients
 
     def setCoefficients(self, coeff):
+        """Change the weights/coefficients associated with the template spectra
+        by providing a 1D numpy array."""
         self.__coefficients = coeff
 
     def getNormalization(self):
+        """Obtain the normalization applied to all the template spectra as a
+        2D numpy array."""
         return self.__normalization
 
     def getData(self):
+        """Has the same functionality as SSPlibrary.getBase()."""
         return self.__data
 
     def setVelSampling(self, vel_sampling):
+        """Adjust the velocity sampling applied to the template spectra."""
         self.__vel_sampling = vel_sampling
 
     def getVelSampling(self):
+        """Obtain the velocity sampling applied to the template spectra."""
         return self.__vel_sampling
 
     def subWaveLibrary(self, min_wave=None, max_wave=None):
