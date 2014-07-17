@@ -13,20 +13,15 @@ import copy_reg
 
 class ParadiseApp(object):
     def __init__(self, input_file, outprefix, instrFWHM):
-        try:
-            self.__inputData = loadCube(input_file)
+        self.__inputData = loadCube(input_file)
+        if self.__inputData._datatype == 'CUBE':
             self.__inputData.correctError()
-            self.__cube = True
-            self.__rss = False
-        except IndexError:
-            try:
-                self.__inputData = loadRSS(input_file)
-                self.__inputData.correctError()
-                self.__cube = True
-                self.__rss = True
-            except:
-                sys.exit()
-
+            self.__datatype = 'CUBE'
+        elif self.__inputData._datatype == 'RSS':
+            self.__inputData = loadRSS(input_file)
+            self.__inputData.correctError()
+            self.__datatype = 'RSS'
+        print self.__inputData._dim
         self.__outPrefix = outprefix
         self.__instrFWHM = instrFWHM
 
@@ -57,7 +52,7 @@ class ParadiseApp(object):
             print "The stellar population library is being prepared."
         lib = SSPlibrary(filename=parList['tmpldir'].getValue() + '/' + parList['tmplfile'].getValue())
         #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_min + 2000) / 300000.0))
+        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
 
         #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
@@ -65,61 +60,63 @@ class ParadiseApp(object):
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
         lib_rebin = lib_norm.rebinLogarithmic()
 
-        if self.__cube is True:
-            t1 = time.time()
-            if verbose:
-                print "The input cube is being normalized."
-            normCube = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
+        if verbose:
+            print "The input cube is being normalized."
+        normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
-            t2 = time.time()
-            print (t2 - t1) / 60.0
-            normCubeSub = normCube.subCubeWave(start_wave, end_wave)
+        normDataSub = normData.subWaveLimits(start_wave, end_wave)
 
-            t1 = time.time()
-            if verbose:
-                print "The stellar population modelling has been started."
+        if verbose:
+            print "The stellar population modelling has been started."
+        if self.__datatype == 'CUBE':
             (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
-                cube_model) = normCubeSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
-                normCubeSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
+                normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
-            t2 = time.time()
-            print (t2 - t1) / 60.0
+        elif self.__datatype == 'RSS':
+            (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber,
+                rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
+                vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
+                verbose=verbose, parallel=parallel)
+
         if verbose:
                 print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
-        if self.__rss:
-            cube_model_out = RSS(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave, data=cube_model,
+        if self.__datatype == 'RSS':
+            model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave, data=rss_model,
                 header=self.__inputData.getHeader())
-            cube_model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
-            cube_res_out = RSS(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave,
-                data=self.__inputData.subCubeWave(start_wave, end_wave)._data - cube_model, header=self.__inputData.getHeader())
-            cube_res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
-        elif self.__cube:
-            cube_model_out = Cube(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave, data=cube_model,
+            res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave,
+                data=self.__inputData.subWaveLimits(start_wave, end_wave)._data - rss_model, header=self.__inputData.getHeader())
+        elif self.__datatype == 'CUBE':
+            model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave, data=cube_model,
                 header=self.__inputData.getHeader())
-            cube_model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
-            cube_res_out = Cube(wave=self.__inputData.subCubeWave(start_wave, end_wave)._wave,
-                data=self.__inputData.subCubeWave(start_wave, end_wave)._data - cube_model, header=self.__inputData.getHeader())
-            cube_res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
+            res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave,
+                data=self.__inputData.subWaveLimits(start_wave, end_wave)._data - cube_model, header=self.__inputData.getHeader())
+        model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
+        res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
 
         mass_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
         for i in range(len(fitted)):
             if fitted[i]:
-                try:
+               # try:
                     mass_weighted_pars[i, :] = lib_norm.massWeightedPars(coeff[i, :])
-                except:
+               # except:
                     mass_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
-                try:
+               # try:
                     lum_weighted_pars[i, :] = lib_norm.lumWeightedPars(coeff[i, :])
-                except:
+               # except:
                     lum_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
 
         columns = []
-        columns.append(pyfits.Column(name='x_cor', format='J', array=x_pix[fitted]))
-        columns.append(pyfits.Column(name='y_cor', format='J', array=y_pix[fitted]))
+        if self.__datatype == 'CUBE':
+            columns.append(pyfits.Column(name='x_cor', format='J', array=x_pix[fitted]))
+            columns.append(pyfits.Column(name='y_cor', format='J', array=y_pix[fitted]))
+        else:
+            columns.append(pyfits.Column(name='fiber', format='J', array=fiber[fitted]))
         columns.append(pyfits.Column(name='vel_fit', format='E', unit='km/s', array=vel_fit[fitted]))
         columns.append(pyfits.Column(name='vel_fit_err', format='E', unit='km/s', array=vel_fit_err[fitted]))
         columns.append(pyfits.Column(name='disp_fit', format='E', unit='km/s', array=disp_fit[fitted]))
@@ -156,34 +153,46 @@ class ParadiseApp(object):
         max_y = float(parList['max_y'].getValue())
 
         line_par = fit_profile.parFile(eCompFile, self.__instrFWHM / 2.354)
-        if self.__cube is True:
-            cube_res_out = loadCube(self.__outPrefix + '.cont_res.fits')
-            res_wave_start = cube_res_out._wave[0]
-            res_wave_end = cube_res_out._wave[-1]
-            cube_res_out._error = self.__inputData.subCubeWave(res_wave_start, res_wave_end)._error
-            cube_res_out._mask = self.__inputData.subCubeWave(res_wave_start, res_wave_end)._mask
-
-            out_lines = cube_res_out.fitELines(line_par, line_fit.maskPixelsObserved(cube_res_out.getWave(),
+        if self.__datatype == 'CUBE':
+            res_out = loadCube(self.__outPrefix + '.cont_res.fits')
+        elif self.__datatype == 'RSS':
+            res_out = loadRSS(self.__outPrefix + '.cont_res.fits')
+        res_wave_start = res_out._wave[0]
+        res_wave_end = res_out._wave[-1]
+        res_out._error = self.__inputData.subWaveLimits(res_wave_start, res_wave_end)._error
+        res_out._mask = self.__inputData.subWaveLimits(res_wave_start, res_wave_end)._mask
+        if self.__datatype == 'CUBE':
+            out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_x, max_x, min_y, max_y, method=efit_method, guess_window=guess_window,
                 spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=0, parallel=parallel)
-            cube_model_line = Cube(wave=cube_res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
-            cube_model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
-            cube_line_res = Cube(wave=cube_res_out._wave, data=cube_res_out._data - cube_model_line._data,
+            model_line = Cube(wave=cube_res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
+            line_res = Cube(wave=cube_res_out._wave, data=res_out._data - model_line._data,
                 header=self.__inputData.getHeader())
-            cube_line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
+        elif self.__datatype == 'RSS':
+            out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
+                vel_guess / 300000.0), min_y, max_y, method=efit_method, guess_window=guess_window,
+                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=0, parallel=parallel)
+            model_line = RSS(wave=cube_res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
+            line_res = RSS(wave=cube_res_out._wave, data=res_out._data - model_line._data,
+                header=self.__inputData.getHeader())
+        model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
+        line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
 
-            columns = []
+        columns = []
+        if self.__datatype == 'CUBE':
             columns.append(pyfits.Column(name='x_cor', format='J', array=out_lines[2][out_lines[1]]))
             columns.append(pyfits.Column(name='y_cor', format='J', array=out_lines[3][out_lines[1]]))
-            for n in line_par._names:
-                if line_par._profile_type[n] == 'Gauss':
-                    columns.append(pyfits.Column(name='%s_flux' % (n), format='E', array=out_lines[0][n]['flux'][out_lines[1]]))
-                    columns.append(pyfits.Column(name='%s_vel' % (n), format='E', unit='km/s',
-                        array=out_lines[0][n]['vel'][out_lines[1]]))
-                    columns.append(pyfits.Column(name='%s_fwhm' % (n), format='E', unit='km/s',
-                            array=out_lines[0][n]['fwhm'][out_lines[1]]))
-            table_out = pyfits.new_table(columns)
-            table_out.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
+        elif self.__datatype == 'RSS':
+            columns.append(pyfits.Column(name='fiber', format='J', array=out_lines[2][out_lines[1]]))
+        for n in line_par._names:
+            if line_par._profile_type[n] == 'Gauss':
+                columns.append(pyfits.Column(name='%s_flux' % (n), format='E', array=out_lines[0][n]['flux'][out_lines[1]]))
+                columns.append(pyfits.Column(name='%s_vel' % (n), format='E', unit='km/s',
+                    array=out_lines[0][n]['vel'][out_lines[1]]))
+                columns.append(pyfits.Column(name='%s_fwhm' % (n), format='E', unit='km/s',
+                        array=out_lines[0][n]['fwhm'][out_lines[1]]))
+        table_out = pyfits.new_table(columns)
+        table_out.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
     def run_bootstrap(self, stellar_parfile, eline_parfile, bootstraps, modkeep, parallel, verbose):
 
@@ -200,8 +209,11 @@ class ParadiseApp(object):
 
         hdu = pyfits.open(self.__outPrefix + '.stellar_table.fits')
         stellar_table = hdu[1].data
-        x_cor = stellar_table.field('x_cor')
-        y_cor = stellar_table.field('y_cor')
+        if self.__datatype == 'CUBE':
+            x_cor = stellar_table.field('x_cor')
+            y_cor = stellar_table.field('y_cor')
+        elif self.__datatype == 'RSS':
+            fiber = stellar_table.field('fiber')
         vel = stellar_table.field('vel_fit')
         disp = stellar_table.field('disp_fit')
 
@@ -220,39 +232,43 @@ class ParadiseApp(object):
             hdu = pyfits.open(self.__outPrefix + '.eline_table.fits')
             eline_table = hdu[1].data
 
-
         if verbose:
             print "The stellar population library is being prepared."
         lib = SSPlibrary(filename=tmpldir + '/' + tmplfile)
-        #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_min + 2000) / 300000.0))
+        min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
+        max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
 
-        #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
+        lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
         lib_rebin = lib_norm.rebinLogarithmic()
 
-
-        if self.__cube is True:
-            t1 = time.time()
-            if verbose:
-                print "The input cube is being normalized."
-            normCube = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
+        if verbose:
+            print "The input data is being normalized."
+        normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
-            t2 = time.time()
-            print (t2 - t1) / 60.0
-            normCubeSub = normCube.subCubeWave(start_wave, end_wave)
-            if eline_parfile is None:
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normCubeSub.fit_Lib_Boots(lib_rebin,
-                    x_cor, y_cor, vel, disp, bootstraps=bootstraps,modkeep=modkeep, parallel=parallel, verbose=verbose)
-            else:
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normCubeSub.fit_Lib_Boots(lib_rebin,
+        normDataSub = normData.subWaveLimits(start_wave, end_wave)
+        if eline_parfile is None:
+            if self.__datatype == 'CUBE':
+                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
+                    x_cor, y_cor, vel, disp, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel, verbose=verbose)
+            elif self.__datatype == 'RSS':
+                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
+                    fiber, vel, disp, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel, verbose=verbose)
+        else:
+            if self.__datatype == 'CUBE':
+                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
                     x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
-                    select_wave_eline=line_fit.maskPixelsObserved(normCubeSub.getWave(), vel_guess / 300000.0),
+                    select_wave_eline=line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
                     method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
                     ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
-
+            elif self.__datatype == 'RSS':
+                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
+                    fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
+                    select_wave_eline=line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
+                    method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
+                    ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
         columns_stellar = []
         columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_err', format='E', array=lum_weighted_pars_err[:, 0]))
         columns_stellar.append(pyfits.Column(name='lum_age_total_err', format='E', array=lum_weighted_pars_err[:, 1]))
@@ -266,7 +282,7 @@ class ParadiseApp(object):
         columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_err', format='E', array=mass_weighted_pars_err[:, 4]))
 
         hdu = pyfits.new_table(stellar_table.columns[:17] + pyfits.new_table(columns_stellar).columns)
-        hdu.writeto(self.__outPrefix + '.stellar_table.fits',clobber=True)
+        hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
         if maps is not None:
             columns_eline = []
@@ -278,8 +294,8 @@ class ParadiseApp(object):
                     columns_eline.append(pyfits.Column(name='%s_fwhm_err' % (n), format='E', unit='km/s',
                             array=maps[n]['fwhm_err']))
 
-            hdu = pyfits.new_table(eline_table.columns[:len(columns_eline)+2] + pyfits.new_table(columns_eline).columns)
-            hdu.writeto(self.__outPrefix + '.eline_table.fits',clobber=True)
+            hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
+            hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
 
 if __name__ == "__main__":
@@ -306,34 +322,9 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='Paradise', version
 
     args = parser.parse_args()
     app = ParadiseApp(args.input, args.outprefix, args.instrFWHM)
-    t1 = time.time()
     if args.SSP_par is not None and args.bootstraps is None:
         app.run_SSP_fit(args.SSP_par, args.parallel, args.verbose)
     if args.line_par is not None and args.bootstraps is None:
         app.run_eline_fit(args.line_par, args.parallel, args.verbose)
     if args.bootstraps is not None:
         app.run_bootstrap(args.SSP_par, args.line_par, args.bootstraps, args.modkeep, args.parallel, args.verbose)
-    t2 = time.time()
-    print (t2 - t1) / 60.0
-
-#def _pickle_method(method):
-    #func_name = method.im_func.__name__
-    #obj = method.im_self
-    #cls = method.im_class
-    #if func_name.startswith('__') and not func_name.endswith('__'):
-        #cls_name = cls.__name__.lstrip('_')
-    #if cls_name: func_name = '_' + cls_name + func_name
-    #return _unpickle_method, (func_name, obj, cls)
-
-#def _unpickle_method(func_name, obj, cls):
-    #for cls in cls.mro():
-        #try:
-            #func = cls.__dict__[func_name]
-        #except KeyError:
-            #pass
-        #else:
-            #break
-    #return func.__get__(obj, cls)
-#copy_reg.pickle(MethodType,_pickle_method, _unpickle_method)
-
-
