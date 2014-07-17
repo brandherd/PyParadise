@@ -4,18 +4,18 @@ import fit_profile
 from scipy import optimize
 from scipy import ndimage
 from scipy import interpolate
-import time
 import pymc
 import pylab
+from Paradise.lib.data import Data
 from copy import deepcopy
 import copy_reg
 from types import *
 
 
-class Spectrum1D(object):
+class Spectrum1D(Data):
     """A class representing 1D spectrum.
 
-    `Spectrum1D` is a class which allows for handling and organizing a one-
+    `Spectrum1D` is a subclass of Data which allows for handling and organizing a one-
     dimensional spectrum.
 
     Parameters
@@ -37,38 +37,9 @@ class Spectrum1D(object):
     inst_fwhm : float
         The instrumental FWHM in the same units as `wavelength`.
     """
-    def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None):
-        self.__wave = wave
-        self.__data = data
-        if data is not None:
-            self.__dim = self.__data.shape[0]
-            self.__pixels = numpy.arange(self.__dim)
-        self.__error = error
-        self.__mask = mask
-        self.__normalization = normalization
-        self.__inst_fwhm = inst_fwhm
-
-    def getWave(self):
-        """Obtain the wavelength grid as a 1D numpy array."""
-        return self.__wave
-
-    def getData(self):
-        """Obtain the spectrum as a 1D numpy array."""
-        return self.__data
-
-    def setData(self, data):
-        """Change the spectrum by providing a 1D numpy array. The array should
-        be of the same shape as the wavelength grid."""
-        self.__data = data
-
-    def getError(self):
-        """Obtain the error associated to the spectrum as a 1D numpy array."""
-        return self.__error
-
-    def setError(self, error):
-        """Set the error of the wavelength grid by providing a 1D numpy array.
-        The array should be of the same shape as the spectrum."""
-        self.__error = error
+    def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
+        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
+        header=None)
 
     def hasData(self, start_wave=None, end_wave=None):
         """Check if there is any unmasked data available between the provided
@@ -90,86 +61,14 @@ class Spectrum1D(object):
             False.
         """
         if start_wave is not None:
-            self.__mask = numpy.logical_or(self.__mask, self.__wave<start_wave)
+            self._mask = numpy.logical_or(self._mask, self._wave<start_wave)
         if end_wave is not None:
-            self.__mask = numpy.logical_or(self.__mask, self.__wave>end_wave)
-        if numpy.sum(self.__data) != 0 and numpy.sum(self.__mask) != len(self.__data):
+            self._mask = numpy.logical_or(self._mask, self._wave>end_wave)
+        if numpy.sum(self._data) != 0 and numpy.sum(self._mask) != len(self._data):
             return True
         else:
             return False
 
-    def getMask(self):
-        """Obtain the mask as a 1D numpy array."""
-        return self.__mask
-
-    def setMask(self, mask):
-        """Change the mask by providing a 1D numpy array. The mask should be of
-        the same shape as the spectrum."""
-        self.__mask = mask
-
-    def getNormalization(self):
-        """Obtain the normalization of the spectrum as a 1D numpy array."""
-        return self.__normalization
-
-    def setNormalization(self, normalization):
-        """Change the normalization array of the spectrum by providing a 1D
-        numpy array. The mask should be of the same shape as the spectrum."""
-        self.__normalization = normalization
-
-    def applyNormalization(self, normalization):
-        """Apply the normalization to the data and the errors."""
-        if self.__normalization is None:
-            self.__data = self.__data / normalization
-            if self.__error is not None:
-                self.__error = self.__error / normalization
-
-    def subWave(self,select_wave):
-        """Obtain a copy of Spectrum1D within a certain wavelength range.
-
-        Parameters
-        ----------
-        select_wave : numpy.ndarray
-            A 1D boolean array where the True value represents which elements
-            in the `wave`, `data`, `error`, `mask` and `normalization`
-
-        Returns
-        -------
-        spec : Spectrum1D
-            A new `Spectrum1D` instance containing only the elements
-            according to `select_wave`.
-        """
-        if self.getError() is not None:
-            new_error = self.getError()[select_wave]
-        else:
-            new_error = None
-        if self.getMask() is not None:
-            new_mask = self.getMask()[select_wave]
-        else:
-            new_mask = None
-        if self.getNormalization() is not None:
-            new_normalization = self.getNormalization()[select_wave]
-        else:
-            new_normalization = None
-        spec = Spectrum1D(wave=self.getWave()[select_wave], data=self.getData()[select_wave], error=new_error, mask=new_mask,
-            normalization=new_normalization, inst_fwhm=self.getFWHM())
-        return spec
-
-    def getFWHM(self):
-        """Obtain the FWHM of the spectra, provided in the same units as the
-        wavelength grid."""
-        return self.__inst_fwhm
-
-    def setFWHM(self, FWHM):
-        """Change the value of the FWHM of the spectra."""
-        self.__inst_fwhm = FWHM
-
-    def setVelSampling(self, vel_sampling):
-        """Change the velocity sampling of the spectra (float, km/s)."""
-        self.__vel_sampling = vel_sampling
-
-    def getVelSampling(self):
-        """Obtain the velocity sampling of the spectra in km/s."""
-        return self.__vel_sampling
 
     def resampleSpec(self, ref_wave, method='spline', err_sim=500, replace_error=1e10):
         """Returns a new Spectrum1D object resampled to a new wavelength grid
@@ -203,10 +102,10 @@ class Spectrum1D(object):
         """
         # perform the interpolation on the data
         if method == 'spline':
-            intp = interpolate.UnivariateSpline(self.__wave, self.__data, s=0, k=3)
+            intp = interpolate.UnivariateSpline(self._wave, self._data, s=0, k=3)
             new_data = intp(ref_wave)
         elif method == 'linear':
-            intp = interpolate.UnivariateSpline(self.__wave, self.__data, s=0, k=1)
+            intp = interpolate.UnivariateSpline(self._wave, self._data, s=0, k=1)
             new_data = intp(ref_wave)
  #           elif method=='hann':
 
@@ -214,17 +113,17 @@ class Spectrum1D(object):
 
 #            elif method=='lanczos3':
 
-#        if self.__error!=None and err_sim>0:
+#        if self._error!=None and err_sim>0:
 #            sim  = numpy.zeros((err_sim, len(ref_wave)), dtype=numpy.float32)
-#            data = numpy.zeros(len(self.__wave), dtype=numpy.float32)
+#            data = numpy.zeros(len(self._wave), dtype=numpy.float32)
 #
 #            for i in range(err_sim):
-#                data = numpy.random.normal(self.__data, self.__error).astype(numpy.float32)
+#                data = numpy.random.normal(self._data, self._error).astype(numpy.float32)
 #                if method=='spline':
-#                    intp = interpolate.UnivariateSpline(self.__wave, data, s=0)
+#                    intp = interpolate.UnivariateSpline(self._wave, data, s=0)
 #                    out =intp(ref_wave)
 #                elif method=='linear':
-#                    intp = interpolate.UnivariateSpline(self.__wave, data, k=1, s=0)
+#                    intp = interpolate.UnivariateSpline(self._wave, data, k=1, s=0)
 #                    out = intp(ref_wave)
 #
 #                sim[i, :] = out
@@ -245,15 +144,15 @@ class Spectrum1D(object):
         spec : Spectrum1D
             A new Spectrum1D object with the `data` in logarithmic base.
         """
-        wave_log = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
-        - numpy.log10(self.__wave[0])) / len(self.__wave))
+        wave_log = 10 ** numpy.arange(numpy.log10(self._wave[0]), numpy.log10(self._wave[-1]), (numpy.log10(self._wave[-1])
+        - numpy.log10(self._wave[0])) / len(self._wave))
         new_spec = self.resampleSpec(wave_log)
-        new_spec.setVelSampling((self.__wave[1] - self.__wave[0]) / self.__wave[0] * 300000.0)
+        new_spec.setVelSampling((self._wave[1] - self._wave[0]) / self._wave[0] * 300000.0)
         return new_spec
 
     def applyGaussianLOSVD(self, vel, disp_vel):
         """Returns a broadened copy of the spectrum.
-        
+
         Parameters
         ----------
         vel : float
@@ -273,12 +172,12 @@ class Spectrum1D(object):
         No correction is applied to `error`, `mask`, and
         `normalization`.
         """
-        disp_pix = disp_vel / self.__vel_sampling
-        new_data = ndimage.filters.gaussian_filter(self.__data, disp_pix, mode='constant')
-        wave = self.__wave * (1 + vel / 300000.0)
+        disp_pix = disp_vel / self._vel_sampling
+        new_data = ndimage.filters.gaussian_filter(self._data, disp_pix, mode='constant')
+        wave = self._wave * (1 + vel / 300000.0)
         spec_out = Spectrum1D(wave=wave, data=new_data, error=None)
         try:
-            spec_out.__vel_sampling = self.__vel_sampling
+            spec_out._vel_sampling = self._vel_sampling
         except:
             pass
         return spec_out
@@ -287,15 +186,15 @@ class Spectrum1D(object):
         """
         Parameters
         ----------
-        A_V : 
-        mode : 
-        Cardelli : 
-        R_V : 
+        A_V :
+        mode :
+        Cardelli :
+        R_V :
 
-        Returns : 
-        spec_out : 
+        Returns :
+        spec_out :
         """
-        micron = self.__wave / 10000.0
+        micron = self._wave / 10000.0
         wave_number = 1.0 / micron
         y = wave_number - 1.82
         ax = 1 + (0.17699 * y) - (0.50447 * y ** 2) - (0.02427 * y ** 3) + (0.72085 * y ** 4) + (0.01979 * y ** 5)
@@ -306,20 +205,20 @@ class Spectrum1D(object):
         Alambda = Arat * A_V
         cor_factor = 10 ** (Alambda / -2.5)
         if mode == 'correct':
-            data = self.__data / cor_factor
-            if self.__error is not None:
-                error = self.__error / cor_factor
+            data = self._data / cor_factor
+            if self._error is not None:
+                error = self._error / cor_factor
             else:
                 error = None
         elif mode == 'apply':
-            data = self.__data * cor_factor
-            if self.__error is not None:
-                error = self.__error * cor_factor
+            data = self._data * cor_factor
+            if self._error is not None:
+                error = self._error * cor_factor
             else:
                 error = None
-        spec_out = Spectrum1D(data=data, wave=self.__wave, error=error)
+        spec_out = Spectrum1D(data=data, wave=self._wave, error=error)
         try:
-            spec_out.__vel_sampling = self.__vel_sampling
+            spec_out._vel_sampling = self._vel_sampling
         except:
             pass
         return spec_out
@@ -327,7 +226,7 @@ class Spectrum1D(object):
     def randomizeSpectrum(self):
         """Draw a new spectrum by assuming that the `error` corresponding
         to `data` follows a normal distribution.
-        
+
         Returns
         -------
         spec_out : Spectrum1D
@@ -338,11 +237,11 @@ class Spectrum1D(object):
         In the case that the `error` equals None, a copy of the original
         Spectrum1D object is returned.
         """
-        if self.__error is not None:
-            data_new = numpy.random.Normal(self.__data, self.__error)
-            spec_out = Spectrum1D(data=data_new, error=self.__error, mask=self.__mask)
+        if self._error is not None:
+            data_new = numpy.random.Normal(self._data, self._error)
+            spec_out = Spectrum1D(data=data_new, error=self._error, mask=self._mask)
             try:
-                spec_out.__vel_sampling = self.__vel_sampling
+                spec_out._vel_sampling = self._vel_sampling
             except:
                 pass
         else:
@@ -374,64 +273,6 @@ class Spectrum1D(object):
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
 
-    def normalizeSpec(self, pixel_width, mask_norm=None):
-        """Calculates a normalized version of the spectrum by dividing the
-        spectrum and the error by a running mean.
-
-        Parameters
-        ----------
-        pixel_width : int
-            Defines the width over which the running mean is calculated.
-        mask_norm : numpy.ndarray, optional
-            If provided, it combines `mask_norm` with `mask`, if
-            available, which masks out the elements for determining
-            `normalization`.
-
-        Returns
-        -------
-        spec : Spectrum1D
-            A new Spectrum1D object to which the normalization is
-            applied.
-        """
-        mean = numpy.zeros(len(self.__data), dtype=numpy.float32)
-        data_temp = numpy.zeros(len(self.__data), dtype=numpy.float32)
-        data_temp[:] = self.__data
-        if self.__mask is not None and mask_norm is not None:
-            mask = (self.__mask) & (mask_norm)
-            select_bad = mask
-        elif mask_norm is not None:
-            mask = mask_norm
-            select_bad = mask
-        else:
-            mask = numpy.zeros(self.getWave().shape,dtype='bool')
-            select_bad = mask
-        data_temp[select_bad] = 0.0
-        uniform = ndimage.filters.convolve(data_temp, numpy.ones(pixel_width, dtype=numpy.int16), mode='nearest')
-        summed = ndimage.filters.generic_filter(numpy.logical_not(mask).astype('int16'), numpy.sum, pixel_width, mode='nearest')
-        select = summed > 0
-        mean[select] = uniform[select] / summed[select].astype('float32')
-        mean[numpy.logical_not(select)] = 1
-        select_zero = mean == 0
-        mean[select_zero] = 1
-        new_data = self.__data / mean
-        if self.__error is not None:
-            new_error = self.__error / mean
-        else:
-            new_error = None
-        spec_out = Spectrum1D(wave=self.__wave, data=new_data, error=new_error, mask=self.__mask, normalization=mean)
-        return spec_out
-
-    def unnormalizedSpec(self):
-        """Creates a copy for which the normalization is removed.
-        """
-        data = self.__data * self.__normalization
-        if self.__error is not None:
-            error = self.__error * self.__normalization
-        else:
-            error = None
-        spec_out = Spectrum1D(wave=self.__wave, data=data, error=error, mask=self.__mask, normalization=None)
-        return spec_out
-
     def fitSuperposition(self, SSPLibrary, negative=False):
         """Fits a superposition of template spectra to the data.
 
@@ -455,19 +296,19 @@ class Spectrum1D(object):
         chisq : float
             The chi^2 value corresponding to `bestfit_spec`.
         """
-        valid_pix = numpy.logical_not(self.__mask)
-        if self.__error is None:
-            error = numpy.ones((self.__dim), dtype=numpy.float32)
+        valid_pix = numpy.logical_not(self._mask)
+        if self._error is None:
+            error = numpy.ones((self._dim), dtype=numpy.float32)
         else:
-            error = self.__error
-        if len(SSPLibrary.getWave())!=len(self.__wave) or numpy.sum(SSPLibrary.getWave() - self.__wave)!=0.0:
-            tempLib = SSPLibrary.resampleBase(self.__wave)
+            error = self._error
+        if len(SSPLibrary.getWave())!=len(self._wave) or numpy.sum(SSPLibrary.getWave() - self._wave)!=0.0:
+            tempLib = SSPLibrary.resampleBase(self._wave)
         else:
             tempLib = SSPLibrary
         libFit = fit_profile.fit_linearComb(tempLib.getBase())
-        libFit.fit(self.__data, error, self.__mask, negative=negative)
-        bestfit_spec = Spectrum1D(self.__wave, data=libFit())
-        chi2 = libFit.chisq(self.__data, sigma=error, mask=self.__mask)
+        libFit.fit(self._data, error, self._mask, negative=negative)
+        bestfit_spec = Spectrum1D(self._wave, data=libFit())
+        chi2 = libFit.chisq(self._data, sigma=error, mask=self._mask)
         return libFit.getCoeff(), bestfit_spec, chi2
 
     def fitKinMCMC_fixedpop(self, spec_model, vel_min, vel_max, vel_disp_min, vel_disp_max, burn=1000, samples=3000, thin=2):
@@ -503,8 +344,8 @@ class Spectrum1D(object):
         M : pymc.MCMC
             Contains all the relevant information from the PyMC-run.
         """
-        valid_pix = numpy.logical_not(self.__mask)
-        wave = self.__wave[valid_pix]
+        valid_pix = numpy.logical_not(self._mask)
+        wave = self._wave[valid_pix]
 
         vel = pymc.Uniform('vel', lower=vel_min, upper=vel_max)
         disp = pymc.Uniform('disp', lower=vel_disp_min, upper=vel_disp_max)
@@ -512,8 +353,8 @@ class Spectrum1D(object):
         @pymc.deterministic(plot=False)
         def m(vel=vel, disp=disp):
             return spec_model.applyKin(vel, disp, wave).getData()
-        d = pymc.Normal('d', mu=m, tau=self.__error[valid_pix] ** (-2), value=self.__data[valid_pix], observed=True)
-        #d = pymc.Normal('d', mu=m, tau=0, value=self.__data[valid_pix], observed=True)
+        d = pymc.Normal('d', mu=m, tau=self._error[valid_pix] ** (-2), value=self._data[valid_pix], observed=True)
+        #d = pymc.Normal('d', mu=m, tau=0, value=self._data[valid_pix], observed=True)
         M = pymc.MCMC([vel, disp, m, d])
         M.use_step_method(pymc.AdaptiveMetropolis, [vel, disp])
         #M.MAP(m)
@@ -659,8 +500,8 @@ class Spectrum1D(object):
             while m < bootstraps:
                 (sub_SSPlib, select) = kin_SSP.randomSubLibrary(float(modkeep / 100.0))
                 select_bad = self.getError() <= 0
-                self.__error[select_bad] = 1e+10
-                self.__mask[select_bad] = True
+                self._error[select_bad] = 1e+10
+                self._mask[select_bad] = True
                 spec = Spectrum1D(wave=self.getWave(), data=numpy.random.normal(self.getData(), self.getError()),
                 error=self.getError(), mask=self.getMask(), normalization=self.getNormalization())
                 (coeff, bestfit_spec, chi2) = spec.fitSuperposition(sub_SSPlib)
@@ -826,13 +667,13 @@ class Spectrum1D(object):
         lib_weights = numpy.zeros((lib_SSP.getBaseNumber(), len(AVgrid)), dtype=numpy.float32)
 
         if mask_fit is not None:
-            mask = numpy.logical_or(self.__mask, mask_fit)
+            mask = numpy.logical_or(self._mask, mask_fit)
         else:
-            mask = self.__mask
-        tempLib = lib_SSP.resampleBase(self.__wave)
+            mask = self._mask
+        tempLib = lib_SSP.resampleBase(self._wave)
         for i in range(len(AVgrid)):
             spec_cor = self.correctExtinction(AVgrid[i], mode='correct')
-            spec_cor.__mask = mask
+            spec_cor._mask = mask
             (coeff, bestfit_spec, chi2) = spec_cor.fitSuperposition(tempLib)
             #pylab.plot(spec_cor.getWave(), spec_cor.getData(),'-k')
             #pylab.plot(bestfit_spec.getWave(), bestfit_spec.getData(),'-r')
@@ -858,10 +699,10 @@ def _pickle_method(method):
     func_name = method.im_func.__name__
     obj = method.im_self
     cls = method.im_class
-    if func_name.startswith('__') and not func_name.endswith('__'):
+    if func_name.startswith('_') and not func_name.endswith('__'):
         cls_name = cls.__name__.lstrip('_')
     if cls_name: func_name = '_' + cls_name + func_name
-        return _unpickle_method, (func_name, obj, cls)
+    return _unpickle_method, (func_name, obj, cls)
 
 def _unpickle_method(func_name, obj, cls):
     for cls in cls.mro():
@@ -869,7 +710,7 @@ def _unpickle_method(func_name, obj, cls):
             func = cls.__dict__[func_name]
         except KeyError:
             pass
-    else:
-        break
+        else:
+            break
     return func.__get__(obj, cls)
 copy_reg.pickle(MethodType,_pickle_method, _unpickle_method)
