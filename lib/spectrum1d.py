@@ -701,7 +701,7 @@ def _pickle_method(method):
     cls = method.im_class
     if func_name.startswith('_') and not func_name.endswith('__'):
         cls_name = cls.__name__.lstrip('_')
-    if cls_name: func_name = '_' + cls_name + func_name
+        if cls_name: func_name = '_' + cls_name + func_name
     return _unpickle_method, (func_name, obj, cls)
 
 def _unpickle_method(func_name, obj, cls):
