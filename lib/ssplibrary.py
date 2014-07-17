@@ -49,6 +49,7 @@ class SSPlibrary(UserDict):
             infoSSP = hdu[1].data
             columns = infoSSP.names
             for column in columns:
+                print column
                 self[column] = infoSSP.field(column)
             hdu.close()
 
