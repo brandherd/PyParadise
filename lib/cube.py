@@ -217,7 +217,8 @@ class Cube(Data):
             for m in range(len(x_cor)):
                 spec = self.getSpec(x_cor[m], y_cor[m])
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                         select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)))
+                         select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
+                         modkeep, 1)))
             pool.close()
             pool.join()
             for  m in range(len(result_fit)):
@@ -237,7 +238,7 @@ class Cube(Data):
                 if verbose:
                     print "Fitting Spectrum (%d, %d) of cube" % (x_cor[m] + 1, y_cor[m] + 1)
                 result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                     select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
+                     select_wave_eline, method_eline, mask_fit, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
 
                 mass_weighted_pars_err[m, :] = result[0]
                 lum_weighted_pars_err[m, :] = result[1]

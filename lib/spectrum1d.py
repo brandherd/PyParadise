@@ -273,7 +273,7 @@ class Spectrum1D(Data):
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
 
-    def fitSuperposition(self, SSPLibrary, negative=False):
+    def fitSuperposition(self, SSPLibrary, negative=False,vel=None, disp=None):
         """Fits a superposition of template spectra to the data.
 
         Parameters
@@ -301,6 +301,8 @@ class Spectrum1D(Data):
             error = numpy.ones((self._dim), dtype=numpy.float32)
         else:
             error = self._error
+        if vel is not None and disp is not None:
+            SSPLibrary.applyGaussianLOSVD(vel,disp)
         if len(SSPLibrary.getWave())!=len(self._wave) or numpy.sum(SSPLibrary.getWave() - self._wave)!=0.0:
             tempLib = SSPLibrary.resampleBase(self._wave)
         else:
@@ -418,7 +420,11 @@ class Spectrum1D(Data):
         chisq : float
             The chi^2 value between `bestfit_spec` and `data`.
         """
-        spec_lib_guess = lib_SSP.getSpec(nlib_guess)
+        if nlib_guess>0:
+            spec_lib_guess = lib_SSP.getSpec(nlib_guess)
+        else:
+            spec_lib_guess = lib_SSP.getSpec(1)
+
         if mask_fit is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
         for i in range(iterations):
@@ -431,13 +437,16 @@ class Spectrum1D(Data):
             disp_err = numpy.std(trace_disp)
             lib_vel = lib_SSP.applyGaussianLOSVD(vel, disp)
             (coeff, bestfit_spec, chi2) = self.fitSuperposition(lib_vel)
+            if nlib_guess<0:
+                break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
         bestfit_spec.setNormalization(self.getNormalization())
         return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
 
+
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
-        method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
-        parallel=1):
+        mask_fit=None, method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100,
+        modkeep=80, parallel=1):
         """
 
         Parameters
@@ -495,6 +504,8 @@ class Spectrum1D(Data):
                     model['vel'] = numpy.zeros(bootstraps, dtype=numpy.float32)
                     model['fwhm'] = numpy.zeros(bootstraps, dtype=numpy.float32)
                 line_models[n] = model
+        if mask_fit is not None:
+            self.setMask(numpy.logical_or(self.getMask(), mask_fit))
         m = 0
         try:
             while m < bootstraps:

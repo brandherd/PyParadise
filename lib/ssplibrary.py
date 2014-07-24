@@ -49,7 +49,6 @@ class SSPlibrary(UserDict):
             infoSSP = hdu[1].data
             columns = infoSSP.names
             for column in columns:
-                print column
                 self[column] = infoSSP.field(column)
             hdu.close()
 
@@ -82,7 +81,7 @@ class SSPlibrary(UserDict):
 
     def getSpec(self, i):
         """Obtain the ith template spectrum as a Spectrum1D object."""
-        spec = Paradise.Spectrum1D(wave=self.__wave, data=self.__data[:, i])
+        spec = Paradise.Spectrum1D(wave=self.__wave, data=self.__data[:,i-1])
         try:
             spec.setVelSampling(self.getVelSampling())
         except:
@@ -138,7 +137,7 @@ class SSPlibrary(UserDict):
         if max_wave is not None:
             select_wave[self.__wave >= max_wave] = False
         infoSSP = {}
-        for key in infoSSP.keys():
+        for key in self.keys():
             infoSSP[key] = self[key]
         new_SSP = SSPlibrary(data=self.__data[select_wave, :], wave=self.__wave[select_wave], spectralFWHM=self.__spectralFWHM,
             infoSSP=infoSSP, coefficients=self.__coefficients)
@@ -163,8 +162,8 @@ class SSPlibrary(UserDict):
         data = self.__data[:, select]
         coefficients = self.__coefficients[select]
         infoSSP = {}
-        for key in infoSSP.keys():
-                infoSSP[key] = self[key][select]
+        for key in self.keys():
+            infoSSP[key] = self[key][select]
         new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=self.__spectralFWHM,
         infoSSP=infoSSP, coefficients=coefficients)
         new_SSP.__vel_sampling = self.__vel_sampling
@@ -292,7 +291,7 @@ class SSPlibrary(UserDict):
         if max_age is not None:
             select_age[self['age'] > max_age] = False
 
-        if numpy.sum(select_age)>0:
+        if numpy.sum(select_age) > 0:
             if self.__normalization is not None:
                 mean_out = [numpy.sum(coefficients[select_age])]
             else:

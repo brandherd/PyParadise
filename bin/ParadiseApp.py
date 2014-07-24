@@ -21,7 +21,6 @@ class ParadiseApp(object):
             self.__inputData = loadRSS(input_file)
             self.__inputData.correctError()
             self.__datatype = 'RSS'
-        print self.__inputData._dim
         self.__outPrefix = outprefix
         self.__instrFWHM = instrFWHM
 
@@ -34,6 +33,7 @@ class ParadiseApp(object):
         vel_max = float(parList['vel_max'].getValue())
         disp_min = float(parList['disp_min'].getValue())
         disp_max = float(parList['disp_max'].getValue())
+        kin_fix = bool(float(parList['kin_fix'].getValue()))
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         iterations = int(parList['iterations'].getValue())
         samples = int(parList['samples'].getValue())
@@ -51,10 +51,22 @@ class ParadiseApp(object):
         if verbose:
             print "The stellar population library is being prepared."
         lib = SSPlibrary(filename=parList['tmpldir'].getValue() + '/' + parList['tmplfile'].getValue())
-        #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
+        if kin_fix is True:
+            hdu = pyfits.open(self.__outPrefix + '.kin_table.fits')
+            tab = hdu[1].data
+            vel_fit = tab.field('vel_fit')
+            disp_fit = tab.field('disp_fit')
+            vel_fit_err = tab.field('vel_fit_err')
+            disp_fit_err = tab.field('disp_fit_err')
+            vel_min = numpy.min(vel_fit)
+            vel_max = numpy.max(vel_fit)
+        min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
+        max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
 
-        #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
+        if nlib_guess < 0:
+            select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
+            lib = lib.subLibrary(select)
+        lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
@@ -69,13 +81,25 @@ class ParadiseApp(object):
         if verbose:
             print "The stellar population modelling has been started."
         if self.__datatype == 'CUBE':
-            (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
+            if kin_fix:
+                (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit,
+                disp_fit, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
+                normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
+                verbose=verbose, parallel=parallel)
+            else:
+                (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
                 cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
                 normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
         elif self.__datatype == 'RSS':
-            (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber,
+            if kin_fix:
+                fibers = tab.field('fiber')
+                (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit, disp_fit,
+                fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
+                vel_guess / 300000.0), verbose=verbose, parallel=parallel)
+            else:
+                (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber,
                 rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
                 vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
@@ -102,13 +126,13 @@ class ParadiseApp(object):
         lum_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
         for i in range(len(fitted)):
             if fitted[i]:
-               # try:
+                try:
                     mass_weighted_pars[i, :] = lib_norm.massWeightedPars(coeff[i, :])
-               # except:
+                except:
                     mass_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
-               # try:
+                try:
                     lum_weighted_pars[i, :] = lib_norm.lumWeightedPars(coeff[i, :])
-               # except:
+                except:
                     lum_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
 
         columns = []
@@ -138,7 +162,6 @@ class ParadiseApp(object):
         table_out.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
     def run_eline_fit(self, parfile, parallel, verbose):
-
         parList = ParameterList(parfile)
         eCompFile = parList['eCompFile'].getValue()
         vel_guess = float(parList['vel_guess'].getValue())
@@ -201,11 +224,16 @@ class ParadiseApp(object):
         tmpldir = parList['tmpldir'].getValue()
         tmplfile = parList['tmplfile'].getValue()
         vel_guess = float(parList['vel_guess'].getValue())
+        vel_min = float(parList['vel_min'].getValue())
+        vel_max = float(parList['vel_max'].getValue())
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         start_wave = float(parList['start_wave'].getValue())
         end_wave = float(parList['end_wave'].getValue())
         excl_fit = CustomMasks(parList['excl_fit'].getValue())
         excl_cont = CustomMasks(parList['excl_cont'].getValue())
+        nlib_guess = int(parList['tmplinitspec'].getValue())
+        if nlib_guess < 0:
+            modkeep = 100.0
 
         hdu = pyfits.open(self.__outPrefix + '.stellar_table.fits')
         stellar_table = hdu[1].data
@@ -238,6 +266,10 @@ class ParadiseApp(object):
         min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
         max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
 
+
+        if nlib_guess < 0:
+            select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
+            lib = lib.subLibrary(select)
         lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
@@ -249,25 +281,28 @@ class ParadiseApp(object):
         normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
+        excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    x_cor, y_cor, vel, disp, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel, verbose=verbose)
+                    x_cor, y_cor, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
+                    verbose=verbose)
             elif self.__datatype == 'RSS':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    fiber, vel, disp, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel, verbose=verbose)
+                    fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
+                    verbose=verbose)
         else:
             if self.__datatype == 'CUBE':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
                     x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
                     select_wave_eline=line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
-                    method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
+                    method_eline=efit_method, mask_fit=excl_fit, guess_window=guess_window, spectral_res=self.__instrFWHM,
                     ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
             elif self.__datatype == 'RSS':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
                     fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
                     select_wave_eline=line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
-                    method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
+                    mask_fit=excl_fit, method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
                     ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
         columns_stellar = []
         columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_err', format='E', array=lum_weighted_pars_err[:, 0]))

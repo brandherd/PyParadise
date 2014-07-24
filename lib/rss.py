@@ -92,7 +92,6 @@ class RSS(Data):
                         coeff[m, :] = result[5]
                         chi2[m] = result[6]
                         fiber[m] = m
-
                         rss_model[m, :] = result[4].unnormalizedSpec().getData()
                         if verbose:
                             print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
@@ -101,6 +100,64 @@ class RSS(Data):
 
                 m += 1
         return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber, rss_model
+
+    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
+        verbose=False, parallel='auto'):
+
+        rss_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        chi2 = numpy.zeros(self._fibers, dtype=numpy.float32)
+        fiber = numpy.zeros(self._fibers, dtype=numpy.int16)
+        fitted = numpy.zeros(self._fibers, dtype="bool")
+        coeff = numpy.zeros((self._fibers, SSPLib.getBaseNumber()), dtype=numpy.float32)
+        if parallel == 'auto':
+            cpus = cpu_count()
+        else:
+            cpus = int(parallel)
+        if cpus > 1:
+            pool = Pool(cpus, maxtasksperchild=200)
+            result_fit = []
+            m = 0
+            while m < self._fibers:
+                spec = self.getSpec(m)
+                if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])))
+                else:
+                    result_fit.append(None)
+                fiber[m] = m
+                m += 1
+
+            pool.close()
+            pool.join()
+            for  m in range(len(result_fit)):
+                if result_fit[m] is not None:
+                    try:
+                        result = result_fit[m].get()
+                        fitted[m] = True
+                        coeff[m, :] = result[0]
+                        chi2[m] = result[2]
+                        rss_model[m, :] = result[1].unnormalizedSpec().getData()
+                    except ValueError:
+                        print "Fitting failed because of bad spectrum."
+        else:
+            m = 0
+            while m < self._fibers:
+                spec = self.getSpec(m)
+                if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
+                    if verbose:
+                        print "Fitting Spectrum (%d) of RSS" % (m + 1)
+                    try:
+                        result = spec.fitSuperposition(SSPLib, vel, vel_disp)
+                        fitted[m] = True
+                        coeff[m, :] = result[0]
+                        chi2[m] = result[2]
+                        fiber[m] = m
+                        rss_model[m, :] = result[1].unnormalizedSpec().getData()
+                        if verbose:
+                            print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
+                    except (ValueError, IndexError):
+                        print "Fitting failed because of bad spectrum."
+                m += 1
+        return fitted, coeff, chi2, fiber, rss_model
 
     def fitELines(self, par, select_wave, min_y, max_y, method='leastsq', guess_window=0.0, spectral_res=0.0,
     ftol=1e-4, xtol=1e-4, verbose=1, parallel='auto'):
@@ -170,8 +227,8 @@ class RSS(Data):
         return maps, fitted, fiber, rss_model
 
     def fit_Lib_Boots(self, lib_SSP, fiber, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
-        method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
-        parallel=1, verbose=False):
+        mask_fit=None, method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100,
+        modkeep=80, parallel=1, verbose=False):
 
         mass_weighted_pars_err = numpy.zeros((len(fiber), 5), dtype=numpy.float32)
         lum_weighted_pars_err = numpy.zeros((len(fiber), 5), dtype=numpy.float32)
@@ -196,7 +253,7 @@ class RSS(Data):
             for m in range(len(fiber)):
                 spec = self.getSpec(fiber[m])
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                         select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)))
+                         select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)))
             pool.close()
             pool.join()
             for  m in range(len(result_fit)):
@@ -216,7 +273,7 @@ class RSS(Data):
                 if verbose:
                     print "Fitting Spectrum (%d) of RSS" % (fiber[m] + 1)
                 result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                     select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
+                     select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
 
                 mass_weighted_pars_err[m, :] = result[0]
                 lum_weighted_pars_err[m, :] = result[1]
