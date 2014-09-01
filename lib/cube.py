@@ -117,6 +117,70 @@ class Cube(Data):
                         #break
         return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix, cube_model
 
+    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
+        verbose=False, parallel='auto'):
+
+        cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        chi2 = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
+        x_pix = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
+        y_pix = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
+        fitted = numpy.zeros(self._dim_y * self._dim_x, dtype="bool")
+        coeff = numpy.zeros((self._dim_y * self._dim_x, SSPLib.getBaseNumber()), dtype=numpy.float32)
+        if parallel == 'auto':
+            cpus = cpu_count()
+        else:
+            cpus = int(parallel)
+        if cpus > 1:
+            pool = Pool(cpus, maxtasksperchild=200)
+            result_fit = []
+            m = 0
+            for x in range(self._dim_x):
+                for y in range(self._dim_y):
+                    spec = self.getSpec(x, y)
+                    if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                        result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])))
+                        sleep(0.01)
+                    else:
+                        result_fit.append(None)
+                    x_pix[m] = m
+                    y_pix[m] = m
+                    m += 1
+
+            pool.close()
+            pool.join()
+            for  m in range(len(result_fit)):
+                if result_fit[m] is not None:
+                    try:
+                        result = result_fit[m].get()
+                        fitted[m] = True
+                        coeff[m, :] = result[0]
+                        chi2[m] = result[2]
+                        cube_model[:, y_pix[m], x_pix[m]] = result[1].unnormalizedSpec().getData()
+                    except ValueError:
+                        print "Fitting failed because of bad spectrum."
+        else:
+            m = 0
+            for x in range(self._dim_x):
+                for y in range(self._dim_y):
+                    spec = self.getSpec(x, y)
+                    if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                        if verbose:
+                            print "Fitting Spectrum (%d) of RSS" % (m + 1)
+                        try:
+                            result = spec.fitSuperposition(SSPLib, vel, vel_disp)
+                            fitted[m] = True
+                            coeff[m, :] = result[0]
+                            chi2[m] = result[2]
+                            x_pix[m] = m
+                            y_pix[m] = m
+                            cube_model[:, y, x] = result[1].unnormalizedSpec().getData()
+                            if verbose:
+                                print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
+                        except (ValueError, IndexError):
+                            print "Fitting failed because of bad spectrum."
+                m += 1
+        return fitted, coeff, chi2, fiber, rss_model
+
     def fitELines(self, par, select_wave, min_x, max_x, min_y, max_y, method='leastsq', guess_window=0.0, spectral_res=0.0,
     ftol=1e-4, xtol=1e-4, verbose=1, parallel='auto'):
 
