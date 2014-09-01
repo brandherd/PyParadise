@@ -4,7 +4,6 @@ import numpy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 
-
 class RSS(Data):
     def __init__(self, data=None, wave=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
         Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
@@ -291,6 +290,6 @@ class RSS(Data):
 def loadRSS(infile, extension_data=None, extension_mask=None, extension_error=None):
 
     rss = RSS()
-    rss.loadFitsData(infile, extension_data=None, extension_mask=None, extension_error=None)
+    rss.loadFitsData(infile, extension_data=extension_data, extension_mask=extension_mask, extension_error=extension_error)
 
     return rss

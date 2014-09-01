@@ -5,7 +5,6 @@ import numpy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 
-
 class Cube(Data):
     def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, inst_fwhm=None, normalization=None,
     header=None):
@@ -191,8 +190,8 @@ class Cube(Data):
         return maps, fitted, x_pix, y_pix, cube_model
 
     def fit_Lib_Boots(self, lib_SSP, x_cor, y_cor, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
-        method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
-        parallel=1, verbose=False):
+        mask_fit=None, method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100,
+        modkeep=80, parallel=1, verbose=False):
 
         mass_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
         lum_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
