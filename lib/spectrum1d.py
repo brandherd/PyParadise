@@ -425,8 +425,10 @@ class Spectrum1D(Data):
         else:
             spec_lib_guess = lib_SSP.getSpec(1)
 
-        if mask_fit is not None:
+        if mask_fit is not None and self.getMask() is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
+        elif mask_fit is not None:
+            self.setMask(mask_fit)
         for i in range(iterations):
             M = self.fitKinMCMC_fixedpop(spec_lib_guess, vel_min, vel_max, disp_min, disp_max, burn=burn, samples=samples, thin=thin)
             trace_vel = M.trace('vel', chain=None)[:]
@@ -504,8 +506,10 @@ class Spectrum1D(Data):
                     model['vel'] = numpy.zeros(bootstraps, dtype=numpy.float32)
                     model['fwhm'] = numpy.zeros(bootstraps, dtype=numpy.float32)
                 line_models[n] = model
-        if mask_fit is not None:
+        if mask_fit is not None and self.getMask() is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
+        elif mask_fit is not None:
+            self.setMask(mask_fit)
         m = 0
         try:
             while m < bootstraps:

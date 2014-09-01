@@ -200,7 +200,7 @@ class Data(Header):
         select_zero = mean == 0
         mean[select_zero] = 1
         new_data = self._data / mean
-        new_error = self._error / mean
+        new_error = self._error / mean if self._error is not None else None
         data_out = Data(wave=self._wave, data=new_data, error=new_error, mask=self._mask, normalization=mean,
         inst_fwhm=self._inst_fwhm)
         data_out.__class__ = self.__class__
