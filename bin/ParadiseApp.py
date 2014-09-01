@@ -146,7 +146,10 @@ class ParadiseApp(object):
         columns.append(pyfits.Column(name='disp_fit', format='E', unit='km/s', array=disp_fit[fitted]))
         columns.append(pyfits.Column(name='disp_fit_err', format='E', unit='km/s', array=disp_fit_err[fitted]))
         columns.append(pyfits.Column(name='chi2', format='E', array=chi2[fitted]))
-        columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
+        if lib.getBaseNumber() > 1:
+            columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
+        else:
+            columns.append(pyfits.Column(name='base_coeff', format='E', array=coeff[fitted].flatten()))
         columns.append(pyfits.Column(name='lum_coeff_frac_total', format='E', array=lum_weighted_pars[fitted, 0]))
         columns.append(pyfits.Column(name='lum_age_total', format='E', array=lum_weighted_pars[fitted, 1]))
         columns.append(pyfits.Column(name='lum_M/L_total', format='E', array=lum_weighted_pars[fitted, 2]))
