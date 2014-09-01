@@ -3,6 +3,7 @@ from Paradise.lib.spectrum1d import Spectrum1D
 import numpy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
+from time import sleep
 
 class RSS(Data):
     def __init__(self, data=None, wave=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
@@ -52,6 +53,7 @@ class RSS(Data):
                 if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
                     result_fit.append(pool.apply_async(spec.fit_Kin_Lib_simple, args=(SSPLib, nlib_guess, vel_min, vel_max,
                     disp_min, disp_max, mask_fit, iterations, burn, samples, thin)))
+                    sleep(0.01)
                 else:
                     result_fit.append(None)
                 fiber[m] = m
@@ -120,6 +122,7 @@ class RSS(Data):
                 spec = self.getSpec(m)
                 if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
                     result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])))
+                    sleep(0.01)
                 else:
                     result_fit.append(None)
                 fiber[m] = m
@@ -187,6 +190,7 @@ class RSS(Data):
                 if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
                     result_fit.append(pool.apply_async(spec.fitELines, args=(par, select_wave, method, guess_window,
                     spectral_res, ftol, xtol, 1)))
+                    sleep(0.01)
                 else:
                     result_fit.append(None)
                     fiber[m] = m
@@ -253,6 +257,7 @@ class RSS(Data):
                 spec = self.getSpec(fiber[m])
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
                          select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)))
+                sleep(0.01)
             pool.close()
             pool.join()
             for  m in range(len(result_fit)):

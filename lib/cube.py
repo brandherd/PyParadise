@@ -4,6 +4,7 @@ from Paradise.lib.spectrum1d import Spectrum1D
 import numpy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
+from time import sleep
 
 class Cube(Data):
     def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, inst_fwhm=None, normalization=None,
@@ -56,6 +57,7 @@ class Cube(Data):
                     if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
                         result_fit.append(pool.apply_async(spec.fit_Kin_Lib_simple, args=(SSPLib, nlib_guess, vel_min, vel_max,
                         disp_min, disp_max, mask_fit, iterations, burn, samples, thin)))
+                        sleep(0.01)
                     else:
                         result_fit.append(None)
                     x_pix[m] = x
@@ -212,6 +214,7 @@ class Cube(Data):
                     if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
                         result_fit.append(pool.apply_async(spec.fitELines, args=(par, select_wave, method, guess_window,
                         spectral_res, ftol, xtol, 1)))
+                        sleep(0.01)
                     else:
                         result_fit.append(None)
                     x_pix[m] = x
@@ -282,6 +285,7 @@ class Cube(Data):
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
                          select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
                          modkeep, 1)))
+                sleep(0.01)
             pool.close()
             pool.join()
             for  m in range(len(result_fit)):

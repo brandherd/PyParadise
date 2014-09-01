@@ -50,6 +50,7 @@ def logLhood(   # logLikelihood function
 
 def sample_from_prior(limits):
     Obj = Object()
+    random.seed()
     Obj.u = random.random()                # uniform in (0,1)
     Obj.v = random.random()                # uniform in (0,1)
     Obj.x = limits[0]+ Obj.u*(limits[1]-limits[0]) # map to x
@@ -62,6 +63,8 @@ def sample_from_prior(limits):
 def explore(   # Evolve object within likelihood constraint
     Obj,       # Object being evolved
     logLstar): # Likelihood constraint L > Lstar
+
+    random.seed()
 
     ret = Object()
     ret.__dict__ = Obj.__dict__.copy()
