@@ -420,7 +420,22 @@ class Spectrum1D(Data):
         chisq : float
             The chi^2 value between `bestfit_spec` and `data`.
         """
-        if nlib_guess>0:
+        ## The case that the spectrum is fitted to each SSP
+        if nlib_guess == 0:
+            results = []
+            for i in range(-1, -lib_SSP.getBaseNumber() - 1, -1):
+                select = numpy.arange(lib_SSP.getBaseNumber()) == i * -1 - 1
+                lib = lib_SSP.subLibrary(select)
+                results.append(self.fit_Kin_Lib_simple(lib_SSP=lib, nlib_guess=i, vel_min=vel_min, vel_max=vel_max,
+                                                       disp_min=disp_min, disp_max=disp_max, mask_fit=mask_fit,
+                                                       iterations=iterations, burn=burn, samples=samples, thin=thin))
+            chi2list = numpy.array([result[-1] for result in results])
+            idx = numpy.argmin(chi2list)
+            vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2 = results[idx]
+            coeff = numpy.zeros(lib_SSP.getBaseNumber(), dtype=numpy.float32)
+            coeff[idx] = 1.0
+            return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
+        elif nlib_guess > 0:
             spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         else:
             spec_lib_guess = lib_SSP.getSpec(1)
