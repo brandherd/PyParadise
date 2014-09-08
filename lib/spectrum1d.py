@@ -273,7 +273,7 @@ class Spectrum1D(Data):
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
 
-    def fitSuperposition(self, SSPLibrary, negative=False,vel=None, disp=None):
+    def fitSuperposition(self, SSPLibrary, vel=None, disp=None, mask_fit=None, negative=False):
         """Fits a superposition of template spectra to the data.
 
         Parameters
@@ -301,6 +301,11 @@ class Spectrum1D(Data):
             error = numpy.ones((self._dim), dtype=numpy.float32)
         else:
             error = self._error
+        if mask_fit is not None and self.getMask() is not None:
+            self.setMask(numpy.logical_or(self.getMask(), mask_fit))
+        elif mask_fit is not None:
+            self.setMask(mask_fit)
+
         if vel is not None and disp is not None:
             SSPLibrary.applyGaussianLOSVD(vel,disp)
         if len(SSPLibrary.getWave())!=len(self._wave) or numpy.sum(SSPLibrary.getWave() - self._wave)!=0.0:
