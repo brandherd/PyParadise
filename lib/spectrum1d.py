@@ -296,7 +296,6 @@ class Spectrum1D(Data):
         chisq : float
             The chi^2 value corresponding to `bestfit_spec`.
         """
-        valid_pix = numpy.logical_not(self._mask)
         if self._error is None:
             error = numpy.ones((self._dim), dtype=numpy.float32)
         else:
