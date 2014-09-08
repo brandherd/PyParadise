@@ -67,7 +67,7 @@ class Data(Header):
     def setError(self, error):
         """Set the error by providing a numpy array. The array should be of the
         same shape as the data."""
-        self._error = error_weight
+        self._error = error
 
     def getMask(self):
         """Obtain the mask as a numpy array."""
