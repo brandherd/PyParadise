@@ -320,6 +320,7 @@ class Spectrum1D(Data):
         libFit = fit_profile.fit_linearComb(tempLib.getBase())
         libFit.fit(self._data, error, self._mask, negative=negative)
         bestfit_spec = Spectrum1D(self._wave, data=libFit())
+        bestfit_spec.setNormalization(self.getNormalization())
         chi2 = libFit.chisq(self._data, sigma=error, mask=self._mask)
         return libFit.getCoeff(), bestfit_spec, chi2
 
@@ -466,7 +467,6 @@ class Spectrum1D(Data):
             if nlib_guess<0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
-        bestfit_spec.setNormalization(self.getNormalization())
         return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
 
 
