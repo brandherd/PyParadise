@@ -374,7 +374,7 @@ class Cube(Data):
                         if verbose:
                             print "Fitting Spectrum (%d) of RSS" % (m + 1)
                         try:
-                            result = spec.fitSuperposition(SSPLib, vel, vel_disp)
+                            result = spec.fitSuperposition(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])
                             fitted[m] = True
                             coeff[m, :] = result[0]
                             chi2[m] = result[2]
