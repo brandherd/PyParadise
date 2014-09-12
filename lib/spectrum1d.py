@@ -45,7 +45,7 @@ class Spectrum1D(Data):
     """
     def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
         Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
-        header=None)
+        header=header)
 
     def hasData(self, start_wave=None, end_wave=None):
         """Check if there is any unmasked data available between the provided
