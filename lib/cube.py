@@ -345,7 +345,7 @@ class Cube(Data):
                 for y in range(self._dim_y):
                     spec = self.getSpec(x, y)
                     if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
-                        result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])))
+                        result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]], mask_fit)))
                         sleep(0.01)
                     else:
                         result_fit.append(None)
@@ -374,7 +374,7 @@ class Cube(Data):
                         if verbose:
                             print "Fitting Spectrum (%d) of RSS" % (m + 1)
                         try:
-                            result = spec.fitSuperposition(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])
+                            result = spec.fitSuperposition(SSPLib, vel[fibers[m]], vel_disp[fibers[m]], mask_fit)
                             fitted[m] = True
                             coeff[m, :] = result[0]
                             chi2[m] = result[2]
