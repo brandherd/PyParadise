@@ -7,12 +7,61 @@ from multiprocessing import Pool
 from time import sleep
 
 class Cube(Data):
+    """A class representing 3D spectra.
+
+    `Cube` is a subclass of Data which allows for handling and organizing a
+    three-dimensional spectrum. The class supports reading and writing FITS
+    files, resampling and rebinning, velocity shifting and broadening, the
+    application of extinction corrections and various advanced fitting
+    functions.
+
+    Parameters
+    ----------
+    data : `numpy.ndarray`
+        The spectra as a 2D numpy array structured such that the different
+        spectra are located along the second and third dimension.
+    wave : `numpy.ndarray`
+        The wavelength elements corresponding to the different data points
+        along the third dimension of the `data`.
+    error : `numpy.ndarray`, optional
+        The error spectrum, should be of the same shape as `data`.
+        If `error` equals None, it is assumed the error spectrum is not
+        known.
+    mask : `numpy.ndarray`
+        A boolean array where True represents a masked (invalid) data point
+        and False a good data point. Should be of the same shape as `data`.
+    normalization : `numpy.ndarray`
+        An array which is used to normalize the data/error; both data and
+        error are divided by `normalization`. Should be of the same shape
+        as `data`.
+    inst_fwhm : float
+        The instrumental FWHM in the same units as `wavelength`.
+    header : Header, optional
+        Contains information for reading and writing data to and from Fits
+        files.
+    """
     def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, inst_fwhm=None, normalization=None,
     header=None):
         Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
         header=header)
 
     def getSpec(self, x, y):
+        """Get a single spectrum from the RSS instance.
+
+        Parameters
+        ----------
+        x : int
+            The index of the spectrum along the first dimension.
+        y : int
+            The index of the spectrum along the second dimension.
+
+        Returns
+        -------
+        spec : Spectrum1D
+            The object containg the (x,y)-th spectrum, together with the proper
+            error, mask and normalization.
+        """
+
         wave = self._wave
         data = self._data[:, y, x]
         if self._error is not None:
@@ -32,7 +81,98 @@ class Cube(Data):
 
     def fit_Kin_Lib_simple(self, SSPLib, nlib_guess, vel_min, vel_max, disp_min, disp_max, min_x, max_x, min_y, max_y, mask_fit,
         iterations=2, burn=1500, samples=4000, thin=2, verbose=False, parallel='auto'):
+        """Fits template spectra according to Markov chain Monte Carlo
+        algorithm. This uses the PyMC library. The MCMC code is runned to
+        determine the velocity and the velocity dispersion while the
+        coefficients for the best combination of stellar templates are
+        determined by iteration and non-negative least sqaures fitting.
 
+        Notes
+        -----
+        The output sample might be smaller than the input sample, due to any
+        limits imposed by `min_x`, `max_x`, `min_y` and `max_y`.
+
+        Parameters
+        ----------
+        SSPLib : SSPlibrary
+            The library containing the template spectra.
+        nlib_guess : int
+            The initial guess for the best fitting template spectrum.
+        vel_min : float
+            The minimum velocity in km/s used in the MCMC for each spectrum.
+        vel_max : float
+            The maximum velocity in km/s used in the MCMC for each spectrum.
+        disp_min : float
+            The minimum velocity dispersion in km/s used in the MCMC.
+        disp_max : float
+            The maximum velocity dispersion in km/s used in the MCMC.
+        min_x : int
+            The lowest index from the spectral data set along the third
+            dimension that will be used in the fitting.
+        max_x : int
+            The highest index from the spectral data set along the third
+            dimension that will be used in the fitting.
+        min_y : int
+            The lowest index from the spectral data set along the second
+            dimension that will be used in the fitting.
+        max_y : int
+            The highest index from the spectral data set along the second
+            dimension that will be used in the fitting.
+        mask_fit : `numpy.ndarray`
+            A 1D boolean array representing any wavelength regions which are
+            masked out during the fitting of each spectrum with the
+            (normalized) stellar templates.
+        iterations : int
+            The number of iterations applied to determine the coefficients for
+            the set of template spectra.
+        burn : int, optional
+            The burn-in parameter that is often applied in MCMC implementations.
+            The first `burn` samples will be discarded in the further analysis.
+        samples : int, optional
+            The number of iterations runned by PyMC.
+        thin : int, optional
+            Only keeps every `thin`th sample, this argument should circumvent
+            any possible autocorrelation among the samples.
+        verbose : bool, optional
+            Produces screen output, such that the user can follow which spectrum
+            is currently fitted and what the results are for each spectrum.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        vel_fit : `numpy.ndarray`
+            The average velocity determined from the MCMC fitting for each
+            spectrum.
+        vel_fit_err : `numpy.ndarray`
+            The standard deviation in the velocity determined from the MCMC
+            fitting for each spectrum.
+        disp_fit : `numpy.ndarray`
+            The average velocity dispersion determined from the MCMC fitting for
+            each spectrum.
+        disp_fit_err : `numpy.ndarray`
+            The standard devation in the velocity dispersion determined from the
+            MCMC fitting for each spectrum.
+        fitted : `numpy.ndarray`
+            A 1D boolean array representing whether each spectrum is fitted
+            correctly.
+        coeff : `numpy.ndarray`
+            The coefficients of the SSP library which will produce the best fit
+            to the data. The variable is a 3D numpy array where the last two
+            dimension represents the different spectra and the first dimension
+            the coefficients for each template in `SSPLib`.
+        chi2 : `numpy.ndarray`
+            The chi^2 value between `bestfit_spec` and `data`.
+        fiber : `numpy.ndarray`
+            A 1D numpy array containing the indices of each output spectrum
+            pointing to each input `RSS`.
+        cube_model : `numpy.ndarray`
+            The best fitted spectrum obtained from the linear
+            combination of template spectra.
+        """
         cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
         vel_fit = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         vel_fit_err = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
@@ -121,6 +261,71 @@ class Cube(Data):
 
     def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
+        """Fits template spectra with fixed kinematics with non-negative least
+        squares fitting to determine the best combination of template spectra.
+
+        Notes
+        -----
+        The output sample might be smaller than the input sample, due to any
+        limits imposed by `min_y` and `max_y`.
+
+        Parameters
+        ----------
+        SSPLib : SSPlibrary
+            The library containing the template spectra.
+        vel : `numpy.ndarray`
+            The velocity in km/s to which each input spectra is resampled.
+        vel_disp : `numpy.ndarray`
+            The velocity dispersion in km/s to which each input spectra is
+            broadened.
+        fibers : `numpy.ndarray`
+            The index of each spectrum used to read in the corresponding values
+            for `vel and `vel_disp`. The number of elements should equal the
+            value (`max_y` - `min_y`) * (`max_x` - `min_x`).
+        min_x : int
+            The lowest index from the spectral data set along the third
+            dimension that will be used in the fitting.
+        max_x : int
+            The highest index from the spectral data set along the third
+            dimension that will be used in the fitting.
+        min_y : int
+            The lowest index from the spectral data set along the second
+            dimension that will be used in the fitting.
+        max_y : int
+            The highest index from the spectral data set along the second
+            dimension that will be used in the fitting.
+        mask_fit : `numpy.ndarray`
+            A 1D boolean array representing any wavelength regions which are
+            masked out during the fitting of each spectrum with the
+            (normalized) stellar templates.
+        verbose : bool, optional
+            Produces screen output, such that the user can follow which spectrum
+            is currently fitted and what the results are for each spectrum.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        fitted : `numpy.ndarray`
+            A 1D boolean array representing whether each spectrum is fitted
+            correctly.
+        coeff : `numpy.ndarray`
+            The coefficients of the SSP library which will produce the best fit
+            to the data. The variable is a 2D numpy array where the first
+            dimension represents the different spectra and the second dimension
+            the coefficients for each template in `SSPLib`.
+        chi2 : `numpy.ndarray`
+            The chi^2 value between `bestfit_spec` and `data`.
+        fiber : `numpy.ndarray`
+            A 1D numpy array containing the indices of each output spectrum
+            pointing to each input `RSS`.
+        cube_model : `numpy.ndarray`
+            The best fitted spectrum obtained from the linear
+            combination of template spectra.
+        """
 
         cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
         chi2 = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
@@ -185,7 +390,62 @@ class Cube(Data):
 
     def fitELines(self, par, select_wave, min_x, max_x, min_y, max_y, method='leastsq', guess_window=0.0, spectral_res=0.0,
     ftol=1e-4, xtol=1e-4, verbose=1, parallel='auto'):
+        """This routine fits a set of emission lines to each spectrum.
 
+        Parameters
+        ----------
+        par : parFile
+            The object containing all the constraints on the parameters.
+        select_wave : numpy.ndarray
+            A 1D boolean array where the True value represents which elements
+            in the wave, data, error, mask and normalization.
+        min_x : int
+            The lowest index from the spectral data set along the third
+            dimension that will be used in the fitting.
+        max_x : int
+            The highest index from the spectral data set along the third
+            dimension that will be used in the fitting.
+        min_y : int
+            The lowest index from the spectral data set along the second
+            dimension that will be used in the fitting.
+        max_y : int
+            The highest index from the spectral data set along the second
+            dimension that will be used in the fitting.
+        method : {'leastsq', 'simplex'}, optional
+            This argument specifies if ordinary least squares fitting
+            (`leastsq`) should be applied, or if a downhill simplex algorithm
+            (`simplex`) should be used.
+        guess_window : float, optional
+            The wavelength region in which the emission line will be fitted.
+        spectral_res : float, optional
+            The spectral resolution of the line.
+        ftol : float, optional
+            The maximum acceptable error for fit convergence.
+        xtol : float, optional
+            The relative acceptable error for fit convergence.
+        verbose : bool, optional
+            Produces screen output, such that the user can follow which spectrum
+            is currently fitted and what the results are for each spectrum.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores available.
+
+        Returns
+        -------
+        maps : dictionary
+            The flux and the velocity shift of each line
+        fitted : `numpy.ndarray`
+            A 1D numpy array representing the best fitted values at the
+            wavelength range `select_wave`.
+        fiber : `numpy.ndarray`
+            A 1D numpy array containing the indices of each output spectrum
+            pointing to each input `RSS`.
+        rss_model : `numpy.ndarray`
+            A 1D numpy array representing the residuals at the wavelength range
+            `select_wave`.
+        """
         cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
         fitted = numpy.zeros(self._dim_y * self._dim_x, dtype="bool")
         x_pix = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
