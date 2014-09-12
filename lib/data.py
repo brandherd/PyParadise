@@ -236,10 +236,10 @@ class Data(Header):
         data_temp = numpy.zeros(self._data.shape, dtype=numpy.float32)
         data_temp[:] = self._data
         if self._datatype == 'RSS':
-            mask_norm_expand = mask_norm[numpy.newaxis, :]
+            mask_norm_expand = mask_norm[numpy.newaxis, :] * numpy.ones(self._data.shape, dtype=bool)
             filter_window = (1, pixel_width)
         elif self._datatype == 'CUBE':
-            mask_norm_expand = mask_norm[:, numpy.newaxis, numpy.newaxis]
+            mask_norm_expand = mask_norm[:, numpy.newaxis, numpy.newaxis] * numpy.ones(self._data.shape, dtype=bool)
             filter_window = (pixel_width, 1, 1)
         elif self._datatype == 'Spectrum1D':
             mask_norm_expand = mask_norm
