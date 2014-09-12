@@ -521,6 +521,7 @@ class Spectrum1D(Data):
         mass_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(self.getWave())
+        line_models = None
         if par_eline is not None:
             line_models = {}
             for n in par_eline._names:
