@@ -310,7 +310,7 @@ class RSS(Data):
             while m < self._fibers:
                 spec = self.getSpec(m)
                 if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
-                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])))
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]], mask_fit)))
                     sleep(0.01)
                 else:
                     result_fit.append(None)
@@ -337,7 +337,7 @@ class RSS(Data):
                     if verbose:
                         print "Fitting Spectrum (%d) of RSS" % (m + 1)
                     try:
-                        result = spec.fitSuperposition(SSPLib, vel[fibers[m]], vel_disp[fibers[m]])
+                        result = spec.fitSuperposition(SSPLib, vel[fibers[m]], vel_disp[fibers[m]], mask_fit)
                         fitted[m] = True
                         coeff[m, :] = result[0]
                         chi2[m] = result[2]
