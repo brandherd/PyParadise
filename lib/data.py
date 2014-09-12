@@ -8,7 +8,38 @@ from multiprocessing import Pool
 
 
 class Data(Header):
+    """A class which contains the processes for handling spectral data which
+    is common for handling 1D, 2D and 3D spectra.
 
+     Parameters
+     ----------
+     data : `numpy.ndarray`, optional
+        A 1D, 2D, or a 3D numpy array containing all the data. The elements
+        of a 1D array follows the wavelength elements. A 2D array should be
+        structured such that the different spectra or located along the
+        first dimension. For a 3D array, the different spectra are
+        distributed along the second and third dimension.
+    wave : `numpy.ndarray`, optional
+        The wavelength at each point of the `data` array.
+    error : `numpy.ndarray`, optional
+        The error spectrum, should be of the same shape as `data`.
+        If `error` equals None, it is assumed the error spectrum is not
+        known.
+    mask : `numpy.ndarray`, optional
+        A boolean array where True represents a masked (invalid) data point
+        and False a good data point. Should be of the same shape as `data`.
+    error_weight : `numpy.ndarray`, optional
+        Unused at the current moment?
+    normalization : `numpy.ndarray`, optional
+        An array which is used to normalize the data/error; both data and
+        error are divided by `normalization`. Should be of the same shape
+        as `data`.
+    inst_fwhm : float, optional
+        The instrumental FWHM in the same units as `wavelength`.
+    header : Header, optional
+        Contains information for reading and writing data to and from Fits
+        files.
+    """
     def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, normalization=None, inst_fwhm=None,
     header=None):
         Header.__init__(self, header=header)
@@ -45,9 +76,12 @@ class Data(Header):
         return self._wave
 
     def getWaveStep(self):
+        """Obtain the step in the wavelength grid, assumption is that the
+        wavelength grid is linear."""
         return self._wave[1] - self._wave[0]
 
     def getShape(self):
+        """Obtain the shape of the data."""
         return self._dim
 
     def getData(self):
@@ -97,6 +131,7 @@ class Data(Header):
         self._normalization = normalization
 
     def correctError(self, replace_error=1e10):
+        """Corrects any negative value in `error` to `replace_error`."""
         if self._error is not None:
             select = (self._error <= 0)
             if self._mask is not None:
@@ -104,7 +139,8 @@ class Data(Header):
             self._error[select] = replace_error
 
     def subWaveMask(self, select_wave):
-        """Obtain a copy of Spectrum1D within a certain wavelength range.
+        """Obtain a copy of Spectrum1D within a certain wavelength range by
+        supplying an index array for obtaining the wanted wavelengths.
 
         Parameters
         ----------
@@ -159,6 +195,20 @@ class Data(Header):
         return data_out
 
     def subWaveLimits(self, wave_start=None, wave_end=None):
+        """Obtain a copy of Spectrum1D within a certain wavelength range.
+
+        Parameters
+        ----------
+        wave_start : float, optional
+            The lower limit for the output `Data`.
+        wave_end : float, optional
+            The upper limit for the output `Data`.
+
+        Returns
+        -------
+        data_out : `Data`
+            The output object where the wavelength cut is applied to.
+        """
         select = numpy.ones(len(self.getWave()), dtype='bool')
         if wave_start is not None:
             select[self.getWave() < wave_start] = False
@@ -168,6 +218,20 @@ class Data(Header):
         return data_out
 
     def normalizeSpec(self, pixel_width, mask_norm=None):
+        """Normalize the spectrum by applying a running mean filter to the data.
+
+        Parameters
+        ----------
+        pixel_width : None
+            The length of the running mean filter window.
+        mask_norm : numpy.ndarray
+            The 1D boolean numpy array which is added to the mask which is
+            already in place for the normalization process.
+
+        Returns
+        data_out : `Data`
+            A new instance where the normalization is applied to.
+        """
         mean = numpy.zeros(self._data.shape, dtype=numpy.float32)
         data_temp = numpy.zeros(self._data.shape, dtype=numpy.float32)
         data_temp[:] = self._data
@@ -207,6 +271,13 @@ class Data(Header):
         return data_out
 
     def unnormalizedSpec(self):
+        """Remove the normalization from the spectrum.
+
+        Returns
+        -------
+        data_out : `Data`
+            A new instance where the normalization is removed from.
+        """
         data = self._data * self._normalization
         if self._error is not None:
             error = self._error * self._normalization
