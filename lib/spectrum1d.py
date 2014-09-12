@@ -15,8 +15,11 @@ from types import *
 class Spectrum1D(Data):
     """A class representing 1D spectrum.
 
-    `Spectrum1D` is a subclass of Data which allows for handling and organizing a one-
-    dimensional spectrum.
+    `Spectrum1D` is a subclass of Data which allows for handling and
+    organizing a one- dimensional spectrum. The class supports reading and
+    writing FITS files, resampling and rebinning, velocity shifting and
+    broadening, the application of extinction corrections and various
+    advanced fitting functions.
 
     Parameters
     ----------
@@ -36,6 +39,9 @@ class Spectrum1D(Data):
         error are divided by `normalization`.
     inst_fwhm : float
         The instrumental FWHM in the same units as `wavelength`.
+    header : Header, optional
+        Contains information for reading and writing data to and from Fits
+        files.
     """
     def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
         Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
@@ -387,22 +393,21 @@ class Spectrum1D(Data):
             The minimum velocity dispersion in km/s used in the MCMC.
         disp_max : float
             The maximum velocity dispersion in km/s used in the MCMC.
-        mask_fit : numpy.ndarray
-            A boolean array representing any regions which are masked
+        mask_fit : `numpy.ndarray`
+            A boolean array representing any wavelength regions which are masked
             out during the fitting.
         iterations : int
-            The number of iterations applied to determine the best
-            combination of velocity, velocity dispersion and the
-            coefficients for the set of template spectra.
+            The number of iterations applied to determine the best combination of
+            velocity, velocity dispersion and the coefficients for the set of
+            template spectra.
         burn : int, optional
-            The burn-in parameter that is often applied in MCMC
-            implementations. The first `burn` samples will be discarded
-            in the further analysis.
+            The burn-in parameter that is often applied in MCMC implementations.
+            The first `burn` samples will be discarded in the further analysis.
         samples : int, optional
-            the number of iterations runned by PyMC.
+            The number of iterations runned by PyMC.
         thin : int, optional
-            Only keeps every `thin`th sample, this argument should
-            circumvent any possible autocorrelation among the samples.
+            Only keeps every `thin`th sample, this argument should circumvent
+            any possible autocorrelation among the samples.
 
         Returns
         -------
