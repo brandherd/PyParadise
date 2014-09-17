@@ -312,7 +312,7 @@ class Spectrum1D(Data):
             self.setMask(mask_fit)
 
         if vel is not None and disp is not None:
-            SSPLibrary.applyGaussianLOSVD(vel,disp)
+            SSPLibrary = SSPLibrary.applyGaussianLOSVD(vel, disp)
         if len(SSPLibrary.getWave())!=len(self._wave) or numpy.sum(SSPLibrary.getWave() - self._wave)!=0.0:
             tempLib = SSPLibrary.resampleBase(self._wave)
         else:
