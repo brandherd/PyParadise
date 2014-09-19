@@ -350,8 +350,8 @@ class Cube(Data):
                         sleep(0.01)
                     else:
                         result_fit.append(None)
-                    x_pix[m] = m
-                    y_pix[m] = m
+                    x_pix[m] = x
+                    y_pix[m] = y
                     m += 1
 
             pool.close()
