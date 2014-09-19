@@ -138,9 +138,11 @@ class ParadiseApp(object):
             print "The stellar population modelling has been started."
         if self.__datatype == 'CUBE':
             if kin_fix:
+                x_pixels = tab.field('x_cor')
+                y_pixels = tab.field('y_cor')
                 (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit,
-                disp_fit, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
-                normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
+                disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+                mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
                 verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
