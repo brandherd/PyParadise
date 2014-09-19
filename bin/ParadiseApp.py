@@ -274,14 +274,14 @@ class ParadiseApp(object):
         if self.__datatype == 'CUBE':
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_x, max_x, min_y, max_y, method=efit_method, guess_window=guess_window,
-                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=0, parallel=parallel)
+                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
             model_line = Cube(wave=cube_res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
             line_res = Cube(wave=cube_res_out._wave, data=res_out._data - model_line._data,
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'RSS':
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_y, max_y, method=efit_method, guess_window=guess_window,
-                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=0, parallel=parallel)
+                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
             model_line = RSS(wave=cube_res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
             line_res = RSS(wave=cube_res_out._wave, data=res_out._data - model_line._data,
                 header=self.__inputData.getHeader())
