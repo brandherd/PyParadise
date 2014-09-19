@@ -686,7 +686,7 @@ class Spectrum1D(Data):
         spec_res = float(spectral_res / 2.354)
         #par = fit_profile.parFile(par_file, spec_res)
         fit_par = deepcopy(par)
-        spec_fit = self.subWave(select_wave)
+        spec_fit = self.subWaveMask(select_wave)
         if guess_window != 0.0:
             fit_par._guess_window = int(guess_window)
             fit_par.guessPar(self.getWave(), self.getData())
