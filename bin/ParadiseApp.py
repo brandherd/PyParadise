@@ -13,7 +13,33 @@ import pylab
 
 
 class ParadiseApp(object):
+    """The class `ParadiseApp` handles the fitting of the spectrum with
+    a linear combination of template spectra and/or emission lines. For the
+    the fitting of the template spectra, velocity and the velocity
+    dispersion are obtained by Monte Carlo Markov Chains and the linear
+    combination of template spectra with a non-negative least-squares
+    algorithm.
+
+    The emission line fitting is a separate function, and fits a provided
+    set of emission lines.
+
+    The bootstrapping fitting function can be used to obtain errors on the
+    parameters for the template spectral fitting and errors on the
+    parameters of the emission lines.
+    """
     def __init__(self, input_file, outprefix, instrFWHM):
+        """
+        Parameters
+        ----------
+        input_file : str
+            The fits file containing the spectrum for which the fitting will be
+            performed
+        outprefix : str
+            The prefix that will be prepended to the files that are written by
+            the fitting routines.
+        instrFWHM : float
+            The instrumental resolution of the data in `input_file`.
+        """
         self.__inputData = loadCube(input_file)
         if self.__inputData._datatype == 'CUBE':
             self.__inputData.correctError()
@@ -26,6 +52,36 @@ class ParadiseApp(object):
         self.__instrFWHM = instrFWHM
 
     def run_SSP_fit(self, parfile, parallel, verbose):
+        """This functions fits a linear combination of template spectra to the
+        input spectra to obtain the best fit.
+
+        Parameters
+        ----------
+        parfile : str
+            The parameter file containing the constraints under which the input
+            spectra will be fitted.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores/threads that are available.
+        verbose : bool, optional
+            Produces screen output, such that the user can follow which spectrum
+            is currently fitted and what the results are for each spectrum.
+
+        Notes
+        -----
+        The function does not return anything, but writes the results of the fit
+        to disk. There are three files written to disk, all prepended by the
+        `outprefix` supplied to this class at creation. The three files are:
+        - `outprefix`.cont_model.fits which contains the spectra corresponding
+          to the best linear combination of spectra.
+        - `outprefix`.cont_res.fits contains the residual between the input fits
+          file and the best fitted model spectra.
+        - `outprefix`.stellar_table.fits contains the parameters of the best
+          fit, like velocity, velocity dispersion, the luminosity-weighted and
+          mass-weighted parameters.
+        """
         ## Read in parameter file and get values
         parList = ParameterList(parfile)
         nlib_guess = int(parList['tmplinitspec'].getValue())
@@ -90,9 +146,12 @@ class ParadiseApp(object):
             print "The stellar population modelling has been started."
         if self.__datatype == 'CUBE':
             if kin_fix:
+                x_pixels = tab.field('x_cor')
+                y_pixels = tab.field('y_cor')
                 (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit,
-                disp_fit, x_pos_kin, y_pos_kin, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
-                normDataSub.getWave(), vel_guess / 300000.0), verbose=verbose, parallel=parallel)
+                disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+                mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
+                verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
                 cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
@@ -154,7 +213,10 @@ class ParadiseApp(object):
         columns.append(pyfits.Column(name='disp_fit', format='E', unit='km/s', array=disp_fit[fitted]))
         columns.append(pyfits.Column(name='disp_fit_err', format='E', unit='km/s', array=disp_fit_err[fitted]))
         columns.append(pyfits.Column(name='chi2', format='E', array=chi2[fitted]))
-        columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
+        if lib.getBaseNumber() > 1:
+            columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
+        else:
+            columns.append(pyfits.Column(name='base_coeff', format='E', array=coeff[fitted].flatten()))
         columns.append(pyfits.Column(name='lum_coeff_frac_total', format='E', array=lum_weighted_pars[fitted, 0]))
         columns.append(pyfits.Column(name='lum_age_total', format='E', array=lum_weighted_pars[fitted, 1]))
         columns.append(pyfits.Column(name='lum_M/L_total', format='E', array=lum_weighted_pars[fitted, 2]))
@@ -170,6 +232,34 @@ class ParadiseApp(object):
         table_out.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
     def run_eline_fit(self, parfile, parallel, verbose):
+        """This functions fits a a set of emission lines to the spectra.
+
+        Parameters
+        ----------
+        parfile : str
+            The parameter file containing the constraints under which the
+            emission lines will be fitted to the input spectra.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores/threads that are available.
+        verbose : bool, optional
+            Produces screen output, such that the user can follow which spectrum
+            is currently fitted and what the results are for each spectrum.
+
+        Notes
+        -----
+        The function does not return anything, but writes the results of the fit
+        to disk. There are three files written to disk, all prepended by the
+        `outprefix` supplied to this class at creation. The three files are:
+        - `outprefix`.eline_model.fits which contains the best fitted emission
+          line spectra.
+        - `outprefix`.eline_res.fits contains the residual between the input
+          fits file and the best fitted emission line model spectra.
+        - `outprefix`.eline_table.fits contains the parameters of the best
+          fit, like flux, velocity and the FWHM.
+        """
         parList = ParameterList(parfile)
         eCompFile = parList['eCompFile'].getValue()
         vel_guess = float(parList['vel_guess'].getValue())
@@ -203,16 +293,16 @@ class ParadiseApp(object):
         if self.__datatype == 'CUBE':
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_x, max_x, min_y, max_y, method=efit_method, guess_window=guess_window,
-                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=0, parallel=parallel)
-            model_line = Cube(wave=res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
-            line_res = Cube(wave=res_out._wave, data=res_out._data - model_line._data,
+                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
+            model_line = Cube(wave=res_out.getWave(), data=out_lines[4], header=self.__inputData.getHeader())
+            line_res = Cube(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'RSS':
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_y, max_y, method=efit_method, guess_window=guess_window,
-                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=0, parallel=parallel)
-            model_line = RSS(wave=res_out._wave, data=out_lines[4], header=self.__inputData.getHeader())
-            line_res = RSS(wave=res_out._wave, data=res_out._data - model_line._data,
+                spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
+            model_line = RSS(wave=res_out.getWave(), data=out_lines[4], header=self.__inputData.getHeader())
+            line_res = RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
         model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
         line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
@@ -241,7 +331,44 @@ class ParadiseApp(object):
         table_out.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
     def run_bootstrap(self, stellar_parfile, eline_parfile, bootstraps, modkeep, parallel, verbose):
+        """The bootstrap functions performs a bootstrap on the data in order to
+        obtain errors. The errors for the template fitting are determined by
+        refitting with a subset of the templates (with fixed velocity and
+        velocity dispersion) and looking at the spread of the determined
+        parameters to obtain a bootstrapped error estimate. Each time the
+        templates are fitted, the emission lines are also fitted and this then
+        gives an estimate of the error in the emission line parameters.
 
+        Parameters
+        ----------
+        stellar_parfile : str
+            The parameter file containing the constraints under which the input
+            template spectra are fitted.
+        eline_par_file : str
+            The parameter file containing the constraints under which the
+            emission lines are fitted to the input spectra.
+        bootstraps : int
+            The number of bootstraps run to each spectra.
+        modkeep : float
+            The percentage of template spectra that will be keeped under each
+            bootstrap run.
+        parallel : {'auto', int}, optional
+            If parallel is not equal to one, the python multiprocessing routine
+            shall be used to run parts of the code in parallel. With the option
+            `auto`, it adjusts the number of parallel processes to the number
+            of cpu-cores/threads that are available.
+        verbose : bool, optional
+            Produces screen output, such that the user can follow which spectrum
+            is currently fitted and what the results are for each spectrum.
+
+        Notes
+        -----
+        The function does not return anything, but overwrites the stellar table
+        and emission-line table fits files created by the fitting functions
+        `run_SSP_fit` and `run_eline_fit`. The files
+        `outprefix`.stellar_table.fits and `outprefix`.eline_table.fits are
+        appended with information on the errors on the fitted parameters.
+        """
         ## Read in parameter file and get values
         parList = ParameterList(stellar_parfile)
         tmpldir = parList['tmpldir'].getValue()

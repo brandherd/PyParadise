@@ -7,6 +7,7 @@ from scipy import optimize
 from copy import deepcopy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
+from time import sleep
 try:
     import pylab
 except:
@@ -267,6 +268,7 @@ class fit_profile1D(object):
             #model = optimize.leastsq(self.res, p0, (x, y, sigma),None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None)
 
         if err_sim!=0:
+            numpy.random.seed()
             if parallel=='auto':
                 cpus = cpu_count()
             else:
@@ -281,6 +283,7 @@ class fit_profile1D(object):
                        results.append(pool.apply_async(optimize.leastsq, args=(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100, None)))
                     if method=='simplex':
                         results.append(pool.apply_async(optimize.fmin, args=(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), xtol, ftol, maxfev, None, 0, 0, 0)))
+                    sleep(0.01)
                 pool.close()
                 pool.join()
                 for i in xrange(err_sim):

@@ -15,8 +15,11 @@ from types import *
 class Spectrum1D(Data):
     """A class representing 1D spectrum.
 
-    `Spectrum1D` is a subclass of Data which allows for handling and organizing a one-
-    dimensional spectrum.
+    `Spectrum1D` is a subclass of Data which allows for handling and
+    organizing a one- dimensional spectrum. The class supports reading and
+    writing FITS files, resampling and rebinning, velocity shifting and
+    broadening, the application of extinction corrections and various
+    advanced fitting functions.
 
     Parameters
     ----------
@@ -36,10 +39,13 @@ class Spectrum1D(Data):
         error are divided by `normalization`.
     inst_fwhm : float
         The instrumental FWHM in the same units as `wavelength`.
+    header : Header, optional
+        Contains information for reading and writing data to and from Fits
+        files.
     """
     def __init__(self, wave=None, data=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
         Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
-        header=None)
+        header=header)
 
     def hasData(self, start_wave=None, end_wave=None):
         """Check if there is any unmasked data available between the provided
@@ -274,7 +280,7 @@ class Spectrum1D(Data):
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
 
-    def fitSuperposition(self, SSPLibrary, vel=None, disp=None, negative=False):
+    def fitSuperposition(self, SSPLibrary, vel=None, disp=None, mask_fit=None, negative=False):
         """Fits a superposition of template spectra to the data.
 
         Parameters
@@ -297,19 +303,24 @@ class Spectrum1D(Data):
         chisq : float
             The chi^2 value corresponding to `bestfit_spec`.
         """
-        valid_pix = numpy.logical_not(self._mask)
         if self._error is None:
             error = numpy.ones((self._dim), dtype=numpy.float32)
         else:
             error = self._error
+        if mask_fit is not None and self.getMask() is not None:
+            self.setMask(numpy.logical_or(self.getMask(), mask_fit))
+        elif mask_fit is not None:
+            self.setMask(mask_fit)
+
         if vel is not None and disp is not None:
-            SSPLibrary = SSPLibrary.applyGaussianLOSVD(vel,disp)
+            SSPLibrary = SSPLibrary.applyGaussianLOSVD(vel, disp)
         if len(SSPLibrary.getWave())!=len(self._wave) or numpy.sum(SSPLibrary.getWave() - self._wave)!=0.0:
             tempLib = SSPLibrary.resampleBase(self._wave)
         else:
             tempLib = SSPLibrary
         libFit = fit_profile.fit_linearComb(tempLib.getBase())
         libFit.fit(self._data, error, self._mask, negative=negative)
+
         #print vel,disp,negative
        # pylab.plot(self._wave,self._data,'-k')
 
@@ -389,22 +400,21 @@ class Spectrum1D(Data):
             The minimum velocity dispersion in km/s used in the MCMC.
         disp_max : float
             The maximum velocity dispersion in km/s used in the MCMC.
-        mask_fit : numpy.ndarray
-            A boolean array representing any regions which are masked
+        mask_fit : `numpy.ndarray`
+            A boolean array representing any wavelength regions which are masked
             out during the fitting.
         iterations : int
-            The number of iterations applied to determine the best
-            combination of velocity, velocity dispersion and the
-            coefficients for the set of template spectra.
+            The number of iterations applied to determine the best combination of
+            velocity, velocity dispersion and the coefficients for the set of
+            template spectra.
         burn : int, optional
-            The burn-in parameter that is often applied in MCMC
-            implementations. The first `burn` samples will be discarded
-            in the further analysis.
+            The burn-in parameter that is often applied in MCMC implementations.
+            The first `burn` samples will be discarded in the further analysis.
         samples : int, optional
-            the number of iterations runned by PyMC.
+            The number of iterations runned by PyMC.
         thin : int, optional
-            Only keeps every `thin`th sample, this argument should
-            circumvent any possible autocorrelation among the samples.
+            Only keeps every `thin`th sample, this argument should circumvent
+            any possible autocorrelation among the samples.
 
         Returns
         -------
@@ -426,13 +436,30 @@ class Spectrum1D(Data):
         chisq : float
             The chi^2 value between `bestfit_spec` and `data`.
         """
-        if nlib_guess>0:
+        ## The case that the spectrum is fitted to each SSP
+        if nlib_guess == 0:
+            results = []
+            for i in range(-1, -lib_SSP.getBaseNumber() - 1, -1):
+                select = numpy.arange(lib_SSP.getBaseNumber()) == i * -1 - 1
+                lib = lib_SSP.subLibrary(select)
+                results.append(self.fit_Kin_Lib_simple(lib_SSP=lib, nlib_guess=i, vel_min=vel_min, vel_max=vel_max,
+                                                       disp_min=disp_min, disp_max=disp_max, mask_fit=mask_fit,
+                                                       iterations=iterations, burn=burn, samples=samples, thin=thin))
+            chi2list = numpy.array([result[-1] for result in results])
+            idx = numpy.argmin(chi2list)
+            vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2 = results[idx]
+            coeff = numpy.zeros(lib_SSP.getBaseNumber(), dtype=numpy.float32)
+            coeff[idx] = 1.0
+            return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
+        elif nlib_guess > 0:
             spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         else:
             spec_lib_guess = lib_SSP.getSpec(1)
 
-        if mask_fit is not None:
+        if mask_fit is not None and self.getMask() is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
+        elif mask_fit is not None:
+            self.setMask(mask_fit)
         for i in range(iterations):
             M = self.fitKinMCMC_fixedpop(spec_lib_guess, vel_min, vel_max, disp_min, disp_max, burn=burn, samples=samples, thin=thin)
             trace_vel = M.trace('vel', chain=None)[:]
@@ -447,7 +474,6 @@ class Spectrum1D(Data):
             if nlib_guess<0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
-        bestfit_spec.setNormalization(self.getNormalization())
         return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
 
 
@@ -502,6 +528,7 @@ class Spectrum1D(Data):
         mass_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(self.getWave())
+        line_models = None
         if par_eline is not None:
             line_models = {}
             for n in par_eline._names:
@@ -515,6 +542,8 @@ class Spectrum1D(Data):
             self._mask = numpy.zeros_like(self._data).astype(bool)
         if mask_fit is not None:
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
+        elif mask_fit is not None:
+            self.setMask(mask_fit)
         m = 0
        # try:
         while m < bootstraps:
