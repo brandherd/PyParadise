@@ -291,7 +291,7 @@ class SSPlibrary(UserDict):
         if max_age is not None:
             select_age[self['age'] > max_age] = False
 
-        if numpy.sum(select_age) > 0:
+        if numpy.sum(coefficients[select_age]) > 0:
             if self.__normalization is not None:
                 mean_out = [numpy.sum(coefficients[select_age])]
             else:
@@ -329,13 +329,12 @@ class SSPlibrary(UserDict):
         """
         parameters = ['age', 'mass-to-light', '[Fe/H]', '[A/Fe]']
 
-        select_age = self['age'] > 0
+        select_age = self['age'] >= 0
         if min_age is not None:
             select_age[self['age'] < min_age] = False
         if max_age is not None:
             select_age[self['age'] > max_age] = False
-
-        if numpy.sum(select_age)>0:
+        if numpy.sum(coefficients[select_age])>0:
             if self.__normalization is not None:
                 mean_out = [numpy.sum(coefficients[select_age])]
             else:

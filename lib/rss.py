@@ -1,6 +1,7 @@
 from Paradise.lib.data import Data
 from Paradise.lib.spectrum1d import Spectrum1D
 import numpy
+import pylab
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 
@@ -101,7 +102,7 @@ class RSS(Data):
                 m += 1
         return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber, rss_model
 
-    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
+    def fit_Lib_fixed_kin(self, SSPLib, x_pos, y_pos, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
 
         rss_model = numpy.zeros(self.getShape(), dtype=numpy.float32)

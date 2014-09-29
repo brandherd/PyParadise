@@ -2,6 +2,7 @@ from Paradise.lib.header import *
 from Paradise.lib.data import *
 from Paradise.lib.spectrum1d import Spectrum1D
 import numpy
+import pylab
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 
@@ -62,10 +63,10 @@ class Cube(Data):
                     x_pix[m] = x
                     y_pix[m] = y
                     m += 1
-                    if m == 550:
-                        break
-                if m == 550:
-                    break
+ #                   if m == 550:
+ #                       break
+ #               if m == 550:
+ #                   break
 
             pool.close()
             pool.join()
@@ -96,6 +97,7 @@ class Cube(Data):
                         try:
                             result = spec.fit_Kin_Lib_simple(SSPLib, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit,
                         iterations=iterations, burn=burn, samples=samples, thin=thin)
+                            print result
                             vel_fit[m] = result[0]
                             vel_fit_err[m] = result[1]
                             disp_fit[m] = result[2]
@@ -117,6 +119,80 @@ class Cube(Data):
                 #if m == 1550:
                         #break
         return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix, cube_model
+
+    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
+        verbose=False, parallel='auto'):
+
+        cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        chi2 = numpy.zeros(len(x_pos), dtype=numpy.float32)
+        x_pix = numpy.zeros(len(x_pos), dtype=numpy.int16)
+        y_pix = numpy.zeros(len(x_pos), dtype=numpy.int16)
+        fitted = numpy.zeros(len(x_pos), dtype="bool")
+        coeff = numpy.zeros((len(x_pos), SSPLib.getBaseNumber()), dtype=numpy.float32)
+        if parallel == 'auto':
+            cpus = cpu_count()
+        else:
+            cpus = int(parallel)
+        if cpus > 1:
+            pool = Pool(cpus, maxtasksperchild=200)
+            result_fit = []
+            for m in range(len(x_pos)):
+                x = x_pos[m]
+                y = y_pos[m]
+                x_pix[m] = x
+                y_pix[m] = y
+                spec = self.getSpec(x, y)
+                if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m],False)))
+                else:
+                    result_fit.append(None)
+                    #if m == 550:
+                        #break
+                #if m == 550:
+                    #break
+
+            pool.close()
+            pool.join()
+            for  m in range(len(result_fit)):
+                if result_fit[m] is not None:
+                    try:
+                        result = result_fit[m].get()
+                        fitted[m] = True
+                        coeff[m, :] = result[0]
+                        chi2[m] = result[2]
+                        cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
+                    except ValueError:
+                        print "Fitting failed because of bad spectrum."
+                #if m == 1550:
+                    #break
+        else:
+            for m in range(len(x_pos)):
+                    x = x_pos[m]
+                    y = y_pos[m]
+                    spec = self.getSpec(x, y)
+                    x_pix[m] = x
+                    y_pix[m] = y
+                   # pylab.plot(spec._wave,spec._data,'-m')
+                    if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                        if verbose:
+                            print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
+                        try:
+                            result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], False)
+                            fitted[m] = True
+                            coeff[m, :] = result[0]
+                            chi2[m] = result[2]
+                            cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
+                            if verbose:
+                                print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
+                        except (ValueError, IndexError):
+                            print "Fitting failed because of bad spectrum."
+
+                    m += 1
+                    #if m == 1550:
+                        #break
+                #if m == 1550:
+                        #break
+        return fitted, coeff, chi2, x_pix, y_pix, cube_model
 
     def fitELines(self, par, select_wave, min_x, max_x, min_y, max_y, method='leastsq', guess_window=0.0, spectral_res=0.0,
     ftol=1e-4, xtol=1e-4, verbose=1, parallel='auto'):
@@ -172,7 +248,6 @@ class Cube(Data):
             for x in range(self._dim_x):
                 for y in range(self._dim_y):
                     spec = self.getSpec(x, y)
-
                     if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
                         if verbose:
                             print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
@@ -191,7 +266,7 @@ class Cube(Data):
         return maps, fitted, x_pix, y_pix, cube_model
 
     def fit_Lib_Boots(self, lib_SSP, x_cor, y_cor, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
-        method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
+        method_eline='leastsq', mask_fit=None, guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100, modkeep=80,
         parallel=1, verbose=False):
 
         mass_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
@@ -217,7 +292,7 @@ class Cube(Data):
             for m in range(len(x_cor)):
                 spec = self.getSpec(x_cor[m], y_cor[m])
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                         select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
+                         mask_fit, select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
                          modkeep, 1)))
             pool.close()
             pool.join()
@@ -237,17 +312,22 @@ class Cube(Data):
                 spec = self.getSpec(x_cor[m], y_cor[m])
                 if verbose:
                     print "Fitting Spectrum (%d, %d) of cube" % (x_cor[m] + 1, y_cor[m] + 1)
-                result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                     select_wave_eline, method_eline, mask_fit, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
+                if x_cor[m]==-1 and y_cor[m]==20:
+                    result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
+                         select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1, True)
+                    break
+                else:
+                    result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
+                     select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
 
-                mass_weighted_pars_err[m, :] = result[0]
-                lum_weighted_pars_err[m, :] = result[1]
-                if par_eline is not None:
-                    for n in par_eline._names:
-                        if par_eline._profile_type[n] == 'Gauss':
-                            maps[n]['flux_err'][m] = result[2][n]['flux']
-                            maps[n]['vel_err'][m] = result[2][n]['vel']
-                            maps[n]['fwhm_err'][m] = result[2][n]['fwhm']
+                #mass_weighted_pars_err[m, :] = result[0]
+                #lum_weighted_pars_err[m, :] = result[1]
+                #if par_eline is not None:
+                    #for n in par_eline._names:
+                        #if par_eline._profile_type[n] == 'Gauss':
+                            #maps[n]['flux_err'][m] = result[2][n]['flux']
+                            #maps[n]['vel_err'][m] = result[2][n]['vel']
+                            #maps[n]['fwhm_err'][m] = result[2][n]['fwhm']
         if par_eline is None:
             maps = None
         return mass_weighted_pars_err, lum_weighted_pars_err, maps

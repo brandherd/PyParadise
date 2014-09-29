@@ -1,6 +1,7 @@
 from Paradise.lib.header import *
 import pyfits
 import numpy
+import pylab
 from scipy import ndimage
 from copy import deepcopy
 from multiprocessing import cpu_count
@@ -200,7 +201,13 @@ class Data(Header):
         select_zero = mean == 0
         mean[select_zero] = 1
         new_data = self._data / mean
-        new_error = self._error / mean
+        new_error = self._error / numpy.fabs(mean)
+  #      pylab.plot(self._wave,self._data[:,15,15],'-k')
+  #      pylab.plot(self._wave,self._error[:,15,15],'-r')
+  #      pylab.plot(self._wave,self._error[:,15,15]/numpy.fabs(mean[:,15,15]),'-b')
+ #       pylab.plot(self._wave,new_data[:,15,15],'-b')
+ #       pylab.plot(self._wave,new_error[:,15,15],'-g')
+  #      pylab.show()
         data_out = Data(wave=self._wave, data=new_data, error=new_error, mask=self._mask, normalization=mean,
         inst_fwhm=self._inst_fwhm)
         data_out.__class__ = self.__class__
@@ -209,7 +216,7 @@ class Data(Header):
     def unnormalizedSpec(self):
         data = self._data * self._normalization
         if self._error is not None:
-            error = self._error * self._normalization
+            error = self._error * numpy.fabs(self._normalization)
         else:
             error = None
         data_out = Data(wave=self._wave, data=data, error=error, mask=self._mask, normalization=None, inst_fwhm=self._inst_fwhm)
@@ -221,7 +228,7 @@ class Data(Header):
         if self._normalization is None:
             self._data = self._data / normalization
             if self._error is not None:
-                self._error = self._error / normalization
+                self._error = self._error / numpy.fabs(normalization)
 
     def setVelSampling(self, vel_sampling):
         """Change the velocity sampling of the spectra (float, km/s)."""
@@ -304,7 +311,7 @@ class Data(Header):
             self.setHeader(hdu[extension_hdr].header, origin=file)
 
     def writeFitsData(self, filename, extension_data=None, extension_mask=None, extension_error=None,
-    extension_errorweight=None):
+    extension_errorweight=None,extension_normalization=None):
         """
             Save information of the Data object into a FITS file.
             A single or multiple extension file are possible to create.
@@ -323,11 +330,11 @@ class Data(Header):
             extension_error : int, optional with default: None
                 Number of the FITS extension containing the errors for the values
         """
-        hdus = [None, None, None, None]  # create empty list for hdu storage
+        hdus = [None, None, None, None,None]  # create empty list for hdu storage
 
         # create primary hdus and image hdus
         # data hdu
-        if extension_data is None and extension_error is None and extension_mask is None and extension_errorweight is None:
+        if extension_data is None and extension_error is None and extension_mask is None and extension_errorweight is None and extension_normalization is None:
             hdus[0] = pyfits.PrimaryHDU(self._data)
             if self._error is not None:
                 hdus[1] = pyfits.ImageHDU(self._error, name='ERROR')
@@ -335,6 +342,8 @@ class Data(Header):
                 hdus[2] = pyfits.ImageHDU(self._error_weight, name='ERRWEIGHT')
             if self._mask is not None:
                 hdus[3] = pyfits.ImageHDU(self._mask.astype('uint8'), name='BADPIX')
+            if self._normalization is not None:
+                hdus[4] = pyfits.ImageHDU(self._normalization, name='NORMALIZE')
         else:
             if extension_data == 0:
                 hdus[0] = pyfits.PrimaryHDU(self._data)
@@ -357,6 +366,11 @@ class Data(Header):
                 hdu = pyfits.PrimaryHDU(self._error_weight)
             elif extension_errorweight > 0 and extension_errorweight is not None:
                 hdus[extension_errorweight] = pyfits.ImageHDU(self._error_weight, name='ERRWEIGHT')
+
+            if extension_normalization == 0:
+                hdu = pyfits.PrimaryHDU(self._normalization)
+            elif extension_normalization > 0 and extension_normalization is not None:
+                hdus[extension_normalization] = pyfits.ImageHDU(self._normalization, name='NORMALIZE')
 
         # remove not used hdus
         for i in range(len(hdus)):
