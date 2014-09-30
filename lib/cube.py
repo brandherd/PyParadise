@@ -349,7 +349,7 @@ class Cube(Data):
                 y_pix[m] = y
                 spec = self.getSpec(x, y)
                 if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
-                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m],False)))
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m], mask_fit)))
                     sleep(0.001)
                 else:
                     result_fit.append(None)
@@ -383,7 +383,7 @@ class Cube(Data):
                     if verbose:
                         print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
                     try:
-                        result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], False)
+                        result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], mask_fit)
                         fitted[m] = True
                         coeff[m, :] = result[0]
                         chi2[m] = result[2]
