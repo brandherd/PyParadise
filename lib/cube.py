@@ -393,7 +393,6 @@ class Cube(Data):
                     except (ValueError, IndexError):
                         print "Fitting failed because of bad spectrum."
 
-                    m += 1
                     #if m == 1550:
                         #break
                 #if m == 1550:
