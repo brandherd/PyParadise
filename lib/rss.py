@@ -235,7 +235,7 @@ class RSS(Data):
                 m += 1
         return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber, rss_model
 
-    def fit_Lib_fixed_kin(self, SSPLib, x_pos, y_pos, vel, vel_disp, fibers, min_y, max_y, mask_fit,
+    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
         """Fits template spectra with fixed kinematics with non-negative least
         squares fitting to determine the best combination of template spectra.
