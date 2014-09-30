@@ -436,7 +436,6 @@ class ParadiseApp(object):
         #normData.writeFitsData('test.fits')
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
         excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
-        select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
@@ -447,6 +446,7 @@ class ParadiseApp(object):
                     fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
                     verbose=verbose)
         else:
+            select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
             if self.__datatype == 'CUBE':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
                     x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
@@ -474,30 +474,31 @@ class ParadiseApp(object):
         hdu = pyfits.new_table(stellar_table.columns[:17] + pyfits.new_table(columns_stellar).columns)
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
-        mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
-        indices = numpy.arange(len(x_cor))
-        valid = numpy.zeros(len(x_eline),dtype="bool")
-        for i in range(len(x_eline)):
+        if eline_parfile is not None:
+            mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
+            indices = numpy.arange(len(x_cor))
+            valid = numpy.zeros(len(x_eline),dtype="bool")
+            for i in range(len(x_eline)):
 
-            select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
-            if numpy.sum(select_pos)>0:
-                valid[i]=True
-                mapping[i]=indices[select_pos][0]
-            else:
-                mapping[i]=-1
+                select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
+                if numpy.sum(select_pos)>0:
+                    valid[i]=True
+                    mapping[i]=indices[select_pos][0]
+                else:
+                    mapping[i]=-1
 
-        if maps is not None:
-            columns_eline = []
-            for n in line_par._names:
-                if line_par._profile_type[n] == 'Gauss':
-                    columns_eline.append(pyfits.Column(name='%s_flux_err' % (n), format='E', array=maps[n]['flux_err'][valid][mapping[valid]]))
-                    columns_eline.append(pyfits.Column(name='%s_vel_err' % (n), format='E', unit='km/s',
-                        array=maps[n]['vel_err'][valid][mapping[valid]]))
-                    columns_eline.append(pyfits.Column(name='%s_fwhm_err' % (n), format='E', unit='km/s',
-                            array=maps[n]['fwhm_err'][valid][mapping[valid]]))
+            if maps is not None:
+                columns_eline = []
+                for n in line_par._names:
+                    if line_par._profile_type[n] == 'Gauss':
+                        columns_eline.append(pyfits.Column(name='%s_flux_err' % (n), format='E', array=maps[n]['flux_err'][valid][mapping[valid]]))
+                        columns_eline.append(pyfits.Column(name='%s_vel_err' % (n), format='E', unit='km/s',
+                            array=maps[n]['vel_err'][valid][mapping[valid]]))
+                        columns_eline.append(pyfits.Column(name='%s_fwhm_err' % (n), format='E', unit='km/s',
+                                array=maps[n]['fwhm_err'][valid][mapping[valid]]))
 
-            hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
-            hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
+                hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
+                hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
 
 if __name__ == "__main__":
