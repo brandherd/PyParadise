@@ -263,7 +263,7 @@ class Cube(Data):
 
     def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
-	"""Fits template spectra with fixed kinematics with non-negative least
+        """Fits template spectra with fixed kinematics with non-negative least
         squares fitting to determine the best combination of template spectra.
 
         Notes
@@ -373,25 +373,25 @@ class Cube(Data):
                     #break
         else:
             for m in range(len(x_pos)):
-                    x = x_pos[m]
-                    y = y_pos[m]
-                    spec = self.getSpec(x, y)
-                    x_pix[m] = x
-                    y_pix[m] = y
-                   # pylab.plot(spec._wave,spec._data,'-m')
-                    if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                x = x_pos[m]
+                y = y_pos[m]
+                spec = self.getSpec(x, y)
+                x_pix[m] = x
+                y_pix[m] = y
+               # pylab.plot(spec._wave,spec._data,'-m')
+                if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                    if verbose:
+                        print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
+                    try:
+                        result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], False)
+                        fitted[m] = True
+                        coeff[m, :] = result[0]
+                        chi2[m] = result[2]
+                        cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
                         if verbose:
-                            print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
-                        try:
-                            result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], False)
-                            fitted[m] = True
-                            coeff[m, :] = result[0]
-                            chi2[m] = result[2]
-                            cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
-                            if verbose:
-                                print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
-                        except (ValueError, IndexError):
-                            print "Fitting failed because of bad spectrum."
+                            print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
+                    except (ValueError, IndexError):
+                        print "Fitting failed because of bad spectrum."
 
                     m += 1
                     #if m == 1550:
