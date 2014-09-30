@@ -41,10 +41,10 @@ class Cube(Data):
         Contains information for reading and writing data to and from Fits
         files.
     """
-    def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, inst_fwhm=None, normalization=None,
+    def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, normalization=None, inst_fwhm=None,
     header=None):
-        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
-        header=header)
+        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, error_weight=error_weight,
+        normalization=normalization, inst_fwhm=inst_fwhm, header=header)
 
     def getSpec(self, x, y):
         """Get a single spectrum from the RSS instance.
