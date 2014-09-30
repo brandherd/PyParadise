@@ -389,7 +389,7 @@ class Cube(Data):
                         chi2[m] = result[2]
                         cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
                         if verbose:
-                            print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
+                            print "chi2: %.2f" % (chi2[m])
                     except (ValueError, IndexError):
                         print "Fitting failed because of bad spectrum."
 
