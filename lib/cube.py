@@ -554,7 +554,7 @@ class Cube(Data):
             for m in range(len(x_cor)):
                 spec = self.getSpec(x_cor[m], y_cor[m])
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                         mask_fit, select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
+                         select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
                          modkeep, 1)))
                 sleep(0.01)
             pool.close()
