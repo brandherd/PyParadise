@@ -176,15 +176,15 @@ class ParadiseApp(object):
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave, data=rss_model,
+            model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=rss_model,
                 header=self.__inputData.getHeader())
-            res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave,
-                data=self.__inputData.subWaveLimits(start_wave, end_wave)._data - rss_model, header=self.__inputData.getHeader())
+            res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
+                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model, header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave, data=cube_model,
+            model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=cube_model,
                 header=self.__inputData.getHeader())
-            res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave,
-                data=self.__inputData.subWaveLimits(start_wave, end_wave)._data - cube_model, header=self.__inputData.getHeader())
+            res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
+                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model, header=self.__inputData.getHeader())
         model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
         res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
 
