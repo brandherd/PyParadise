@@ -124,13 +124,13 @@ class ParadiseApp(object):
                 fiber_kin = tab.field('fiber')
             vel_min = numpy.min(vel_fit)
             vel_max = numpy.max(vel_fit)
-        #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
+        min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
+        max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
 
         if nlib_guess < 0:
             select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
             lib = lib.subLibrary(select)
-        #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
+        lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
@@ -420,14 +420,14 @@ class ParadiseApp(object):
         if verbose:
             print "The stellar population library is being prepared."
         lib = SSPlibrary(filename=tmpldir + '/' + tmplfile)
-        #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
+        min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
+        max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
 
 
         if nlib_guess < 0:
             select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
             lib = lib.subLibrary(select)
-        #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
+        lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
