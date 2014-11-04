@@ -120,7 +120,7 @@ class Spectrum1D(Data):
 
 #            elif method=='lanczos3':
 
-#        if self._error!=None and err_sim>0:
+#        if self._error is not None and err_sim>0:
 #            sim  = numpy.zeros((err_sim, len(ref_wave)), dtype=numpy.float32)
 #            data = numpy.zeros(len(self._wave), dtype=numpy.float32)
 #
@@ -137,7 +137,7 @@ class Spectrum1D(Data):
 #            new_error = numpy.std(sim, 0)
 #
 #
-#        elif self._error==None or err_sim==0:
+#        elif self._error is None or err_sim==0:
 #            new_error=None
         spec_out = Spectrum1D(wave=ref_wave, data=new_data)
         return spec_out
