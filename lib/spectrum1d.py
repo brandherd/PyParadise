@@ -474,7 +474,15 @@ class Spectrum1D(Data):
             if nlib_guess<0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
-        return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
+
+        ## Create additional chains for determination of the Gelman-Rubin parameter
+        for i in range(4):
+            M.sample(burn=burn, iter=samples, thin=thin, progress_bar=False)
+        goodnessOfFit = pymc.gelman_rubin(M)
+        Rvel = goodnessOfFit['vel']
+        Rdisp = goodnessOfFit['disp']
+
+        return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
 
 
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,

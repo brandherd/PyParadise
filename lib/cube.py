@@ -177,8 +177,10 @@ class Cube(Data):
         cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
         vel_fit = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         vel_fit_err = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
+        Rvel = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         disp_fit = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         disp_fit_err = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
+        Rdisp = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         chi2 = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         x_pix = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
         y_pix = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
@@ -217,12 +219,14 @@ class Cube(Data):
                         result = result_fit[m].get()
                         vel_fit[m] = result[0]
                         vel_fit_err[m] = result[1]
-                        disp_fit[m] = result[2]
-                        disp_fit_err[m] = result[3]
+                        Rvel[m] = result[2]
+                        disp_fit[m] = result[3]
+                        disp_fit_err[m] = result[4]
+                        Rdisp[m] = result[5]
                         fitted[m] = True
-                        coeff[m, :] = result[5]
-                        chi2[m] = result[6]
-                        cube_model[:, y_pix[m], x_pix[m]] = result[4].unnormalizedSpec().getData()
+                        coeff[m, :] = result[7]
+                        chi2[m] = result[8]
+                        cube_model[:, y_pix[m], x_pix[m]] = result[6].unnormalizedSpec().getData()
                     except ValueError:
                         print "Fitting failed because of bad spectrum."
                 #if m == 1550:
@@ -241,14 +245,16 @@ class Cube(Data):
                             print result
                             vel_fit[m] = result[0]
                             vel_fit_err[m] = result[1]
-                            disp_fit[m] = result[2]
-                            disp_fit_err[m] = result[3]
+                            Rvel[m] = result[2]
+                            disp_fit[m] = result[3]
+                            disp_fit_err[m] = result[4]
+                            Rdisp[m] = result[5]
                             fitted[m] = True
-                            coeff[m, :] = result[5]
-                            chi2[m] = result[6]
+                            coeff[m, :] = result[7]
+                            chi2[m] = result[8]
                             x_pix[m] = x
                             y_pix[m] = y
-                            cube_model[:, y, x] = result[4].unnormalizedSpec().getData()
+                            cube_model[:, y_pix[m], x_pix[m]] = result[6].unnormalizedSpec().getData()
                             if verbose:
                                 print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
                         except (ValueError, IndexError):
@@ -259,7 +265,7 @@ class Cube(Data):
                         #break
                 #if m == 1550:
                         #break
-        return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix, cube_model
+        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix, cube_model
 
     def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):

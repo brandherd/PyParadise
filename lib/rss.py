@@ -167,8 +167,10 @@ class RSS(Data):
         rss_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
         vel_fit = numpy.zeros(self._fibers, dtype=numpy.float32)
         vel_fit_err = numpy.zeros(self._fibers, dtype=numpy.float32)
+        Rvel = numpy.zeros(self._fibers, dtype=numpy.float32)
         disp_fit = numpy.zeros(self._fibers, dtype=numpy.float32)
         disp_fit_err = numpy.zeros(self._fibers, dtype=numpy.float32)
+        Rdisp = numpy.zeros(self._fibers, dtype=numpy.float32)
         chi2 = numpy.zeros(self._fibers, dtype=numpy.float32)
         fiber = numpy.zeros(self._fibers, dtype=numpy.int16)
         fitted = numpy.zeros(self._fibers, dtype="bool")
@@ -200,12 +202,14 @@ class RSS(Data):
                         result = result_fit[m].get()
                         vel_fit[m] = result[0]
                         vel_fit_err[m] = result[1]
-                        disp_fit[m] = result[2]
-                        disp_fit_err[m] = result[3]
+                        Rvel[m] = result[2]
+                        disp_fit[m] = result[3]
+                        disp_fit_err[m] = result[4]
+                        Rdisp[m] = result[5]
                         fitted[m] = True
-                        coeff[m, :] = result[5]
-                        chi2[m] = result[6]
-                        rss_model[m, :] = result[4].unnormalizedSpec().getData()
+                        coeff[m, :] = result[7]
+                        chi2[m] = result[8]
+                        rss_model[m, :] = result[6].unnormalizedSpec().getData()
                     except ValueError:
                         print "Fitting failed because of bad spectrum."
         else:
@@ -220,20 +224,21 @@ class RSS(Data):
                     iterations=iterations, burn=burn, samples=samples, thin=thin)
                         vel_fit[m] = result[0]
                         vel_fit_err[m] = result[1]
-                        disp_fit[m] = result[2]
-                        disp_fit_err[m] = result[3]
+                        Rvel[m] = result[2]
+                        disp_fit[m] = result[3]
+                        disp_fit_err[m] = result[4]
+                        Rdisp[m] = result[5]
                         fitted[m] = True
-                        coeff[m, :] = result[5]
-                        chi2[m] = result[6]
-                        fiber[m] = m
-                        rss_model[m, :] = result[4].unnormalizedSpec().getData()
+                        coeff[m, :] = result[7]
+                        chi2[m] = result[8]
+                        rss_model[m, :] = result[6].unnormalizedSpec().getData()
                         if verbose:
                             print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
                     except (ValueError, IndexError):
                         print "Fitting failed because of bad spectrum."
 
                 m += 1
-        return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber, rss_model
+        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model
 
     def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):

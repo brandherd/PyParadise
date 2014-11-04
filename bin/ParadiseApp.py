@@ -115,6 +115,8 @@ class ParadiseApp(object):
             disp_fit = tab.field('disp_fit')
             vel_fit_err = tab.field('vel_fit_err')
             disp_fit_err = tab.field('disp_fit_err')
+            Rvel = -numpy.ones(vel_fit.shape)
+            Rdisp = -numpy.ones(disp_fit.shape)
             if self.__datatype == 'CUBE':
                 x_pos_kin = tab.field('x_cor')
                 y_pos_kin = tab.field('y_cor')
@@ -153,7 +155,7 @@ class ParadiseApp(object):
                 mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
                 verbose=verbose, parallel=parallel)
             else:
-                (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
+                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
                 cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
                 normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
@@ -165,7 +167,7 @@ class ParadiseApp(object):
                 fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
                 vel_guess / 300000.0), verbose=verbose, parallel=parallel)
             else:
-                (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber,
+                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
                 rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
                 vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
@@ -210,8 +212,10 @@ class ParadiseApp(object):
             columns.append(pyfits.Column(name='fiber', format='J', array=fiber[fitted]))
         columns.append(pyfits.Column(name='vel_fit', format='E', unit='km/s', array=vel_fit[fitted]))
         columns.append(pyfits.Column(name='vel_fit_err', format='E', unit='km/s', array=vel_fit_err[fitted]))
+        columns.append(pyfits.Column(name='Rvel', format='E', unit='km/s', array=Rvel[fitted]))
         columns.append(pyfits.Column(name='disp_fit', format='E', unit='km/s', array=disp_fit[fitted]))
         columns.append(pyfits.Column(name='disp_fit_err', format='E', unit='km/s', array=disp_fit_err[fitted]))
+        columns.append(pyfits.Column(name='Rdisp', format='E', unit='km/s', array=Rdisp[fitted]))
         columns.append(pyfits.Column(name='chi2', format='E', array=chi2[fitted]))
         if lib.getBaseNumber() > 1:
             columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
@@ -471,7 +475,7 @@ class ParadiseApp(object):
         columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_err', format='E', array=mass_weighted_pars_err[:, 3]))
         columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_err', format='E', array=mass_weighted_pars_err[:, 4]))
 
-        hdu = pyfits.new_table(stellar_table.columns[:17] + pyfits.new_table(columns_stellar).columns)
+        hdu = pyfits.new_table(stellar_table.columns[:19] + pyfits.new_table(columns_stellar).columns)
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
         if eline_parfile is not None:
