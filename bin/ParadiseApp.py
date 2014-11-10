@@ -521,7 +521,10 @@ class ParadiseApp(object):
                         columns_eline.append(pyfits.Column(name='%s_fwhm_err' % (n), format='E', unit='km/s',
                                 array=maps[n]['fwhm_err'][valid][mapping[valid]]))
 
-                hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
+                try:
+                    hdu = pyfits.BinTableHDU.from_columns(eline_table.columns[:len(columns_eline) + 2] + pyfits.ColDefs(columns_eline))
+                except:
+                    hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
                 hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
 
