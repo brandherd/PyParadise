@@ -537,7 +537,9 @@ class Cube(Data):
         modkeep=80, parallel=1, verbose=False):
 
 
+        mass_weighted_pars_mean = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
         mass_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
+        lum_weighted_pars_mean = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
         lum_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
 
         if par_eline is not None:
@@ -568,14 +570,16 @@ class Cube(Data):
             for  m in range(len(result_fit)):
                 if result_fit[m] is not None:
                     result = result_fit[m].get()
-                    mass_weighted_pars_err[m, :] = result[0]
-                    lum_weighted_pars_err[m, :] = result[1]
+                    mass_weighted_pars_mean[m, :] = result[0]
+                    mass_weighted_pars_err[m, :] = result[1]
+                    lum_weighted_pars_mean[m, :] = result[2]
+                    lum_weighted_pars_err[m, :] = result[3]
                     if par_eline is not None:
                         for n in par_eline._names:
                             if par_eline._profile_type[n] == 'Gauss':
-                                maps[n]['flux_err'][m] = result[2][n]['flux']
-                                maps[n]['vel_err'][m] = result[2][n]['vel']
-                                maps[n]['fwhm_err'][m] = result[2][n]['fwhm']
+                                maps[n]['flux_err'][m] = result[4][n]['flux']
+                                maps[n]['vel_err'][m] = result[4][n]['vel']
+                                maps[n]['fwhm_err'][m] = result[4][n]['fwhm']
         else:
             for m in range(len(x_cor)):
                 spec = self.getSpec(x_cor[m], y_cor[m])
@@ -589,17 +593,19 @@ class Cube(Data):
                     result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
                      select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
 
-                mass_weighted_pars_err[m, :] = result[0]
-                lum_weighted_pars_err[m, :] = result[1]
+                mass_weighted_pars_mean[m, :] = result[0]
+                mass_weighted_pars_err[m, :] = result[1]
+                lum_weighted_pars_mean[m, :] = result[2]
+                lum_weighted_pars_err[m, :] = result[3]
                 if par_eline is not None:
                     for n in par_eline._names:
                         if par_eline._profile_type[n] == 'Gauss':
-                            maps[n]['flux_err'][m] = result[2][n]['flux']
-                            maps[n]['vel_err'][m] = result[2][n]['vel']
-                            maps[n]['fwhm_err'][m] = result[2][n]['fwhm']
+                            maps[n]['flux_err'][m] = result[4][n]['flux']
+                            maps[n]['vel_err'][m] = result[4][n]['vel']
+                            maps[n]['fwhm_err'][m] = result[4][n]['fwhm']
         if par_eline is None:
             maps = None
-        return mass_weighted_pars_err, lum_weighted_pars_err, maps
+        return mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps
 
 
 def loadCube(infile, extension_data=None, extension_mask=None, extension_error=None):

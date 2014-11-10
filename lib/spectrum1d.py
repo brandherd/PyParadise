@@ -638,7 +638,7 @@ class Spectrum1D(Data):
             lines_error = None
         if plot==True:
             print line_models['Halpha']['vel'],line_models['Halpha']['vel'][deselect_outliers],lines_error['Halpha']['vel'],lines_error['Halpha']['fwhm'],lines_error['Halpha']['flux'],lines_error['NII6583']['flux']
-        return numpy.std(mass_weighted_pars,0), numpy.std(lum_weighted_pars,0), lines_error
+        return numpy.mean(mass_weighted_pars, 0), numpy.std(mass_weighted_pars,0), numpy.mean(lum_weighted_pars, 0), numpy.std(lum_weighted_pars,0), lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):
         """Fits the spectrum and determines the parameters and the corresponding

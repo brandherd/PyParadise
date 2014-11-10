@@ -449,37 +449,47 @@ class ParadiseApp(object):
         excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    x_cor, y_cor, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
-                    verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) =\
+                    normDataSub.fit_Lib_Boots(lib_rebin, x_cor, y_cor, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
             elif self.__datatype == 'RSS':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
-                    verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) =\
+                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
         else:
             select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
             if self.__datatype == 'CUBE':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
-                    select_wave_eline=select_wave_eline,
-                    method_eline=efit_method, mask_fit=excl_fit, guess_window=guess_window, spectral_res=self.__instrFWHM,
-                    ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) = \
+                    normDataSub.fit_Lib_Boots(lib_rebin, x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
+                    select_wave_eline=select_wave_eline, method_eline=efit_method, mask_fit=excl_fit,
+                    guess_window=guess_window, spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
             elif self.__datatype == 'RSS':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
-                    select_wave_eline=select_wave_eline,
-                    mask_fit=excl_fit, method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
-                    ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) = \
+                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
+                    select_wave_eline=select_wave_eline, mask_fit=excl_fit, method_eline=efit_method,
+                    guess_window=guess_window, spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
         columns_stellar = []
+        columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_btmean', format='E', array=lum_weighted_pars_mean[:, 0]))
         columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_err', format='E', array=lum_weighted_pars_err[:, 0]))
+        columns_stellar.append(pyfits.Column(name='lum_age_total_btmean', format='E', array=lum_weighted_pars_mean[:, 1]))
         columns_stellar.append(pyfits.Column(name='lum_age_total_err', format='E', array=lum_weighted_pars_err[:, 1]))
+        columns_stellar.append(pyfits.Column(name='lum_M/L_total_btmean', format='E', array=lum_weighted_pars_mean[:, 2]))
         columns_stellar.append(pyfits.Column(name='lum_M/L_total_err', format='E', array=lum_weighted_pars_err[:, 2]))
+        columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_total_btmean', format='E', array=lum_weighted_pars_mean[:, 3]))
         columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_total_err', format='E', array=lum_weighted_pars_err[:, 3]))
+        columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_total_btmean', format='E', array=lum_weighted_pars_mean[:, 4]))
         columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_total_err', format='E', array=lum_weighted_pars_err[:, 4]))
+        columns_stellar.append(pyfits.Column(name='mass_coeff_frac_total_btmean', format='E', array=mass_weighted_pars_mean[:, 0]))
         columns_stellar.append(pyfits.Column(name='mass_coeff_frac_total_err', format='E', array=mass_weighted_pars_err[:, 0]))
+        columns_stellar.append(pyfits.Column(name='mass_age_total_btmean', format='E', array=mass_weighted_pars_mean[:, 1]))
         columns_stellar.append(pyfits.Column(name='mass_age_total_err', format='E', array=mass_weighted_pars_err[:, 1]))
+        columns_stellar.append(pyfits.Column(name='mass_M/L_total_btmean', format='E', array=mass_weighted_pars_mean[:, 2]))
         columns_stellar.append(pyfits.Column(name='mass_M/L_total_err', format='E', array=mass_weighted_pars_err[:, 2]))
+        columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_btmean', format='E', array=mass_weighted_pars_mean[:, 3]))
         columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_err', format='E', array=mass_weighted_pars_err[:, 3]))
+        columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_btmean', format='E', array=mass_weighted_pars_mean[:, 4]))
         columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_err', format='E', array=mass_weighted_pars_err[:, 4]))
 
         try:
