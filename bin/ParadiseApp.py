@@ -232,7 +232,10 @@ class ParadiseApp(object):
         columns.append(pyfits.Column(name='mass_[Fe/H]_total', format='E', array=mass_weighted_pars[fitted, 3]))
         columns.append(pyfits.Column(name='mass_[A/Fe]_total', format='E', array=mass_weighted_pars[fitted, 4]))
 
-        table_out = pyfits.new_table(columns)
+        try:
+            table_out = pyfits.BinTableHDU.from_columns(columns)
+        except:
+            table_out = pyfits.new_table(columns)
         table_out.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
     def run_eline_fit(self, parfile, parallel, verbose):
@@ -331,7 +334,11 @@ class ParadiseApp(object):
                     array=out_lines[0][n]['vel'][valid]))
                 columns.append(pyfits.Column(name='%s_fwhm' % (n), format='E', unit='km/s',
                         array=out_lines[0][n]['fwhm'][valid]))
-        table_out = pyfits.new_table(columns)
+
+        try:
+            table_out = pyfits.BinTableHDU.from_columns(columns)
+        except:
+            table_out = pyfits.new_table(columns)
         table_out.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
     def run_bootstrap(self, stellar_parfile, eline_parfile, bootstraps, modkeep, parallel, verbose):
@@ -475,7 +482,10 @@ class ParadiseApp(object):
         columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_err', format='E', array=mass_weighted_pars_err[:, 3]))
         columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_err', format='E', array=mass_weighted_pars_err[:, 4]))
 
-        hdu = pyfits.new_table(stellar_table.columns[:19] + pyfits.new_table(columns_stellar).columns)
+        try:
+            hdu = pyfits.BinTableHDU.from_columns(stellar_table.columns[:19] + pyfits.ColDefs(columns_stellar))
+        except:
+            hdu = pyfits.new_table(stellar_table.columns[:19] + pyfits.new_table(columns_stellar).columns)
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
         if eline_parfile is not None:
