@@ -502,7 +502,7 @@ class ParadiseApp(object):
             hdu = pyfits.new_table(stellar_table.columns[:19] + pyfits.new_table(columns_stellar).columns)
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
-        if self.__datatype == 'CUBE':
+        if self.__datatype == 'CUBE' and eline_parfile is not None:
             mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
             indices = numpy.arange(len(x_cor))
             valid = numpy.zeros(len(x_eline),dtype="bool")
@@ -513,7 +513,7 @@ class ParadiseApp(object):
                     mapping[i]=indices[select_pos][0]
                 else:
                     mapping[i]=-1
-        elif self.__datatype == 'RSS':
+        elif self.__datatype == 'RSS' and eline_parfile is not None:
             mapping=numpy.zeros(len(fiber_eline),dtype=numpy.int16)
             indices = numpy.arange(len(fiber))
             valid = numpy.zeros(len(fiber_eline),dtype="bool")
