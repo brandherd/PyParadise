@@ -440,7 +440,6 @@ class ParadiseApp(object):
         #normData.writeFitsData('test.fits')
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
         excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
-        select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
@@ -451,6 +450,7 @@ class ParadiseApp(object):
                     fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
                     verbose=verbose)
         else:
+            select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
             if self.__datatype == 'CUBE':
                 (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
                     x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
@@ -489,6 +489,7 @@ class ParadiseApp(object):
                     mapping[i]=indices[select_pos][0]
                 else:
                     mapping[i]=-1
+                    
         elif self.__datatype == 'RSS':
             mapping=numpy.zeros(len(fiber_eline),dtype=numpy.int16)
             indices = numpy.arange(len(fiber))
@@ -513,6 +514,7 @@ class ParadiseApp(object):
 
             hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
             hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
+
 
 
 if __name__ == "__main__":

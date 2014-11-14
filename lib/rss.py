@@ -40,9 +40,10 @@ class RSS(Data):
         Contains information for reading and writing data to and from Fits
         files.
     """
-    def __init__(self, data=None, wave=None, error=None, mask=None, normalization=None, inst_fwhm=None, header=None):
-        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
-        header=header)
+    def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, normalization=None, inst_fwhm=None,
+    header=None):
+        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, error_weight=error_weight,
+        normalization=normalization, inst_fwhm=inst_fwhm, header=header)
 
     def getSpec(self, i):
         """Get a single spectrum from the RSS instance.
@@ -234,7 +235,7 @@ class RSS(Data):
                 m += 1
         return vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber, rss_model
 
-    def fit_Lib_fixed_kin(self, SSPLib, x_pos, y_pos, vel, vel_disp, fibers, min_y, max_y, mask_fit,
+    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
         """Fits template spectra with fixed kinematics with non-negative least
         squares fitting to determine the best combination of template spectra.

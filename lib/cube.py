@@ -41,10 +41,10 @@ class Cube(Data):
         Contains information for reading and writing data to and from Fits
         files.
     """
-    def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, inst_fwhm=None, normalization=None,
+    def __init__(self, data=None, wave=None, error=None, mask=None, error_weight=None, normalization=None, inst_fwhm=None,
     header=None):
-        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, normalization=normalization, inst_fwhm=inst_fwhm,
-        header=header)
+        Data.__init__(self, wave=wave, data=data, error=error, mask=mask, error_weight=error_weight,
+        normalization=normalization, inst_fwhm=inst_fwhm, header=header)
 
     def getSpec(self, x, y):
         """Get a single spectrum from the RSS instance.
@@ -263,7 +263,7 @@ class Cube(Data):
 
     def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
-	"""Fits template spectra with fixed kinematics with non-negative least
+        """Fits template spectra with fixed kinematics with non-negative least
         squares fitting to determine the best combination of template spectra.
 
         Notes
@@ -349,7 +349,7 @@ class Cube(Data):
                 y_pix[m] = y
                 spec = self.getSpec(x, y)
                 if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
-                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m],False)))
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m], mask_fit)))
                     sleep(0.001)
                 else:
                     result_fit.append(None)
@@ -373,27 +373,26 @@ class Cube(Data):
                     #break
         else:
             for m in range(len(x_pos)):
-                    x = x_pos[m]
-                    y = y_pos[m]
-                    spec = self.getSpec(x, y)
-                    x_pix[m] = x
-                    y_pix[m] = y
-                   # pylab.plot(spec._wave,spec._data,'-m')
-                    if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                x = x_pos[m]
+                y = y_pos[m]
+                spec = self.getSpec(x, y)
+                x_pix[m] = x
+                y_pix[m] = y
+               # pylab.plot(spec._wave,spec._data,'-m')
+                if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
+                    if verbose:
+                        print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
+                    try:
+                        result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], mask_fit)
+                        fitted[m] = True
+                        coeff[m, :] = result[0]
+                        chi2[m] = result[2]
+                        cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
                         if verbose:
-                            print "Fitting Spectrum (%d, %d) of cube" % (x + 1, y + 1)
-                        try:
-                            result = spec.fitSuperposition(SSPLib, vel[m], vel_disp[m], False)
-                            fitted[m] = True
-                            coeff[m, :] = result[0]
-                            chi2[m] = result[2]
-                            cube_model[:, y_pos[m], x_pos[m]] = result[1].unnormalizedSpec().getData()
-                            if verbose:
-                                print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[m], disp_fit[m], chi2[m])
-                        except (ValueError, IndexError):
-                            print "Fitting failed because of bad spectrum."
+                            print "chi2: %.2f" % (chi2[m])
+                    except (ValueError, IndexError):
+                        print "Fitting failed because of bad spectrum."
 
-                    m += 1
                     #if m == 1550:
                         #break
                 #if m == 1550:
@@ -555,7 +554,7 @@ class Cube(Data):
             for m in range(len(x_cor)):
                 spec = self.getSpec(x_cor[m], y_cor[m])
                 result_fit.append(pool.apply_async(spec.fit_Lib_Boots, args=(lib_SSP, vel[m], disp[m], None, None, par_eline,
-                         mask_fit, select_wave_eline, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
+                         select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps,
                          modkeep, 1)))
                 sleep(0.01)
             pool.close()
@@ -584,14 +583,14 @@ class Cube(Data):
                     result = spec.fit_Lib_Boots(lib_SSP, vel[m], disp[m], None, None, par_eline,
                      select_wave_eline, mask_fit, method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
 
-                #mass_weighted_pars_err[m, :] = result[0]
-                #lum_weighted_pars_err[m, :] = result[1]
-                #if par_eline is not None:
-                    #for n in par_eline._names:
-                        #if par_eline._profile_type[n] == 'Gauss':
-                            #maps[n]['flux_err'][m] = result[2][n]['flux']
-                            #maps[n]['vel_err'][m] = result[2][n]['vel']
-                            #maps[n]['fwhm_err'][m] = result[2][n]['fwhm']
+                mass_weighted_pars_err[m, :] = result[0]
+                lum_weighted_pars_err[m, :] = result[1]
+                if par_eline is not None:
+                    for n in par_eline._names:
+                        if par_eline._profile_type[n] == 'Gauss':
+                            maps[n]['flux_err'][m] = result[2][n]['flux']
+                            maps[n]['vel_err'][m] = result[2][n]['vel']
+                            maps[n]['fwhm_err'][m] = result[2][n]['fwhm']
         if par_eline is None:
             maps = None
         return mass_weighted_pars_err, lum_weighted_pars_err, maps
