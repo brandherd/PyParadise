@@ -301,7 +301,7 @@ class ParadiseApp(object):
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_y, max_y, method=efit_method, guess_window=guess_window,
                 spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
-            model_line = RSS(wave=res_out.getWave(), data=out_lines[4], header=self.__inputData.getHeader())
+            model_line = RSS(wave=res_out.getWave(), data=out_lines[3], header=self.__inputData.getHeader())
             line_res = RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
         model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
@@ -310,8 +310,10 @@ class ParadiseApp(object):
         indices = numpy.arange(len(out_lines[2]))
         valid = numpy.zeros(len(out_lines[2]),dtype="bool")
         for i in range(len(out_lines[2])):
-
-            select_pos = (x_cor==out_lines[2][i]) & (y_cor==out_lines[3][i])
+            if self.__datatype == 'CUBE':
+                select_pos = (x_cor==out_lines[2][i]) & (y_cor==out_lines[3][i])
+            elif self.__datatype == 'RSS':
+                select_pos= fiber == out_lines[2][i]
             if numpy.sum(select_pos)>0:
                 valid[i]=True
         columns = []
@@ -412,6 +414,8 @@ class ParadiseApp(object):
             if self.__datatype == 'CUBE':
                 x_eline = eline_table.field('x_cor')
                 y_eline = eline_table.field('y_cor')
+            if self.__datatype == 'RSS':
+                fiber_eline = eline_table.field('fiber')
 
         if verbose:
             print "The stellar population library is being prepared."
@@ -474,17 +478,28 @@ class ParadiseApp(object):
         hdu = pyfits.new_table(stellar_table.columns[:17] + pyfits.new_table(columns_stellar).columns)
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
-        mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
-        indices = numpy.arange(len(x_cor))
-        valid = numpy.zeros(len(x_eline),dtype="bool")
-        for i in range(len(x_eline)):
-
-            select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
-            if numpy.sum(select_pos)>0:
-                valid[i]=True
-                mapping[i]=indices[select_pos][0]
-            else:
-                mapping[i]=-1
+        if self.__datatype == 'CUBE':
+            mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
+            indices = numpy.arange(len(x_cor))
+            valid = numpy.zeros(len(x_eline),dtype="bool")
+            for i in range(len(x_eline)):
+                select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
+                if numpy.sum(select_pos)>0:
+                    valid[i]=True
+                    mapping[i]=indices[select_pos][0]
+                else:
+                    mapping[i]=-1
+        elif self.__datatype == 'RSS':
+            mapping=numpy.zeros(len(fiber_eline),dtype=numpy.int16)
+            indices = numpy.arange(len(fiber))
+            valid = numpy.zeros(len(fiber_eline),dtype="bool")
+            for i in range(len(fiber_eline)):
+                select_pos = (fiber==fiber_eline[i])
+                if numpy.sum(select_pos)>0:
+                    valid[i]=True
+                    mapping[i]=indices[select_pos][0]
+                else:
+                    mapping[i]=-1
 
         if maps is not None:
             columns_eline = []

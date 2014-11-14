@@ -429,10 +429,11 @@ class RSS(Data):
                 if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
                     result_fit.append(pool.apply_async(spec.fitELines, args=(par, select_wave, method, guess_window,
                     spectral_res, ftol, xtol, 1)))
+                    fiber[m] = m
                     sleep(0.01)
                 else:
                     result_fit.append(None)
-                    fiber[m] = m
+
                 m += 1
             pool.close()
             pool.join()
