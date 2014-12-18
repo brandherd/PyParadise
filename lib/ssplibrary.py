@@ -209,20 +209,18 @@ class SSPlibrary(UserDict):
         """
         if exclude_obj is not None and redshift is not None:
             mask = exclude_obj.maskPixelsRest(self.__wave, redshift)
-        else:
-            mask = numpy.zeros(len(self.__wave), dtype="bool")
-        mean = numpy.zeros((self.__data.shape), dtype=numpy.float32)
-        data_temp = numpy.zeros((self.__data.shape), dtype=numpy.float32)
-        data_temp[:] = self.__data
-        select_bad = mask == True
-        data_temp[select_bad] = 0.0
-        uniform = ndimage.filters.convolve1d(data_temp, numpy.ones(pixel_width, dtype=numpy.int16), axis=0, mode='nearest')
-        summed = ndimage.filters.generic_filter(numpy.logical_not(mask).astype('int16'), numpy.sum, pixel_width, mode='nearest')
-        select = summed > 0
-        mean[select, :] = uniform[select, :] / summed[select][:, numpy.newaxis]
-        mean[numpy.logical_not(select), :] = 1
-        select_zero = mean == 0
-        mean[select_zero] = 1
+            indices = numpy.indices(self.__wave.shape)[0]
+            mask_idx = indices[mask]
+            gaps = (mask_idx[1:]-mask_idx[:-1])>1
+            split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
+            split_mask = numpy.split(mask_idx,split_idx)
+            temp_data = numpy.array(self.__data)
+            for l in range(len(split_mask)):
+                a = (self.__data[split_mask[l][-1]+1,:]-self.__data[split_mask[l][0]-1,:])/(self.__wave[split_mask[l][-1]+1]-self.__wave[split_mask[l][0]-1])
+                b = self.__data[split_mask[l][0]-1,:]-a*self.__wave[split_mask[l][0]-1]
+                temp_data[split_mask[l],:] = a[numpy.newaxis,:]*self.__wave[split_mask[l]][:,numpy.newaxis]+b[numpy.newaxis,:]
+
+        mean = ndimage.filters.generic_filter(temp_data,numpy.mean, (pixel_width,1), mode='nearest')
         new_data = self.__data / mean
         new_SSP = SSPlibrary(data=new_data, wave=self.__wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
         coefficients=self.__coefficients, normalization=mean)

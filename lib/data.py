@@ -233,35 +233,38 @@ class Data(Header):
         data_out : `Data`
             A new instance where the normalization is applied to.
         """
-        mean = numpy.zeros(self._data.shape, dtype=numpy.float32)
-        data_temp = numpy.zeros(self._data.shape, dtype=numpy.float32)
-        data_temp[:] = self._data
+
+        temp_data = numpy.array(self._data)
+        if mask_norm is not None:
+            indices = numpy.indices(self.getWave().shape)[0]
+            mask_idx = indices[mask_norm]
+            gaps = (mask_idx[1:]-mask_idx[:-1])>1
+            split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
+            split_mask = numpy.split(mask_idx,split_idx)
+            if self._datatype == 'RSS':
+                for l in range(len(split_mask)):
+                    a = (self.getData()[:,split_mask[l][-1]+1]-self.getData()[:,split_mask[l][0]-1])/(self.getWave()[split_mask[l][-1]+1]-self.getWave()[split_mask[l][0]-1])
+                    b = self.getData()[:,split_mask[l][0]-1]-a*self.getWave()[split_mask[l][0]-1]
+                    temp_data[:,split_mask[l]] = a[:,numpy.newaxis]*self.getWave()[split_mask[l]][numpy.newaxis,:]+b[:,numpy.newaxis]
+
+            elif self._datatype == 'CUBE':
+                for l in range(len(split_mask)):
+                    a = (self.getData()[split_mask[l][-1]+1,:,:]-self.getData()[split_mask[l][0]-1,:,:])/(self.getWave()[split_mask[l][-1]+1]-self.getWave()[split_mask[l][0]-1])
+                    b = self.getData()[split_mask[l][0]-1,:,:]-a*self.getWave()[split_mask[l][0]-1]
+                    temp_data[split_mask[l],:,:] = a[numpy.newaxis,:,:]*self.getWave()[split_mask[l]][:,numpy.newaxis,numpy.newaxis]+b[numpy.newaxis,:,:]
+
+            elif self._datatype == 'Spectrum1D':
+                for l in range(len(split_mask)):
+                    a = (self.getData()[split_mask[l][-1]+1]-self.getData()[split_mask[l][0]-1])/(self.getWave()[split_mask[l][-1]+1]-self.getWave()[split_mask[l][0]-1])
+                    b = self.getData()[split_mask[l][0]-1]-a*self.getWave()[split_mask[l][0]-1]
+                    temp_data[split_mask[l]] = a*self.getWave()[split_mask[l]]+b
+
         if self._datatype == 'RSS':
-            mask_norm_expand = mask_norm[numpy.newaxis, :] * numpy.ones(self._data.shape, dtype=bool)
-            filter_window = (1, pixel_width)
+            mean = ndimage.filters.generic_filter(temp_data,numpy.mean, (1,pixel_width), mode='nearest')
         elif self._datatype == 'CUBE':
-            mask_norm_expand = mask_norm[:, numpy.newaxis, numpy.newaxis] * numpy.ones(self._data.shape, dtype=bool)
-            filter_window = (pixel_width, 1, 1)
+            mean = ndimage.filters.generic_filter(temp_data,numpy.mean, (pixel_width,1,1), mode='nearest')
         elif self._datatype == 'Spectrum1D':
-            mask_norm_expand = mask_norm
-            filter_window = (pixel_width)
-
-        if self._mask is not None and mask_norm is not None:
-            mask = numpy.logical_or(self._mask, mask_norm_expand)
-        elif mask_norm is not None:
-            mask = mask_norm_expand
-        else:
-            mask = mask_norm_expand
-
-        select_bad = mask
-        data_temp[select_bad] = 0.0
-
-        uniform = ndimage.filters.convolve(data_temp, numpy.ones(filter_window, dtype=numpy.int16), mode='nearest')
-        summed = ndimage.filters.generic_filter(numpy.logical_not(mask).astype('int16'), numpy.sum, filter_window,
-        mode='nearest')
-        select = summed > 0
-        mean[select] = uniform[select] / summed[select].astype('float32')
-        mean[numpy.logical_not(select)] = 1
+            mean = ndimage.filters.generic_filter1d(temp_data,numpy.mean, pixel_width,mode='nearest')
         select_zero = mean == 0
         mean[select_zero] = 1
         new_data = self._data / mean
