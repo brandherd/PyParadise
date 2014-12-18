@@ -120,7 +120,7 @@ class Spectrum1D(Data):
 
 #            elif method=='lanczos3':
 
-#        if self._error!=None and err_sim>0:
+#        if self._error is not None and err_sim>0:
 #            sim  = numpy.zeros((err_sim, len(ref_wave)), dtype=numpy.float32)
 #            data = numpy.zeros(len(self._wave), dtype=numpy.float32)
 #
@@ -137,7 +137,7 @@ class Spectrum1D(Data):
 #            new_error = numpy.std(sim, 0)
 #
 #
-#        elif self._error==None or err_sim==0:
+#        elif self._error is None or err_sim==0:
 #            new_error=None
         spec_out = Spectrum1D(wave=ref_wave, data=new_data)
         return spec_out
@@ -474,7 +474,15 @@ class Spectrum1D(Data):
             if nlib_guess<0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
-        return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
+
+        ## Create additional chains for determination of the Gelman-Rubin parameter
+        for i in range(4):
+            M.sample(burn=burn, iter=samples, thin=thin, progress_bar=False)
+        goodnessOfFit = pymc.gelman_rubin(M)
+        Rvel = goodnessOfFit['vel']
+        Rdisp = goodnessOfFit['disp']
+
+        return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
 
 
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
@@ -630,7 +638,7 @@ class Spectrum1D(Data):
             lines_error = None
         if plot==True:
             print line_models['Halpha']['vel'],line_models['Halpha']['vel'][deselect_outliers],lines_error['Halpha']['vel'],lines_error['Halpha']['fwhm'],lines_error['Halpha']['flux'],lines_error['NII6583']['flux']
-        return numpy.std(mass_weighted_pars,0), numpy.std(lum_weighted_pars,0), lines_error
+        return numpy.mean(mass_weighted_pars, 0), numpy.std(mass_weighted_pars,0), numpy.mean(lum_weighted_pars, 0), numpy.std(lum_weighted_pars,0), lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):
         """Fits the spectrum and determines the parameters and the corresponding

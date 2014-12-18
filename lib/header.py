@@ -17,7 +17,7 @@ class Header(object):
                     can be the full path of the file
                        
         """
-        if header != None:
+        if header is not None:
             # Assign private variable and convert header to card list
             self._header = header
         else:
@@ -25,7 +25,7 @@ class Header(object):
             self._header = None
         
         # Set the Fits file origin of the header if given
-        if origin != None:
+        if origin is not None:
             self._origin = origin
         else:
             self._origin = None
@@ -67,7 +67,7 @@ class Header(object):
                         Extension of the Fits file to which the header is written.
         """
         
-        if filename==None:
+        if filename is None:
             f_out = self._origin
         else:
             f_out = filename
@@ -121,15 +121,15 @@ class Header(object):
         
         
     def setHdrValue(self,  keyword,  value,  comment=None):
-        if self._header==None:
+        if self._header is None:
             self._header=pyfits.Header()
-        if comment==None:
+        if comment is None:
             self._header.update(keyword, value)
         else:
             self._header.update(keyword, value, comment)
         
     def extendHierarch(self, keyword, add_prefix, verbose=1):
-        if self._header!=None:
+        if self._header is not None:
             if self._header.has_key(add_prefix.upper()+' '+keyword.upper())==0:
                 self._header.rename_key(keyword, 'hierarch '+add_prefix+' '+keyword)
             else:

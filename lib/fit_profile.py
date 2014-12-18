@@ -33,7 +33,7 @@ class fit_linearComb(object):
             which provides the best fit to a certain spectrum.
         """
         self._basis = basis
-        if coeff==None:
+        if coeff is None:
             self._coeff = numpy.zeros(self._basis.shape[1], dtype=numpy.float32)
         else:
             self._coeff = coeff
@@ -60,7 +60,7 @@ class fit_linearComb(object):
             A mask, as a 1D boolean numpy array, representing any regions which
             where masked out during the fitting.
         """
-        if mask==None:
+        if mask is None:
             valid_pix = numpy.ones(len(y), dtype="bool")
         else:
             valid_pix = numpy.logical_not(mask)
@@ -92,7 +92,7 @@ class fit_linearComb(object):
             error = numpy.ones(len(y), dtype=numpy.float32)
         else:
             error = sigma
-        if mask==None:
+        if mask is None:
             valid_pix = numpy.ones(len(y), dtype="bool")
         else:
             valid_pix = numpy.logical_not(mask)
@@ -247,7 +247,7 @@ class fit_profile1D(object):
             `auto`, it adjusts the number of parallel processes to the number
             of cpu-cores available.
         """
-        if  p0 == None and self._guess_par!=None:
+        if  p0 is None and self._guess_par is not None:
             self._guess_par(x, y)
         p0 = self._par
         if method=='leastsq':
@@ -324,7 +324,7 @@ class fit_profile1D(object):
         y : numpy.ndarray, optional
             The data points at the `x positions.`
         """
-        if y!=None:
+        if y is not None:
             pylab.plot(x, y, 'ok')
         pylab.plot(x, self(x), '-r')
         pylab.show()
@@ -732,9 +732,9 @@ class LegandrePoly(object):
 
     def __call__(self, x):
         y = numpy.zeros(len(x), dtype=numpy.float32)
-        if self._min_x==None:
+        if self._min_x is None:
             self._min_x = numpy.min(x)
-        if self._max_x==None:
+        if self._max_x is None:
             self._max_x = numpy.max(x)
         x_poly = (x-self._min_x)*1.98/numpy.abs((numpy.abs(self._max_x)-numpy.abs(self._min_x)))-0.99
         for i in range(len(self._coeff)):
