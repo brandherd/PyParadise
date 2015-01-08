@@ -242,22 +242,43 @@ class Data(Header):
             split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
             split_mask = numpy.split(mask_idx,split_idx)
             if self._datatype == 'RSS':
-                for l in range(len(split_mask)):
-                    a = (self.getData()[:,split_mask[l][-1]+1]-self.getData()[:,split_mask[l][0]-1])/(self.getWave()[split_mask[l][-1]+1]-self.getWave()[split_mask[l][0]-1])
-                    b = self.getData()[:,split_mask[l][0]-1]-a*self.getWave()[split_mask[l][0]-1]
-                    temp_data[:,split_mask[l]] = a[:,numpy.newaxis]*self.getWave()[split_mask[l]][numpy.newaxis,:]+b[:,numpy.newaxis]
+                if split_idx.shape != (0,):
+                    for mask in split_mask:
+                        if mask[0] == 0:
+                            temp_data[:, mask] = self.getData()[:, mask[-1]+1]
+                            continue
+                        elif mask[-1] == indices[-1]:
+                            temp_data[:, mask] = self.getData()[:, mask[0]-1]
+                            continue
+                        a = (self.getData()[:,mask[-1]+1]-self.getData()[:,mask[0]-1])/(self.getWave()[mask[-1]+1]-self.getWave()[mask[0]-1])
+                        b = self.getData()[:,mask[0]-1]-a*self.getWave()[mask[0]-1]
+                        temp_data[:,mask] = a[:,numpy.newaxis]*self.getWave()[mask][numpy.newaxis,:]+b[:,numpy.newaxis]
 
             elif self._datatype == 'CUBE':
-                for l in range(len(split_mask)):
-                    a = (self.getData()[split_mask[l][-1]+1,:,:]-self.getData()[split_mask[l][0]-1,:,:])/(self.getWave()[split_mask[l][-1]+1]-self.getWave()[split_mask[l][0]-1])
-                    b = self.getData()[split_mask[l][0]-1,:,:]-a*self.getWave()[split_mask[l][0]-1]
-                    temp_data[split_mask[l],:,:] = a[numpy.newaxis,:,:]*self.getWave()[split_mask[l]][:,numpy.newaxis,numpy.newaxis]+b[numpy.newaxis,:,:]
+                if split_idx.shape != (0,):
+                    for mask in split_mask:
+                        if mask[0] == 0:
+                            temp_data[mask, :] = self.getData()[mask[-1]+1, :, :]
+                            continue
+                        elif mask[-1] == indices[-1]:
+                            temp_data[mask, :] = self.getData()[mask[0]-1, :, :]
+                            continue
+                        a = (self.getData()[mask[-1]+1,:,:]-self.getData()[mask[0]-1,:,:])/(self.getWave()[mask[-1]+1]-self.getWave()[mask[0]-1])
+                        b = self.getData()[mask[0]-1,:,:]-a*self.getWave()[mask[0]-1]
+                        temp_data[mask,:,:] = a[numpy.newaxis,:,:]*self.getWave()[mask][:,numpy.newaxis,numpy.newaxis]+b[numpy.newaxis,:,:]
 
             elif self._datatype == 'Spectrum1D':
-                for l in range(len(split_mask)):
-                    a = (self.getData()[split_mask[l][-1]+1]-self.getData()[split_mask[l][0]-1])/(self.getWave()[split_mask[l][-1]+1]-self.getWave()[split_mask[l][0]-1])
-                    b = self.getData()[split_mask[l][0]-1]-a*self.getWave()[split_mask[l][0]-1]
-                    temp_data[split_mask[l]] = a*self.getWave()[split_mask[l]]+b
+                if split_idx.shape != (0,):
+                    for mask in split_mask:
+                        if mask[0] == 0:
+                            temp_data[mask] = self.__data[mask[-1]+1]
+                            continue
+                        elif mask[-1] == indices[-1]:
+                            temp_data[mask] = self.__data[mask[0]-1]
+                            continue
+                        a = (self.getData()[mask[-1]+1]-self.getData()[mask[0]-1])/(self.getWave()[mask[-1]+1]-self.getWave()[mask[0]-1])
+                        b = self.getData()[mask[0]-1]-a*self.getWave()[mask[0]-1]
+                        temp_data[mask] = a*self.getWave()[mask]+b
 
         if self._datatype == 'RSS':
             mean = ndimage.filters.generic_filter(temp_data,numpy.mean, (1,pixel_width), mode='nearest')

@@ -215,10 +215,17 @@ class SSPlibrary(UserDict):
             split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
             split_mask = numpy.split(mask_idx,split_idx)
             temp_data = numpy.array(self.__data)
-            for l in range(len(split_mask)):
-                a = (self.__data[split_mask[l][-1]+1,:]-self.__data[split_mask[l][0]-1,:])/(self.__wave[split_mask[l][-1]+1]-self.__wave[split_mask[l][0]-1])
-                b = self.__data[split_mask[l][0]-1,:]-a*self.__wave[split_mask[l][0]-1]
-                temp_data[split_mask[l],:] = a[numpy.newaxis,:]*self.__wave[split_mask[l]][:,numpy.newaxis]+b[numpy.newaxis,:]
+            if split_idx.shape != (0,):
+                for mask in split_mask:
+                    if mask[0] == 0:
+                        temp_data[mask, :] = self.__data[mask[-1]+1,:]
+                        continue
+                    elif mask[-1] == indices[-1]:
+                        temp_data[mask, :] = self.__data[mask[0]-1,:]
+                        continue
+                    a = (self.__data[mask[-1]+1,:]-self.__data[mask[0]-1,:])/(self.__wave[mask[-1]+1]-self.__wave[mask[0]-1])
+                    b = self.__data[mask[0]-1,:]-a*self.__wave[mask[0]-1]
+                    temp_data[mask,:] = a[numpy.newaxis,:]*self.__wave[mask][:,numpy.newaxis]+b[numpy.newaxis,:]
 
         mean = ndimage.filters.generic_filter(temp_data,numpy.mean, (pixel_width,1), mode='nearest')
         new_data = self.__data / mean
