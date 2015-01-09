@@ -246,13 +246,15 @@ class Spectrum1D(Data):
         """
         if self._error is not None:
             data_new = numpy.random.Normal(self._data, self._error)
-            spec_out = Spectrum1D(data=data_new, error=self._error, mask=self._mask)
+            spec_out = Spectrum1D(wave=self._wave, data=data_new, error=self._error, mask=self._mask,
+                                  inst_fwhm=self._inst_fwhm, normalization=self._normalization, header=self._header)
             try:
-                spec_out._vel_sampling = self._vel_sampling
+                spec_out.setVelSampling(self._vel_sampling)
             except:
                 pass
         else:
             spec_out = self
+        return spec_out
 
     def applyKin(self, vel, disp_vel, wave):
         """Shifts and broadens the spectrum and resamples it to a new
@@ -371,7 +373,7 @@ class Spectrum1D(Data):
 
         @pymc.deterministic(plot=False)
         def m(vel=vel, disp=disp):
-            return spec_model.applyKin(vel, disp, wave).getData()
+            return spec_model.applyKin(vel, disp, self._wave).getData()[valid_pix]
         d = pymc.Normal('d', mu=m, tau=self._error[valid_pix] ** (-2), value=self._data[valid_pix], observed=True)
         #d = pymc.Normal('d', mu=m, tau=0, value=self._data[valid_pix], observed=True)
         M = pymc.MCMC([vel, disp, m, d])
