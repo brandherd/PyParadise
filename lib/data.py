@@ -160,35 +160,20 @@ class Data(Header):
 
         new_wave = self._wave[select_wave]
         if self._datatype == "Spectrum1D":
-            new_data = self._data[select_wave]
-            if self._inst_fwhm is not None:
-                new_fwhm = self._inst_fwhm[select_wave]
-            if self._error is not None:
-                new_error = self._error[select_wave]
-            if self._mask is not None:
-                new_mask = self._mask[select_wave]
-            if self.getNormalization() is not None:
-                new_normalization = self._normalization[select_wave]
+            slicer = numpy.s_[select_wave]
         elif self._datatype == "RSS":
-            new_data = self._data[:, select_wave]
-            if self._inst_fwhm is not None:
-                new_fwhm = self._inst_fwhm[:, select_wave]
-            if self._error is not None:
-                new_error = self._error[:, select_wave]
-            if self._mask is not None:
-                new_mask = self._mask[:, select_wave]
-            if self.getNormalization() is not None:
-                new_normalization = self._normalization[:, select_wave]
+            slicer = numpy.s_[:, select_wave]
         elif self._datatype == "CUBE":
-            new_data = self._data[select_wave, :, :]
-            if self._inst_fwhm is not None:
-                new_fwhm = self._inst_fwhm[select_wave, :, :]
-            if self._error is not None:
-                new_error = self._error[select_wave, :, :]
-            if self._mask is not None:
-                new_mask = self._mask[select_wave, :, :]
-            if self.getNormalization() is not None:
-                new_normalization = self._normalization[select_wave, :, :]
+            slicer = numpy.s_[select_wave, :, :]
+        new_data = self._data[slicer]
+        if self._inst_fwhm is not None:
+            new_fwhm = self._inst_fwhm[slicer]
+        if self._error is not None:
+            new_error = self._error[slicer]
+        if self._mask is not None:
+            new_mask = self._mask[slicer]
+        if self.getNormalization() is not None:
+            new_normalization = self._normalization[slicer]
 
         data_out = Data(wave=new_wave, data=new_data, error=new_error, mask=new_mask,
             normalization=new_normalization, inst_fwhm=new_fwhm)
