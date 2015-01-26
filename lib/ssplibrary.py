@@ -186,6 +186,7 @@ class SSPlibrary(UserDict):
             The indices of the selected sample of template spectra.
         """
         select = (numpy.random.random(self.getBaseNumber()) <= modkeep)
+        numpy.random.shuffle(select)
         return self.subLibrary(select), select
 
     def normalizeBase(self, pixel_width, exclude_obj=None, redshift=None):
