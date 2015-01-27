@@ -449,10 +449,10 @@ class Spectrum1D(Data):
                                                        iterations=iterations, burn=burn, samples=samples, thin=thin))
             chi2list = numpy.array([result[-1] for result in results])
             idx = numpy.argmin(chi2list)
-            vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2 = results[idx]
+            vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2 = results[idx]
             coeff = numpy.zeros(lib_SSP.getBaseNumber(), dtype=numpy.float32)
             coeff[idx] = 1.0
-            return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
+            return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
         elif nlib_guess > 0:
             spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         else:
