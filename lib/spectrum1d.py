@@ -457,11 +457,13 @@ class Spectrum1D(Data):
             spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         else:
             spec_lib_guess = lib_SSP.getSpec(1)
-
-        if mask_fit is not None and self.getMask() is not None:
-            self.setMask(numpy.logical_or(self.getMask(), mask_fit))
-        elif mask_fit is not None:
-            self.setMask(mask_fit)
+        mask_init = deepcopy(self.getMask())
+        if mask_fit is not None:
+            excl_fit_init = mask_fit.maskPixelsObserved(self.getWave(), ((vel_min+vel_max)/2.0) / 300000.0)
+            if mask_init is not None:
+                self.setMask(numpy.logical_or(mask_init, excl_fit_init))
+            else:
+                self.setMask(excl_fit_init)
         for i in range(iterations):
             M = self.fitKinMCMC_fixedpop(spec_lib_guess, vel_min, vel_max, disp_min, disp_max, burn=burn, samples=samples, thin=thin)
             trace_vel = M.trace('vel', chain=None)[:]
@@ -476,7 +478,12 @@ class Spectrum1D(Data):
             if nlib_guess<0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
-
+            if mask_fit is not None:
+                excl_fit = mask_fit.maskPixelsObserved(self.getWave(), vel / 300000.0)
+                if mask_init is not None:
+                    self.setMask(numpy.logical_or(mask_init, excl_fit))
+                else:
+                    self.setMask(excl_fit)
         ## Create additional chains for determination of the Gelman-Rubin parameter
         for i in range(4):
             M.sample(burn=burn, iter=samples, thin=thin, progress_bar=False)

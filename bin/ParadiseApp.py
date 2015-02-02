@@ -152,25 +152,21 @@ class ParadiseApp(object):
                 y_pixels = tab.field('y_cor')
                 (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit,
                 disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
-                mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
-                verbose=verbose, parallel=parallel)
+                mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
                 cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
-                normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
-                verbose=verbose, parallel=parallel)
+                min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn,
+                samples=samples, thin=thin, verbose=verbose, parallel=parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
                 fibers = tab.field('fiber')
                 (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit, disp_fit,
-                fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
-                vel_guess / 300000.0), verbose=verbose, parallel=parallel)
+                fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
                 rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
-                vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
+                min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
 
         if verbose:

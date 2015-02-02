@@ -317,7 +317,8 @@ class RSS(Data):
             while m < self._fibers:
                 spec = self.getSpec(m)
                 if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
-                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]], mask_fit)))
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[fibers[m]], vel_disp[fibers[m]],
+                    mask_fit.maskPixelsObserved(spec.getWave(), vel[m] / 300000.0))))
                     sleep(0.01)
                 else:
                     result_fit.append(None)

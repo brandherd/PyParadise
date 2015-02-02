@@ -340,7 +340,7 @@ class Cube(Data):
         y_pix = numpy.zeros(len(x_pos), dtype=numpy.int16)
         fitted = numpy.zeros(len(x_pos), dtype="bool")
         coeff = numpy.zeros((len(x_pos), SSPLib.getBaseNumber()), dtype=numpy.float32)
-        
+
         if parallel == 'auto':
             cpus = cpu_count()
         else:
@@ -355,7 +355,8 @@ class Cube(Data):
                 y_pix[m] = y
                 spec = self.getSpec(x, y)
                 if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
-                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m], mask_fit)))
+                    result_fit.append(pool.apply_async(spec.fitSuperposition, args=(SSPLib, vel[m], vel_disp[m],
+                    mask_fit.maskPixelsObserved(spec.getWave(), vel[m] / 300000.0))))
                     sleep(0.001)
                 else:
                     result_fit.append(None)
