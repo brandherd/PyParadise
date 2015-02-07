@@ -1,0 +1,109 @@
+% Version 1: Bernd
+ \documentclass[usenatbib,usegraphicx,useAMS]{mn2e}
+ \usepackage[T1]{fontenc}
+ %\usepackage{txfonts}
+ \usepackage{multirow}
+ \usepackage{color}
+ \usepackage{times}
+ \usepackage{amssymb}
+ \newcommand{\COzero}{${}^{12}\mathrm{CO}(1-0)$}
+ \newcommand{\COtwo}{${}^{12}\mathrm{CO}(2-1)$}
+ \newcommand{\Fe}{\textsc{feii}}
+ \newcommand{\Ox}{\textsc{[oiii]}}
+ \newcommand{\Ni}{\textsc{[nii]}}
+ \newcommand{\Su}{\textsc{[sii]}}
+ \newcommand{\Hb}{\mbox{H$\beta$}}
+ \newcommand{\Ha}{\mbox{H$\alpha$}}
+ \newcommand{\HII}{\textsc{hii}}
+ \newcommand{\QDeb}{\textsc{qdeblend${}^{\mathrm{3D}}$}}
+ \newcommand{\changed}[1]{\textbf{#1}}
+%\newcommand{\changed}[1]{#1}
+\newcommand{\pasp}{PASP}
+\newcommand{\aj}{AJ}
+\newcommand{\apj}{ApJ}
+\newcommand{\apjs}{ApJS}
+\newcommand{\aap}{A\&A}
+\newcommand{\aaps}{A\&AS}
+\newcommand{\araa}{ARA\&A}
+\newcommand{\mnras}{MNRAS}
+\newcommand{\apjl}{ApJL}
+
+\newcommand{\myemail}{bhuseman@eso.org}
+%\bibpunct{(}{)}{;}{a}{}{,}
+
+
+
+\begin{document}
+
+\title{PyParadise User Manual}
+
+\author[Husemann et al.]{B.~Husemann$^{1}$\thanks{ESO fellow, bhuseman@eso.org}, O. Choudhury$^{2}$, J. Walcher$^{2}$\newauthor\\
+$^1$European Southern Observatory, Karl-Schwarzschild-Str. 2, 85748 Garching b. M\"unchen, Germany\\
+$^2$Leibniz-Institut f\"ur Astrophysik Potsdam, An der Sternwarte 16, 14482 Potsdam, Germany\\
+}
+\maketitle
+\begin{abstract}
+
+\end{abstract}
+%\begin{keywords}
+%\end{keywords}
+
+\section{Introduction}
+Throughout the paper we assume a cosmological model with 
+$H_0=70\,\mathrm{km}\,\mathrm{s}^{-1}\,\mathrm{Mpc}^{-1}$, $\Omega_{\mathrm{m}}=0.3$, and $\Omega_\Lambda=0.7$.
+
+\section{Quick Start}
+
+\section{Stellar population modelling}
+\subsection{Algorithm}
+\subsection{Template handling}
+\subsection{Masking}
+\subsection{Configuration file}
+
+
+\section{Emission-line modelling}
+\subsection{Algorithm}
+\subsection{Line profiles}
+\subsection{Configuration file}
+
+\section{Bootstrap errors}
+\subsection{The importance of error estimation}
+
+\section{Data input formats}
+Like any software package \textsc{PyParadise} also requires that data is provided in certain pre-defined formats to run successfully. Failure of the program may often be related to invalid input. 
+Therefore, users are strongly encourage to read this section carefully before using this software for their analysis. 
+\subsection{Spectral data}
+\textsc{PyParadise} can be feed with three basic types of spectral data. These are 1) a single spectrum, 2) row-stacked spectra (hereafter RSS), and 3) 3D data cubes. All three types have different 
+requirements on the data format. They are automatically identified by \textsc{PyParadise} if all of the following specifications are met.
+\subsubsection{Single Spectrum}
+\subsubsection{RSS files}
+\subsubsection{Data cubes}
+
+\subsection{Template spectra}
+
+\section{Running PyParadise}
+
+\section{Output files}
+\subsection{Stellar population results}
+\subsection{Emission-line results}
+
+\section{Guidelines}
+\subsection{}
+\subsection{Distuingish bad from good fit results}
+
+\section{Conclusions}
+
+
+
+\section{Conclusions}
+
+\section*{Acknowledgements}
+
+
+%\bibliographystyle{bibtex/aa}
+%\bibliography{references}
+
+\end{document}
+
+
+
