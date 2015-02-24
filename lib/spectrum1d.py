@@ -778,7 +778,13 @@ class Spectrum1D(Data):
 
         return best_AV, best_coeff, best_spec, best_chisq
 
-
+def loadSpectrum(infile):
+    spec = Spectrum1D()
+    if '.fits' in infile or '.fit' in infile or '.gz' in infile or '.fz' in infile:
+        spec.loadFitsData(infile)
+    else:
+        spec.loadTxtData(infile)
+    return spec
 
 
 def _pickle_method(method):

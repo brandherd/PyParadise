@@ -40,7 +40,8 @@ class ParadiseApp(object):
         instrFWHM : float
             The instrumental resolution of the data in `input_file`.
         """
-        self.__inputData = loadCube(input_file)
+
+        self.__inputData = loadSpectrum(input_file)
         if self.__inputData._datatype == 'CUBE':
             self.__inputData.correctError()
             self.__datatype = 'CUBE'
@@ -48,6 +49,19 @@ class ParadiseApp(object):
             self.__inputData = loadRSS(input_file)
             self.__inputData.correctError()
             self.__datatype = 'RSS'
+        elif self.__inputData._datatype == 'Spectrum1D':
+            data = loadSpectrum(input_file)
+            data.correctError()
+            self.__datatype = 'RSS'
+            if data._error is not None:
+                err = numpy.array([data._error])
+            else:
+                err = None
+            if data._mask is not None:
+                m = numpy.array([data._mask])
+            else:
+                m = None
+            self.__inputData = RSS(wave=data._wave, data=numpy.array([data._data]), error=err, mask=m)
         self.__outPrefix = outprefix
         self.__instrFWHM = instrFWHM
 
@@ -138,6 +152,7 @@ class ParadiseApp(object):
 
         if verbose:
             print "The input cube is being normalized."
+
         normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
@@ -168,7 +183,6 @@ class ParadiseApp(object):
                 rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
-
         if verbose:
                 print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
@@ -177,14 +191,22 @@ class ParadiseApp(object):
             model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=rss_model,
                 header=self.__inputData.getHeader())
             res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
-                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model, header=self.__inputData.getHeader())
+                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
+                header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
             model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=cube_model,
                 header=self.__inputData.getHeader())
             res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
-                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model, header=self.__inputData.getHeader())
-        model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
-        res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
+                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
+                header=self.__inputData.getHeader())
+
+        if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
+            self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.001:
+            model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
+            res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
+        else:
+            model_out.writeFitsData(self.__outPrefix + '.cont_model.fits', store_wave=True)
+            res_out.writeFitsData(self.__outPrefix + '.cont_res.fits', store_wave=True)
 
         mass_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
@@ -199,12 +221,11 @@ class ParadiseApp(object):
                 except:
                     lum_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
 
-        print len(fitted),len(vel_fit)
         columns = []
         if self.__datatype == 'CUBE':
             columns.append(pyfits.Column(name='x_cor', format='J', array=x_pix[fitted]))
             columns.append(pyfits.Column(name='y_cor', format='J', array=y_pix[fitted]))
-        else:
+        elif self.__datatype == 'RSS':
             columns.append(pyfits.Column(name='fiber', format='J', array=fiber[fitted]))
         columns.append(pyfits.Column(name='vel_fit', format='E', unit='km/s', array=vel_fit[fitted]))
         columns.append(pyfits.Column(name='vel_fit_err', format='E', unit='km/s', array=vel_fit_err[fitted]))
