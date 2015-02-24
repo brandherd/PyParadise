@@ -73,13 +73,32 @@ $H_0=70\,\mathrm{km}\,\mathrm{s}^{-1}\,\mathrm{Mpc}^{-1}$, $\Omega_{\mathrm{m}}=
 Like any software package \textsc{PyParadise} also requires that data is provided in certain pre-defined formats to run successfully. Failure of the program may often be related to invalid input. 
 Therefore, users are strongly encourage to read this section carefully before using this software for their analysis. 
 \subsection{Spectral data}
-\textsc{PyParadise} can be feed with three basic types of spectral data. These are 1) a single spectrum, 2) row-stacked spectra (hereafter RSS), and 3) 3D data cubes. All three types have different 
-requirements on the data format. They are automatically identified by \textsc{PyParadise} if all of the following specifications are met.
+\textsc{PyParadise} can be feed with three basic types of spectral data. These are 1) a single spectrum, 2) row-stacked spectra (hereafter RSS), and 3) 3D data cubes. The minimum information they all 
+contain are the wavelength grid and the corresponding flux densities that makes up the spectrum. Optinal but often important information are the associated errors and known bad pixels. All three 
+types have different technical specifications to store those data.   They are automatically identified by \textsc{PyParadise} if the format is consistent with the specifications. 
 \subsubsection{Single Spectrum}
+There are various possible format to store a single spectrum. To facilitate the usage of PyParadise we implement a few common formats, the SDSS-DR7-like fits image format, the SDSS-DR10-like table 
+format, and an ascii table format. They are widely distributed in the community. Since PyParadise does not require all the informations that are stored in SDSS spectra, a user can easily create a 
+confrom spectrum that can be used with PyParadise only with the minimum content as described below.
+
 \subsubsection{RSS files}
+A RSS file is the primary output of a multi-fiber spectrograph, either a MOS or IFU system. It is a simple stack of spectra that share a \textbf{common} wavelength grid. \textsc{PyParadise} accepts 
+RSS fits files as input. Here we adapt the format in which the CALIFA DR1 and DR2 RSS files are distributed. The specifications are given in the Table.
+
+\begin{table*}
+\begin{tabular}{cccccc}
+FITS structure  & name 		& data type 	& required 	& unit 	& description\\
+Header		&		&	        &		&	&	\\
+\end{tabular}
+ \end{table*}
+
 \subsubsection{Data cubes}
 
 \subsection{Template spectra}
+The template spectra are a collection of spectra that should ideally be sufficient to describe the spectrum to be modelled as a linear superposition modolu the kinematic convolution kernel. There for 
+the data format is similar to the RSS case for the input data. The big difference is that these data are usually theoretical or semi-empirical derived spectra. Thus, we assume them to be noise 
+free and do not contain masked pixel. In addition each template spectrum has associated additional information, like stellar population age, luminosity, and metallicity that needs to be captures. 
+
 
 \section{Running PyParadise}
 
@@ -90,10 +109,6 @@ requirements on the data format. They are automatically identified by \textsc{Py
 \section{Guidelines}
 \subsection{}
 \subsection{Distuingish bad from good fit results}
-
-\section{Conclusions}
-
-
 
 \section{Conclusions}
 
