@@ -226,7 +226,7 @@ class RSS(Data):
 
         return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model
 
-    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, fibers, min_y, max_y, mask_fit,
+    def fit_Lib_fixed_kin(self, SSPLib, nlib_guess, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
         """Fits template spectra with fixed kinematics with non-negative least
         squares fitting to determine the best combination of template spectra.
@@ -313,7 +313,7 @@ class RSS(Data):
         for m in range(self._fibers):
             spec = self.getSpec(m)
             if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
-                args = (SSPLib, vel[fibers[m]], vel_disp[fibers[m]],
+                args = (SSPLib, nlib_guess, vel[fibers[m]], vel_disp[fibers[m]],
                         mask_fit.maskPixelsObserved(spec.getWave(), vel[m] / 300000.0))
                 if cpus > 1:
                     results.append([m, pool.apply_async(spec.fitSuperposition, args, callback=partial(extract_result, i=m))])

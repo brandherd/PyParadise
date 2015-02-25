@@ -240,7 +240,7 @@ class Cube(Data):
 
         return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix, cube_model
 
-    def fit_Lib_fixed_kin(self, SSPLib, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
+    def fit_Lib_fixed_kin(self, SSPLib, nlib_guess, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
         """Fits template spectra with fixed kinematics with non-negative least
         squares fitting to determine the best combination of template spectra.
@@ -337,7 +337,7 @@ class Cube(Data):
             y = y_pos[m]
             spec = self.getSpec(x, y)
             if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
-                args = (SSPLib, vel[m], vel_disp[m], mask_fit.maskPixelsObserved(spec.getWave(), vel[m] / 300000.0))
+                args = (SSPLib, nlib_guess, vel[m], vel_disp[m], mask_fit.maskPixelsObserved(spec.getWave(), vel[m] / 300000.0))
                 if cpus > 1:
                     results.append([m, pool.apply_async(spec.fitSuperposition, args, callback=partial(extract_result, i=m, x=x, y=y))])
                     sleep(0.01)
