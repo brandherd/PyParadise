@@ -43,6 +43,7 @@ class ParadiseApp(object):
 
         self.__inputData = loadSpectrum(input_file)
         if self.__inputData._datatype == 'CUBE':
+            self.__inputData = loadCube(input_file)
             self.__inputData.correctError()
             self.__datatype = 'CUBE'
         elif self.__inputData._datatype == 'RSS':
