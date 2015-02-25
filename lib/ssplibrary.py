@@ -228,7 +228,7 @@ class SSPlibrary(UserDict):
                     b = self.__data[mask[0]-1,:]-a*self.__wave[mask[0]-1]
                     temp_data[mask,:] = a[numpy.newaxis,:]*self.__wave[mask][:,numpy.newaxis]+b[numpy.newaxis,:]
 
-        mean = ndimage.filters.generic_filter(temp_data,numpy.mean, (pixel_width,1), mode='nearest')
+        mean = ndimage.filters.convolve1d(temp_data, numpy.ones(pixel_width) / pixel_width, axis=0, mode='nearest')
         new_data = self.__data / mean
         new_SSP = SSPlibrary(data=new_data, wave=self.__wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
         coefficients=self.__coefficients, normalization=mean)
