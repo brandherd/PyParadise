@@ -286,8 +286,10 @@ class ParadiseApp(object):
             res_out = loadCube(self.__outPrefix + '.cont_res.fits')
         elif self.__datatype == 'RSS':
             res_out = loadRSS(self.__outPrefix + '.cont_res.fits')
-        res_wave_start = res_out._wave[0]
-        res_wave_end = res_out._wave[-1]
+        disp1 = res_out._wave[1]-res_out._wave[0]
+        res_wave_start = res_out._wave[0]-disp1/2.0
+        disp2 = res_out._wave[-1]-res_out._wave[-2]
+        res_wave_end = res_out._wave[-1]+disp2/2.0
         res_out._error = self.__inputData.subWaveLimits(res_wave_start, res_wave_end)._error
         res_out._mask = self.__inputData.subWaveLimits(res_wave_start, res_wave_end)._mask
         if self.__datatype == 'CUBE':
@@ -301,7 +303,7 @@ class ParadiseApp(object):
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_y, max_y, method=efit_method, guess_window=guess_window,
                 spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
-            model_line = RSS(wave=res_out.getWave(), data=out_lines[4], header=self.__inputData.getHeader())
+            model_line = RSS(wave=res_out.getWave(), data=out_lines[3], header=self.__inputData.getHeader())
             line_res = RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
         model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
@@ -310,8 +312,10 @@ class ParadiseApp(object):
         indices = numpy.arange(len(out_lines[2]))
         valid = numpy.zeros(len(out_lines[2]),dtype="bool")
         for i in range(len(out_lines[2])):
-
-            select_pos = (x_cor==out_lines[2][i]) & (y_cor==out_lines[3][i])
+	    if self.__datatype == 'CUBE':
+	      select_pos = (x_cor==out_lines[2][i]) & (y_cor==out_lines[3][i])
+	    elif self.__datatype == 'RSS':
+	      select_pos = (fiber== out_lines[2][i])
             if numpy.sum(select_pos)>0:
                 valid[i]=True
         columns = []
@@ -412,6 +416,8 @@ class ParadiseApp(object):
             if self.__datatype == 'CUBE':
                 x_eline = eline_table.field('x_cor')
                 y_eline = eline_table.field('y_cor')
+            if self.__datatype == 'RSS':
+		x_eline = eline_table.field('fiber')
 
         if verbose:
             print "The stellar population library is being prepared."
@@ -475,11 +481,17 @@ class ParadiseApp(object):
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
         mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
-        indices = numpy.arange(len(x_cor))
+        if self.__datatype == 'CUBE':
+	  indices = numpy.arange(len(x_cor))
+	elif self.__datatype == 'RSS':
+	  indices = numpy.arange(len(fiber))
         valid = numpy.zeros(len(x_eline),dtype="bool")
+        
         for i in range(len(x_eline)):
-
-            select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
+	    if self.__datatype == 'CUBE':
+	      select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
+	    elif self.__datatype == 'RSS':
+	      select_pos = (fiber==x_eline[i])
             if numpy.sum(select_pos)>0:
                 valid[i]=True
                 mapping[i]=indices[select_pos][0]
