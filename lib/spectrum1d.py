@@ -120,7 +120,7 @@ class Spectrum1D(Data):
 
 #            elif method=='lanczos3':
 
-#        if self._error!=None and err_sim>0:
+#        if self._error is not None and err_sim>0:
 #            sim  = numpy.zeros((err_sim, len(ref_wave)), dtype=numpy.float32)
 #            data = numpy.zeros(len(self._wave), dtype=numpy.float32)
 #
@@ -137,7 +137,7 @@ class Spectrum1D(Data):
 #            new_error = numpy.std(sim, 0)
 #
 #
-#        elif self._error==None or err_sim==0:
+#        elif self._error is None or err_sim==0:
 #            new_error=None
         spec_out = Spectrum1D(wave=ref_wave, data=new_data)
         return spec_out
@@ -246,13 +246,15 @@ class Spectrum1D(Data):
         """
         if self._error is not None:
             data_new = numpy.random.Normal(self._data, self._error)
-            spec_out = Spectrum1D(data=data_new, error=self._error, mask=self._mask)
+            spec_out = Spectrum1D(wave=self._wave, data=data_new, error=self._error, mask=self._mask,
+                                  inst_fwhm=self._inst_fwhm, normalization=self._normalization, header=self._header)
             try:
-                spec_out._vel_sampling = self._vel_sampling
+                spec_out.setVelSampling(self._vel_sampling)
             except:
                 pass
         else:
             spec_out = self
+        return spec_out
 
     def applyKin(self, vel, disp_vel, wave):
         """Shifts and broadens the spectrum and resamples it to a new
@@ -280,7 +282,7 @@ class Spectrum1D(Data):
         tempSpec = tempSpec.resampleSpec(wave)
         return tempSpec
 
-    def fitSuperposition(self, SSPLibrary, vel=None, disp=None, mask_fit=None, negative=False):
+    def fitSuperposition(self, SSPLibrary, nlib_guess=None, vel=None, disp=None, mask_fit=None, negative=False):
         """Fits a superposition of template spectra to the data.
 
         Parameters
@@ -303,6 +305,18 @@ class Spectrum1D(Data):
         chisq : float
             The chi^2 value corresponding to `bestfit_spec`.
         """
+        if nlib_guess == 0:
+            bestresult = [numpy.inf]
+            coeff = None
+            for i in range(SSPLibrary.getBaseNumber()):
+                select = numpy.zeros(SSPLibrary.getBaseNumber(), dtype=bool)
+                select[i] = True
+                lib = SSPLibrary.subLibrary(select)
+                result = self.fitSuperposition(lib, 1, vel, disp, mask_fit, negative)
+                if result[-1] < bestresult[-1]:
+                    bestresult = result
+                    coeff = select
+            return coeff, bestresult[1], bestresult[2]
         if self._error is None:
             error = numpy.ones((self._dim), dtype=numpy.float32)
         else:
@@ -371,7 +385,7 @@ class Spectrum1D(Data):
 
         @pymc.deterministic(plot=False)
         def m(vel=vel, disp=disp):
-            return spec_model.applyKin(vel, disp, wave).getData()
+            return spec_model.applyKin(vel, disp, self._wave).getData()[valid_pix]
         d = pymc.Normal('d', mu=m, tau=self._error[valid_pix] ** (-2), value=self._data[valid_pix], observed=True)
         #d = pymc.Normal('d', mu=m, tau=0, value=self._data[valid_pix], observed=True)
         M = pymc.MCMC([vel, disp, m, d])
@@ -438,28 +452,30 @@ class Spectrum1D(Data):
         """
         ## The case that the spectrum is fitted to each SSP
         if nlib_guess == 0:
-            results = []
-            for i in range(-1, -lib_SSP.getBaseNumber() - 1, -1):
-                select = numpy.arange(lib_SSP.getBaseNumber()) == i * -1 - 1
+            bestresult = [numpy.inf]
+            coeff = None
+            for i in range(lib_SSP.getBaseNumber()):
+                select = numpy.zeros(lib_SSP.getBaseNumber(), dtype=bool)
+                select[i] = True
                 lib = lib_SSP.subLibrary(select)
-                results.append(self.fit_Kin_Lib_simple(lib_SSP=lib, nlib_guess=i, vel_min=vel_min, vel_max=vel_max,
-                                                       disp_min=disp_min, disp_max=disp_max, mask_fit=mask_fit,
-                                                       iterations=iterations, burn=burn, samples=samples, thin=thin))
-            chi2list = numpy.array([result[-1] for result in results])
-            idx = numpy.argmin(chi2list)
-            vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2 = results[idx]
-            coeff = numpy.zeros(lib_SSP.getBaseNumber(), dtype=numpy.float32)
-            coeff[idx] = 1.0
-            return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
-        elif nlib_guess > 0:
+                result = self.fit_Kin_Lib_simple(lib, 1, vel_min, vel_max, disp_min, disp_max, mask_fit,
+                                                 iterations, burn, samples, thin)
+                if result[-1] < bestresult[-1]:
+                    bestresult = result
+                    coeff = select
+            vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, trash, chi2 = bestresult
+            return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
+        elif 0 < nlib_guess <= lib_SSP.getBaseNumber():
             spec_lib_guess = lib_SSP.getSpec(nlib_guess)
         else:
             spec_lib_guess = lib_SSP.getSpec(1)
-
-        if mask_fit is not None and self.getMask() is not None:
-            self.setMask(numpy.logical_or(self.getMask(), mask_fit))
-        elif mask_fit is not None:
-            self.setMask(mask_fit)
+        mask_init = deepcopy(self.getMask())
+        if mask_fit is not None:
+            excl_fit_init = mask_fit.maskPixelsObserved(self.getWave(), ((vel_min+vel_max)/2.0) / 300000.0)
+            if mask_init is not None:
+                self.setMask(numpy.logical_or(mask_init, excl_fit_init))
+            else:
+                self.setMask(excl_fit_init)
         for i in range(iterations):
             M = self.fitKinMCMC_fixedpop(spec_lib_guess, vel_min, vel_max, disp_min, disp_max, burn=burn, samples=samples, thin=thin)
             trace_vel = M.trace('vel', chain=None)[:]
@@ -474,7 +490,20 @@ class Spectrum1D(Data):
             if nlib_guess<0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
-        return vel, vel_err, disp, disp_err, bestfit_spec, coeff, chi2
+            if mask_fit is not None:
+                excl_fit = mask_fit.maskPixelsObserved(self.getWave(), vel / 300000.0)
+                if mask_init is not None:
+                    self.setMask(numpy.logical_or(mask_init, excl_fit))
+                else:
+                    self.setMask(excl_fit)
+        ## Create additional chains for determination of the Gelman-Rubin parameter
+        for i in range(4):
+            M.sample(burn=burn, iter=samples, thin=thin, progress_bar=False)
+        goodnessOfFit = pymc.gelman_rubin(M)
+        Rvel = goodnessOfFit['vel']
+        Rdisp = goodnessOfFit['disp']
+
+        return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
 
 
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
@@ -597,7 +626,8 @@ class Spectrum1D(Data):
                             lines_error[n] = error
                     else:
                         lines_error = None
-                    return numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan]), numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan]), lines_error
+                    mass_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
+                    lum_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
         #except RuntimeError:
             #if line_models is not None:
                 #lines_error = {}
@@ -630,7 +660,7 @@ class Spectrum1D(Data):
             lines_error = None
         if plot==True:
             print line_models['Halpha']['vel'],line_models['Halpha']['vel'][deselect_outliers],lines_error['Halpha']['vel'],lines_error['Halpha']['fwhm'],lines_error['Halpha']['flux'],lines_error['NII6583']['flux']
-        return numpy.std(mass_weighted_pars,0), numpy.std(lum_weighted_pars,0), lines_error
+        return numpy.nanmean(mass_weighted_pars, 0), numpy.nanstd(mass_weighted_pars,0), numpy.nanmean(lum_weighted_pars, 0), numpy.nanstd(lum_weighted_pars,0), lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):
         """Fits the spectrum and determines the parameters and the corresponding
@@ -761,7 +791,13 @@ class Spectrum1D(Data):
 
         return best_AV, best_coeff, best_spec, best_chisq
 
-
+def loadSpectrum(infile):
+    spec = Spectrum1D()
+    if '.fits' in infile or '.fit' in infile or '.gz' in infile or '.fz' in infile:
+        spec.loadFitsData(infile)
+    else:
+        spec.loadTxtData(infile)
+    return spec
 
 
 def _pickle_method(method):

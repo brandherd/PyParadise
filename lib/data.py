@@ -79,7 +79,7 @@ class Data(Header):
     def getWaveStep(self):
         """Obtain the step in the wavelength grid, assumption is that the
         wavelength grid is linear."""
-        return self._wave[1] - self._wave[0]
+        return numpy.min(self._wave[1:] - self._wave[:-1])
 
     def getShape(self):
         """Obtain the shape of the data."""
@@ -134,7 +134,7 @@ class Data(Header):
     def correctError(self, replace_error=1e10):
         """Corrects any negative value in `error` to `replace_error`."""
         if self._error is not None:
-            select = (self._error <= 0)
+            select = (self._error <= 0.0)
             if self._mask is not None:
                 self._mask[select] = True
             self._error[select] = replace_error
@@ -160,35 +160,20 @@ class Data(Header):
 
         new_wave = self._wave[select_wave]
         if self._datatype == "Spectrum1D":
-            new_data = self._data[select_wave]
-            if self._inst_fwhm is not None:
-                new_fwhm = self._inst_fwhm[select_wave]
-            if self._error is not None:
-                new_error = self._error[select_wave]
-            if self._mask is not None:
-                new_mask = self._mask[select_wave]
-            if self.getNormalization() is not None:
-                new_normalization = self._normalization[select_wave]
+            slicer = numpy.s_[select_wave]
         elif self._datatype == "RSS":
-            new_data = self._data[:, select_wave]
-            if self._inst_fwhm is not None:
-                new_fwhm = self._inst_fwhm[:, select_wave]
-            if self._error is not None:
-                new_error = self._error[:, select_wave]
-            if self._mask is not None:
-                new_mask = self._mask[:, select_wave]
-            if self.getNormalization() is not None:
-                new_normalization = self._normalization[:, select_wave]
+            slicer = numpy.s_[:, select_wave]
         elif self._datatype == "CUBE":
-            new_data = self._data[select_wave, :, :]
-            if self._inst_fwhm is not None:
-                new_fwhm = self._inst_fwhm[select_wave, :, :]
-            if self._error is not None:
-                new_error = self._error[select_wave, :, :]
-            if self._mask is not None:
-                new_mask = self._mask[select_wave, :, :]
-            if self.getNormalization() is not None:
-                new_normalization = self._normalization[select_wave, :, :]
+            slicer = numpy.s_[select_wave, :, :]
+        new_data = self._data[slicer]
+        if self._inst_fwhm is not None:
+            new_fwhm = self._inst_fwhm[slicer]
+        if self._error is not None:
+            new_error = self._error[slicer]
+        if self._mask is not None:
+            new_mask = self._mask[slicer]
+        if self.getNormalization() is not None:
+            new_normalization = self._normalization[slicer]
 
         data_out = Data(wave=new_wave, data=new_data, error=new_error, mask=new_mask,
             normalization=new_normalization, inst_fwhm=new_fwhm)
@@ -233,35 +218,46 @@ class Data(Header):
         data_out : `Data`
             A new instance where the normalization is applied to.
         """
-        mean = numpy.zeros(self._data.shape, dtype=numpy.float32)
-        data_temp = numpy.zeros(self._data.shape, dtype=numpy.float32)
-        data_temp[:] = self._data
-        if self._datatype == 'RSS':
-            mask_norm_expand = mask_norm[numpy.newaxis, :] * numpy.ones(self._data.shape, dtype=bool)
-            filter_window = (1, pixel_width)
-        elif self._datatype == 'CUBE':
-            mask_norm_expand = mask_norm[:, numpy.newaxis, numpy.newaxis] * numpy.ones(self._data.shape, dtype=bool)
-            filter_window = (pixel_width, 1, 1)
-        elif self._datatype == 'Spectrum1D':
-            mask_norm_expand = mask_norm
-            filter_window = (pixel_width)
 
-        if self._mask is not None and mask_norm is not None:
-            mask = numpy.logical_or(self._mask, mask_norm_expand)
-        elif mask_norm is not None:
-            mask = mask_norm_expand
-        else:
-            mask = mask_norm_expand
+        temp_data = numpy.array(self._data)
+        if mask_norm is not None:
+            indices = numpy.indices(self.getWave().shape)[0]
+            mask_idx = indices[mask_norm]
+            gaps = (mask_idx[1:]-mask_idx[:-1])>1
+            split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
+            split_mask = numpy.split(mask_idx, split_idx)
+            if split_idx.shape != (0,):
+                for mask in split_mask:
+                    if self._datatype == 'RSS':
+                        slicer = numpy.s_[:, mask]
+                        left = numpy.s_[:, mask[0]-1]
+                        right = numpy.s_[:, mask[-1]+1]
+                    elif self._datatype == 'CUBE':
+                        slicer = numpy.s_[mask, :, :]
+                        left = numpy.s_[mask[0]-1, :, :]
+                        right = numpy.s_[mask[-1]+1, :, :]
+                    elif self._datatype == 'Spectrum1D':
+                        slicer = numpy.s_[mask]
+                        left = numpy.s_[mask[0]-1]
+                        right = numpy.s_[mask[-1]+1]
+                    if mask[0] == 0:
+                        temp_data[slicer] = self.getData()[right]
+                        continue
+                    elif mask[-1] == indices[-1]:
+                        temp_data[slicer] = self.getData()[left]
+                        continue
+                    a = (self.getData()[right]-self.getData()[left])/(self.getWave()[mask[-1]+1]-self.getWave()[mask[0]-1])
+                    b = self.getData()[left]-a*self.getWave()[mask[0]-1]
+                    if self._datatype == 'RSS':
+                        temp_data[slicer] = a[:,numpy.newaxis] * self.getWave()[mask][numpy.newaxis,:] + b[:, numpy.newaxis]
+                    elif self._datatype == 'CUBE':
+                        temp_data[slicer] = a[numpy.newaxis, :, :] * self.getWave()[mask][:, numpy.newaxis, numpy.newaxis] + b[numpy.newaxis, :, :]
+                    elif self._datatype == 'Spectrum1D':
+                        temp_data[slicer] = a * self.getWave()[mask] + b
 
-        select_bad = mask
-        data_temp[select_bad] = 0.0
+        axis = 0 if self._datatype == 'CUBE' else -1
+        mean = ndimage.filters.convolve1d(temp_data,numpy.ones(pixel_width) / pixel_width, axis=axis, mode='nearest')
 
-        uniform = ndimage.filters.convolve(data_temp, numpy.ones(filter_window, dtype=numpy.int16), mode='nearest')
-        summed = ndimage.filters.generic_filter(numpy.logical_not(mask).astype('int16'), numpy.sum, filter_window,
-        mode='nearest')
-        select = summed > 0
-        mean[select] = uniform[select] / summed[select].astype('float32')
-        mean[numpy.logical_not(select)] = 1
         select_zero = mean == 0
         mean[select_zero] = 1
         new_data = self._data / mean
@@ -326,18 +322,76 @@ class Data(Header):
         hdu = pyfits.open(file)
         self._dim = None
         if extension_data is None and extension_mask is None and extension_error is None and extension_errorweight is None:
+            if hdu[0].data is not None:
                 self._data = hdu[0].data
                 self._dim = self._data.shape
                 self.setHeader(header=hdu[extension_hdr].header, origin=file)
-                if len(hdu) > 1:
-                    for i in range(1, len(hdu)):
-                        if hdu[i].header['EXTNAME'].split()[0] == 'ERROR':
-                            self._error = hdu[i].data
-                        elif hdu[i].header['EXTNAME'].split()[0] == 'BADPIX':
-                            self._mask = hdu[i].data.astype('bool')
-                        elif hdu[i].header['EXTNAME'].split()[0] == 'ERRWEIGHT':
-                            self._error_weight = hdu[i].data
+                try:
+                    self.getHdrValue('ARRAY1')
+                    for i in range(self._dim[0]):
+                        try:
+                            array = self.getHdrValue('ARRAY%d' % (i + 1)).replace(' ','')
+                            if array == 'SPECTRUM' or array == 'DATA':
+                                self._data = hdu[0].data[i, :]
+                                self._dim = self._data.shape
+                            elif array == 'ERROR':
+                                self._error = hdu[0].data[i, :]
+                            elif  array == 'WAVE':
+                                self._wave = hdu[0].data[i, :]
+                            elif array == 'MASK':
+                                self._mask = (hdu[0].data[i, :]>=1.0)
+                        except KeyError:
+                            pass
 
+                    if self._wave is None:
+                        try:
+                            wave = (numpy.arange(self._dim[0]) - (self.getHdrValue('CRPIX1') - 1)) * self.getHdrValue('CD1_1'
+                            ) + self.getHdrValue('CRVAL1')
+                        except KeyError:
+                            wave = (numpy.arange(self._dim[0]) - (self.getHdrValue('CRPIX1') - 1)) * self.getHdrValue('CDELT1'
+                            ) + self.getHdrValue('CRVAL1')
+                        else:
+                            pass
+
+                        DC_flag = self.getHdrValue('DC-FLAG')
+                        if int(DC_flag) == 1:
+                            self._wave = 10**(wave)
+                        else:
+                            self._wave = wave
+                except KeyError:
+                    if len(hdu) > 1:
+                        for i in range(1, len(hdu)):
+                            if hdu[i].header['EXTNAME'].split()[0] == 'ERROR':
+                                self._error = hdu[i].data
+                            elif hdu[i].header['EXTNAME'].split()[0] == 'WAVE':
+                                self._wave = hdu[i].data
+                            elif hdu[i].header['EXTNAME'].split()[0] == 'BADPIX':
+                                self._mask = hdu[i].data.astype('bool')
+            elif not hdu[1].is_image:
+                tab = hdu[1].data
+                try:
+                    self._wave = 10**tab['loglam']
+                except KeyError:
+                    self._wave = tab['lambda']
+                try:
+                    self._data = tab['flux']
+                except KeyError:
+                    self._data = tab['data']
+                try:
+                    self._error = numpy.sqrt(tab['ivar'])
+                except KeyError:
+                    try:
+                        self._error = tab['error']
+                    except KeyError:
+                        pass
+                try:
+                    self._mask = tab['and_mask']!=0
+                except KeyError:
+                    try:
+                        self._mask = tab['mask']!=0
+                    except KeyError:
+                        pass
+                self._dim = self._data.shape
         else:
             self.setHeader(header=hdu[extension_hdr].header, origin=file)
             if extension_data is not None:
@@ -352,32 +406,66 @@ class Data(Header):
             if extension_error is not None:
                 self._error_weight = hdu[extension_errorweight].data
                 self._dim = self._error_weight.shape
-
-            self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT3') + self.getHdrValue('CRVAL3')
         hdu.close()
+
         if self._dim is not None:
             if len(self._dim) == 3:
                 self._datatype = "CUBE"
                 self._res_elements = self._dim[0]
                 self._dim_y = self._dim[1]
                 self._dim_x = self._dim[2]
-                self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT3') + self.getHdrValue('CRVAL3')
+                if self._wave is None:
+                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT3') + self.getHdrValue('CRVAL3')
             elif len(self._dim) == 2:
                 self._datatype = "RSS"
                 self._res_elements = self._dim[1]
                 self._fibers = self._dim[0]
-                self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
+                if self._wave is None:
+                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
             elif len(self._dim) == 1:
                 self._datatype = "Spectrum1D"
                 self._pixels = numpy.arange(self._dim[0])
                 self._res_elements = self._dim[0]
-                self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
+                if self._wave is None:
+                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
 
         if extension_hdr is not None:
             self.setHeader(hdu[extension_hdr].header, origin=file)
 
+    def loadTxtData(self, filename):
+        file_in = open(filename)
+        lines = file_in.readlines()
+        wave = []
+        data = []
+        error =[]
+        mask = []
+        for i in range(len(lines)):
+            if '#' not in lines[i][0]:
+                line = lines[i].split()
+                wave.append(float(line[0]))
+                data.append(float(line[1]))
+                try:
+                    error.append(float(line[2]))
+                except IndexError:
+                    error.append(1.0)
+                try:
+                    mask.append(int(line[3]))
+                except IndexError:
+                    mask.append(False)
+        self._data = numpy.array(data)
+        self._dim = self._data.shape
+        self._wave = numpy.array(wave)
+        if error is not []:
+            self._error = numpy.array(error)
+        if mask is not []:
+            self._mask = numpy.array(mask).astype('bool')
+        self._datatype = "Spectrum1D"
+        self._pixels = numpy.arange(self._dim[0])
+        self._res_elements = self._dim[0]
+
+
     def writeFitsData(self, filename, extension_data=None, extension_mask=None, extension_error=None,
-    extension_errorweight=None,extension_normalization=None):
+    extension_errorweight=None,extension_normalization=None,store_wave=False):
         """
             Save information of the Data object into a FITS file.
             A single or multiple extension file are possible to create.
@@ -396,7 +484,7 @@ class Data(Header):
             extension_error : int, optional with default: None
                 Number of the FITS extension containing the errors for the values
         """
-        hdus = [None, None, None, None,None]  # create empty list for hdu storage
+        hdus = [None, None, None, None,None,None]  # create empty list for hdu storage
 
         # create primary hdus and image hdus
         # data hdu
@@ -437,6 +525,8 @@ class Data(Header):
                 hdu = pyfits.PrimaryHDU(self._normalization)
             elif extension_normalization > 0 and extension_normalization is not None:
                 hdus[extension_normalization] = pyfits.ImageHDU(self._normalization, name='NORMALIZE')
+        if store_wave:
+            hdus[-1] = pyfits.ImageHDU(self._wave,  name='WAVE')
 
         # remove not used hdus
         for i in range(len(hdus)):
@@ -447,7 +537,7 @@ class Data(Header):
 
         if len(hdus) > 0:
             hdu = pyfits.HDUList(hdus)  # create an HDUList object
-            if self._header is not None:
+            if self._header is not None and not store_wave:
                 if self._wave is not None:
                     if self._datatype == 'CUBE':
                         self.setHdrValue('CRVAL3', self._wave[0])
@@ -458,7 +548,7 @@ class Data(Header):
                 hdu[0].header = self.getHeader()  # add the primary header to the HDU
                 hdu[0].update_header()
             else:
-                if self._wave is not None:
+                if self._wave is not None and not store_wave:
                     if self._datatype== 'CUBE':
                         hdu[0].header.update('CRVAL3', self._wave[0])
                         hdu[0].header.update('CDELT3', self._wave[1] - self._wave[0])

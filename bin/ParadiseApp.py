@@ -40,14 +40,29 @@ class ParadiseApp(object):
         instrFWHM : float
             The instrumental resolution of the data in `input_file`.
         """
-        self.__inputData = loadCube(input_file)
+
+        self.__inputData = loadSpectrum(input_file)
         if self.__inputData._datatype == 'CUBE':
+            self.__inputData = loadCube(input_file)
             self.__inputData.correctError()
             self.__datatype = 'CUBE'
         elif self.__inputData._datatype == 'RSS':
             self.__inputData = loadRSS(input_file)
             self.__inputData.correctError()
             self.__datatype = 'RSS'
+        elif self.__inputData._datatype == 'Spectrum1D':
+            data = loadSpectrum(input_file)
+            data.correctError()
+            self.__datatype = 'RSS'
+            if data._error is not None:
+                err = numpy.array([data._error])
+            else:
+                err = None
+            if data._mask is not None:
+                m = numpy.array([data._mask])
+            else:
+                m = None
+            self.__inputData = RSS(wave=data._wave, data=numpy.array([data._data]), error=err, mask=m)
         self.__outPrefix = outprefix
         self.__instrFWHM = instrFWHM
 
@@ -115,6 +130,8 @@ class ParadiseApp(object):
             disp_fit = tab.field('disp_fit')
             vel_fit_err = tab.field('vel_fit_err')
             disp_fit_err = tab.field('disp_fit_err')
+            Rvel = -numpy.ones(vel_fit.shape)
+            Rdisp = -numpy.ones(disp_fit.shape)
             if self.__datatype == 'CUBE':
                 x_pos_kin = tab.field('x_cor')
                 y_pos_kin = tab.field('y_cor')
@@ -122,13 +139,13 @@ class ParadiseApp(object):
                 fiber_kin = tab.field('fiber')
             vel_min = numpy.min(vel_fit)
             vel_max = numpy.max(vel_fit)
-        #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
+        min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
+        max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
 
         if nlib_guess < 0:
             select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
             lib = lib.subLibrary(select)
-        #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
+        lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
@@ -136,6 +153,7 @@ class ParadiseApp(object):
 
         if verbose:
             print "The input cube is being normalized."
+
         normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
@@ -148,45 +166,48 @@ class ParadiseApp(object):
             if kin_fix:
                 x_pixels = tab.field('x_cor')
                 y_pixels = tab.field('y_cor')
-                (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit,
-                disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
-                mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0),
-                verbose=verbose, parallel=parallel)
+                (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                vel_fit, disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
+                mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
-                (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, x_pix, y_pix,
+                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
                 cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(
-                normDataSub.getWave(), vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
-                verbose=verbose, parallel=parallel)
+                min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn,
+                samples=samples, thin=thin, verbose=verbose, parallel=parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
                 fibers = tab.field('fiber')
-                (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, vel_fit, disp_fit,
-                fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
-                vel_guess / 300000.0), verbose=verbose, parallel=parallel)
+                (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                vel_fit, disp_fit, fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
-                (vel_fit, vel_fit_err, disp_fit, disp_fit_err, fitted, coeff, chi2, fiber,
+                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
                 rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_y=min_y, max_y=max_y, mask_fit=excl_fit.maskPixelsObserved(normDataSub.getWave(),
-                vel_guess / 300000.0), iterations=iterations, burn=burn, samples=samples, thin=thin,
+                min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
-
         if verbose:
                 print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave, data=rss_model,
+            model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=rss_model,
                 header=self.__inputData.getHeader())
-            res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave,
-                data=self.__inputData.subWaveLimits(start_wave, end_wave)._data - rss_model, header=self.__inputData.getHeader())
+            res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
+                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
+                header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave, data=cube_model,
+            model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=cube_model,
                 header=self.__inputData.getHeader())
-            res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave)._wave,
-                data=self.__inputData.subWaveLimits(start_wave, end_wave)._data - cube_model, header=self.__inputData.getHeader())
-        model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
-        res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
+            res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
+                data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
+                header=self.__inputData.getHeader())
+
+        if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
+            self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.001:
+            model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
+            res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
+        else:
+            model_out.writeFitsData(self.__outPrefix + '.cont_model.fits', store_wave=True)
+            res_out.writeFitsData(self.__outPrefix + '.cont_res.fits', store_wave=True)
 
         mass_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
@@ -201,17 +222,18 @@ class ParadiseApp(object):
                 except:
                     lum_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
 
-        print len(fitted),len(vel_fit)
         columns = []
         if self.__datatype == 'CUBE':
             columns.append(pyfits.Column(name='x_cor', format='J', array=x_pix[fitted]))
             columns.append(pyfits.Column(name='y_cor', format='J', array=y_pix[fitted]))
-        else:
+        elif self.__datatype == 'RSS':
             columns.append(pyfits.Column(name='fiber', format='J', array=fiber[fitted]))
         columns.append(pyfits.Column(name='vel_fit', format='E', unit='km/s', array=vel_fit[fitted]))
         columns.append(pyfits.Column(name='vel_fit_err', format='E', unit='km/s', array=vel_fit_err[fitted]))
+        columns.append(pyfits.Column(name='Rvel', format='E', unit='km/s', array=Rvel[fitted]))
         columns.append(pyfits.Column(name='disp_fit', format='E', unit='km/s', array=disp_fit[fitted]))
         columns.append(pyfits.Column(name='disp_fit_err', format='E', unit='km/s', array=disp_fit_err[fitted]))
+        columns.append(pyfits.Column(name='Rdisp', format='E', unit='km/s', array=Rdisp[fitted]))
         columns.append(pyfits.Column(name='chi2', format='E', array=chi2[fitted]))
         if lib.getBaseNumber() > 1:
             columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
@@ -228,7 +250,10 @@ class ParadiseApp(object):
         columns.append(pyfits.Column(name='mass_[Fe/H]_total', format='E', array=mass_weighted_pars[fitted, 3]))
         columns.append(pyfits.Column(name='mass_[A/Fe]_total', format='E', array=mass_weighted_pars[fitted, 4]))
 
-        table_out = pyfits.new_table(columns)
+        try:
+            table_out = pyfits.BinTableHDU.from_columns(columns)
+        except:
+            table_out = pyfits.new_table(columns)
         table_out.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
     def run_eline_fit(self, parfile, parallel, verbose):
@@ -312,10 +337,11 @@ class ParadiseApp(object):
         indices = numpy.arange(len(out_lines[2]))
         valid = numpy.zeros(len(out_lines[2]),dtype="bool")
         for i in range(len(out_lines[2])):
-	    if self.__datatype == 'CUBE':
-	      select_pos = (x_cor==out_lines[2][i]) & (y_cor==out_lines[3][i])
-	    elif self.__datatype == 'RSS':
-	      select_pos = (fiber== out_lines[2][i])
+            if self.__datatype == 'CUBE':
+                select_pos = (x_cor==out_lines[2][i]) & (y_cor==out_lines[3][i])
+            elif self.__datatype == 'RSS':
+                select_pos= fiber == out_lines[2][i]
+
             if numpy.sum(select_pos)>0:
                 valid[i]=True
         columns = []
@@ -331,7 +357,11 @@ class ParadiseApp(object):
                     array=out_lines[0][n]['vel'][valid]))
                 columns.append(pyfits.Column(name='%s_fwhm' % (n), format='E', unit='km/s',
                         array=out_lines[0][n]['fwhm'][valid]))
-        table_out = pyfits.new_table(columns)
+
+        try:
+            table_out = pyfits.BinTableHDU.from_columns(columns)
+        except:
+            table_out = pyfits.new_table(columns)
         table_out.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
     def run_bootstrap(self, stellar_parfile, eline_parfile, bootstraps, modkeep, parallel, verbose):
@@ -417,19 +447,19 @@ class ParadiseApp(object):
                 x_eline = eline_table.field('x_cor')
                 y_eline = eline_table.field('y_cor')
             if self.__datatype == 'RSS':
-		x_eline = eline_table.field('fiber')
+                fiber_eline = eline_table.field('fiber')
 
         if verbose:
             print "The stellar population library is being prepared."
         lib = SSPlibrary(filename=tmpldir + '/' + tmplfile)
-        #min_wave = (self.__inputData.getWave()[0] / (1 + (vel_min - 2000) / 300000.0))
-        #max_wave = (self.__inputData.getWave()[-1] / (1 + (vel_max + 2000) / 300000.0))
+        min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
+        max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
 
 
         if nlib_guess < 0:
             select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
             lib = lib.subLibrary(select)
-        #lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
+        lib = lib.subWaveLibrary(min_wave=min_wave, max_wave=max_wave)
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
@@ -442,61 +472,80 @@ class ParadiseApp(object):
         #normData.writeFitsData('test.fits')
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
         excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
-        select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    x_cor, y_cor, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
-                    verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) =\
+                    normDataSub.fit_Lib_Boots(lib_rebin, x_cor, y_cor, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
             elif self.__datatype == 'RSS':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep, parallel=parallel,
-                    verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) =\
+                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
         else:
+            select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
             if self.__datatype == 'CUBE':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
-                    select_wave_eline=select_wave_eline,
-                    method_eline=efit_method, mask_fit=excl_fit, guess_window=guess_window, spectral_res=self.__instrFWHM,
-                    ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) = \
+                    normDataSub.fit_Lib_Boots(lib_rebin, x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
+                    select_wave_eline=select_wave_eline, method_eline=efit_method, mask_fit=excl_fit,
+                    guess_window=guess_window, spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
             elif self.__datatype == 'RSS':
-                (mass_weighted_pars_err, lum_weighted_pars_err, maps) = normDataSub.fit_Lib_Boots(lib_rebin,
-                    fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
-                    select_wave_eline=select_wave_eline,
-                    mask_fit=excl_fit, method_eline=efit_method, guess_window=guess_window, spectral_res=self.__instrFWHM,
-                    ftol=efit_ftol, xtol=efit_xtol, modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) = \
+                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
+                    select_wave_eline=select_wave_eline, mask_fit=excl_fit, method_eline=efit_method,
+                    guess_window=guess_window, spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol,
+                    modkeep=modkeep, parallel=parallel, verbose=verbose)
         columns_stellar = []
+        columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_btmean', format='E', array=lum_weighted_pars_mean[:, 0]))
         columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_err', format='E', array=lum_weighted_pars_err[:, 0]))
+        columns_stellar.append(pyfits.Column(name='lum_age_total_btmean', format='E', array=lum_weighted_pars_mean[:, 1]))
         columns_stellar.append(pyfits.Column(name='lum_age_total_err', format='E', array=lum_weighted_pars_err[:, 1]))
+        columns_stellar.append(pyfits.Column(name='lum_M/L_total_btmean', format='E', array=lum_weighted_pars_mean[:, 2]))
         columns_stellar.append(pyfits.Column(name='lum_M/L_total_err', format='E', array=lum_weighted_pars_err[:, 2]))
+        columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_total_btmean', format='E', array=lum_weighted_pars_mean[:, 3]))
         columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_total_err', format='E', array=lum_weighted_pars_err[:, 3]))
+        columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_total_btmean', format='E', array=lum_weighted_pars_mean[:, 4]))
         columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_total_err', format='E', array=lum_weighted_pars_err[:, 4]))
+        columns_stellar.append(pyfits.Column(name='mass_coeff_frac_total_btmean', format='E', array=mass_weighted_pars_mean[:, 0]))
         columns_stellar.append(pyfits.Column(name='mass_coeff_frac_total_err', format='E', array=mass_weighted_pars_err[:, 0]))
+        columns_stellar.append(pyfits.Column(name='mass_age_total_btmean', format='E', array=mass_weighted_pars_mean[:, 1]))
         columns_stellar.append(pyfits.Column(name='mass_age_total_err', format='E', array=mass_weighted_pars_err[:, 1]))
+        columns_stellar.append(pyfits.Column(name='mass_M/L_total_btmean', format='E', array=mass_weighted_pars_mean[:, 2]))
         columns_stellar.append(pyfits.Column(name='mass_M/L_total_err', format='E', array=mass_weighted_pars_err[:, 2]))
+        columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_btmean', format='E', array=mass_weighted_pars_mean[:, 3]))
         columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_err', format='E', array=mass_weighted_pars_err[:, 3]))
+        columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_btmean', format='E', array=mass_weighted_pars_mean[:, 4]))
         columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_err', format='E', array=mass_weighted_pars_err[:, 4]))
 
-        hdu = pyfits.new_table(stellar_table.columns[:17] + pyfits.new_table(columns_stellar).columns)
+        try:
+            hdu = pyfits.BinTableHDU.from_columns(stellar_table.columns[:19] + pyfits.ColDefs(columns_stellar))
+        except:
+            hdu = pyfits.new_table(stellar_table.columns[:19] + pyfits.new_table(columns_stellar).columns)
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
-        mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
-        if self.__datatype == 'CUBE':
-	  indices = numpy.arange(len(x_cor))
-	elif self.__datatype == 'RSS':
-	  indices = numpy.arange(len(fiber))
-        valid = numpy.zeros(len(x_eline),dtype="bool")
-        
-        for i in range(len(x_eline)):
-	    if self.__datatype == 'CUBE':
-	      select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
-	    elif self.__datatype == 'RSS':
-	      select_pos = (fiber==x_eline[i])
-            if numpy.sum(select_pos)>0:
-                valid[i]=True
-                mapping[i]=indices[select_pos][0]
-            else:
-                mapping[i]=-1
+        if self.__datatype == 'CUBE' and eline_parfile is not None:
+            mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
+            indices = numpy.arange(len(x_cor))
+            valid = numpy.zeros(len(x_eline),dtype="bool")
+            for i in range(len(x_eline)):
+                select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
+                if numpy.sum(select_pos)>0:
+                    valid[i]=True
+                    mapping[i]=indices[select_pos][0]
+                else:
+                    mapping[i]=-1
+        elif self.__datatype == 'RSS' and eline_parfile is not None:
+            mapping=numpy.zeros(len(fiber_eline),dtype=numpy.int16)
+            indices = numpy.arange(len(fiber))
+            valid = numpy.zeros(len(fiber_eline),dtype="bool")
+            for i in range(len(fiber_eline)):
+                select_pos = (fiber==fiber_eline[i])
+                if numpy.sum(select_pos)>0:
+                    valid[i]=True
+                    mapping[i]=indices[select_pos][0]
+                else:
+                    mapping[i]=-1
+
 
         if maps is not None:
             columns_eline = []
@@ -508,7 +557,10 @@ class ParadiseApp(object):
                     columns_eline.append(pyfits.Column(name='%s_fwhm_err' % (n), format='E', unit='km/s',
                             array=maps[n]['fwhm_err'][valid][mapping[valid]]))
 
-            hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
+            try:
+                hdu = pyfits.BinTableHDU.from_columns(eline_table.columns[:len(columns_eline) + 2] + pyfits.ColDefs(columns_eline))
+            except:
+                hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
             hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
 
 

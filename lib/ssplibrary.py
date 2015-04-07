@@ -186,6 +186,7 @@ class SSPlibrary(UserDict):
             The indices of the selected sample of template spectra.
         """
         select = (numpy.random.random(self.getBaseNumber()) <= modkeep)
+        numpy.random.shuffle(select)
         return self.subLibrary(select), select
 
     def normalizeBase(self, pixel_width, exclude_obj=None, redshift=None):
@@ -209,20 +210,25 @@ class SSPlibrary(UserDict):
         """
         if exclude_obj is not None and redshift is not None:
             mask = exclude_obj.maskPixelsRest(self.__wave, redshift)
-        else:
-            mask = numpy.zeros(len(self.__wave), dtype="bool")
-        mean = numpy.zeros((self.__data.shape), dtype=numpy.float32)
-        data_temp = numpy.zeros((self.__data.shape), dtype=numpy.float32)
-        data_temp[:] = self.__data
-        select_bad = mask == True
-        data_temp[select_bad] = 0.0
-        uniform = ndimage.filters.convolve1d(data_temp, numpy.ones(pixel_width, dtype=numpy.int16), axis=0, mode='nearest')
-        summed = ndimage.filters.generic_filter(numpy.logical_not(mask).astype('int16'), numpy.sum, pixel_width, mode='nearest')
-        select = summed > 0
-        mean[select, :] = uniform[select, :] / summed[select][:, numpy.newaxis]
-        mean[numpy.logical_not(select), :] = 1
-        select_zero = mean == 0
-        mean[select_zero] = 1
+            indices = numpy.indices(self.__wave.shape)[0]
+            mask_idx = indices[mask]
+            gaps = (mask_idx[1:]-mask_idx[:-1])>1
+            split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
+            split_mask = numpy.split(mask_idx,split_idx)
+            temp_data = numpy.array(self.__data)
+            if split_idx.shape != (0,):
+                for mask in split_mask:
+                    if mask[0] == 0:
+                        temp_data[mask, :] = self.__data[mask[-1]+1,:]
+                        continue
+                    elif mask[-1] == indices[-1]:
+                        temp_data[mask, :] = self.__data[mask[0]-1,:]
+                        continue
+                    a = (self.__data[mask[-1]+1,:]-self.__data[mask[0]-1,:])/(self.__wave[mask[-1]+1]-self.__wave[mask[0]-1])
+                    b = self.__data[mask[0]-1,:]-a*self.__wave[mask[0]-1]
+                    temp_data[mask,:] = a[numpy.newaxis,:]*self.__wave[mask][:,numpy.newaxis]+b[numpy.newaxis,:]
+
+        mean = ndimage.filters.convolve1d(temp_data, numpy.ones(pixel_width) / pixel_width, axis=0, mode='nearest')
         new_data = self.__data / mean
         new_SSP = SSPlibrary(data=new_data, wave=self.__wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
         coefficients=self.__coefficients, normalization=mean)

@@ -1,0 +1,124 @@
+% Version 1: Bernd
+ \documentclass[usenatbib,usegraphicx,useAMS]{mn2e}
+ \usepackage[T1]{fontenc}
+ %\usepackage{txfonts}
+ \usepackage{multirow}
+ \usepackage{color}
+ \usepackage{times}
+ \usepackage{amssymb}
+ \newcommand{\COzero}{${}^{12}\mathrm{CO}(1-0)$}
+ \newcommand{\COtwo}{${}^{12}\mathrm{CO}(2-1)$}
+ \newcommand{\Fe}{\textsc{feii}}
+ \newcommand{\Ox}{\textsc{[oiii]}}
+ \newcommand{\Ni}{\textsc{[nii]}}
+ \newcommand{\Su}{\textsc{[sii]}}
+ \newcommand{\Hb}{\mbox{H$\beta$}}
+ \newcommand{\Ha}{\mbox{H$\alpha$}}
+ \newcommand{\HII}{\textsc{hii}}
+ \newcommand{\QDeb}{\textsc{qdeblend${}^{\mathrm{3D}}$}}
+ \newcommand{\changed}[1]{\textbf{#1}}
+%\newcommand{\changed}[1]{#1}
+\newcommand{\pasp}{PASP}
+\newcommand{\aj}{AJ}
+\newcommand{\apj}{ApJ}
+\newcommand{\apjs}{ApJS}
+\newcommand{\aap}{A\&A}
+\newcommand{\aaps}{A\&AS}
+\newcommand{\araa}{ARA\&A}
+\newcommand{\mnras}{MNRAS}
+\newcommand{\apjl}{ApJL}
+
+\newcommand{\myemail}{bhuseman@eso.org}
+%\bibpunct{(}{)}{;}{a}{}{,}
+
+
+
+\begin{document}
+
+\title{PyParadise User Manual}
+
+\author[Husemann et al.]{B.~Husemann$^{1}$\thanks{ESO fellow, bhuseman@eso.org}, O. Choudhury$^{2}$, J. Walcher$^{2}$\newauthor\\
+$^1$European Southern Observatory, Karl-Schwarzschild-Str. 2, 85748 Garching b. M\"unchen, Germany\\
+$^2$Leibniz-Institut f\"ur Astrophysik Potsdam, An der Sternwarte 16, 14482 Potsdam, Germany\\
+}
+\maketitle
+\begin{abstract}
+
+\end{abstract}
+%\begin{keywords}
+%\end{keywords}
+
+\section{Introduction}
+Throughout the paper we assume a cosmological model with 
+$H_0=70\,\mathrm{km}\,\mathrm{s}^{-1}\,\mathrm{Mpc}^{-1}$, $\Omega_{\mathrm{m}}=0.3$, and $\Omega_\Lambda=0.7$.
+
+\section{Quick Start}
+
+\section{Stellar population modelling}
+\subsection{Algorithm}
+\subsection{Template handling}
+\subsection{Masking}
+\subsection{Configuration file}
+
+
+\section{Emission-line modelling}
+\subsection{Algorithm}
+\subsection{Line profiles}
+\subsection{Configuration file}
+
+\section{Bootstrap errors}
+\subsection{The importance of error estimation}
+
+\section{Data input formats}
+Like any software package \textsc{PyParadise} also requires that data is provided in certain pre-defined formats to run successfully. Failure of the program may often be related to invalid input. 
+Therefore, users are strongly encourage to read this section carefully before using this software for their analysis. 
+\subsection{Spectral data}
+\textsc{PyParadise} can be feed with three basic types of spectral data. These are 1) a single spectrum, 2) row-stacked spectra (hereafter RSS), and 3) 3D data cubes. The minimum information they all 
+contain are the wavelength grid and the corresponding flux densities that makes up the spectrum. Optinal but often important information are the associated errors and known bad pixels. All three 
+types have different technical specifications to store those data.   They are automatically identified by \textsc{PyParadise} if the format is consistent with the specifications. 
+\subsubsection{Single Spectrum}
+There are various possible format to store a single spectrum. To facilitate the usage of PyParadise we implement a few common formats, the SDSS-DR7-like fits image format, the SDSS-DR10-like table 
+format, and an ascii table format. They are widely distributed in the community. Since PyParadise does not require all the informations that are stored in SDSS spectra, a user can easily create a 
+confrom spectrum that can be used with PyParadise only with the minimum content as described below.
+
+\subsubsection{RSS files}
+A RSS file is the primary output of a multi-fiber spectrograph, either a MOS or IFU system. It is a simple stack of spectra that share a \textbf{common} wavelength grid. \textsc{PyParadise} accepts 
+RSS fits files as input. Here we adapt the format in which the CALIFA DR1 and DR2 RSS files are distributed. The specifications are given in the Table.
+
+\begin{table*}
+\begin{tabular}{cccccc}
+FITS structure  & name 		& data type 	& required 	& unit 	& description\\
+Header		&		&	        &		&	&	\\
+\end{tabular}
+ \end{table*}
+
+\subsubsection{Data cubes}
+
+\subsection{Template spectra}
+The template spectra are a collection of spectra that should ideally be sufficient to describe the spectrum to be modelled as a linear superposition modolu the kinematic convolution kernel. There for 
+the data format is similar to the RSS case for the input data. The big difference is that these data are usually theoretical or semi-empirical derived spectra. Thus, we assume them to be noise 
+free and do not contain masked pixel. In addition each template spectrum has associated additional information, like stellar population age, luminosity, and metallicity that needs to be captures. 
+
+
+\section{Running PyParadise}
+
+\section{Output files}
+\subsection{Stellar population results}
+\subsection{Emission-line results}
+
+\section{Guidelines}
+\subsection{}
+\subsection{Distuingish bad from good fit results}
+
+\section{Conclusions}
+
+\section*{Acknowledgements}
+
+
+%\bibliographystyle{bibtex/aa}
+%\bibliography{references}
+
+\end{document}
+
+
+
