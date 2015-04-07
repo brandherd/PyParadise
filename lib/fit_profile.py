@@ -425,7 +425,7 @@ class parFile(fit_profile1D):
                     try:
                         vel=float(self._parameters[n]['vel'])
                     except ValueError:
-                        vel = self._parameters[self._parameters[n]['vel']]['vel']
+                        vel = float(self._parameters[self._parameters[n]['vel']]['vel'])
                     select = numpy.logical_and(x>restwave*(vel/300000.0 +1)-w/2.0, x<restwave*(vel/300000.0 +1)+w/2.0)
                     flux = numpy.sum(temp_y[select])*dx
                     self._parameters[n]['flux']=flux
@@ -433,7 +433,7 @@ class parFile(fit_profile1D):
                     try:
                         vel=float(self._parameters[n]['vel'])
                     except ValueError:
-                        vel = self._parameters[self._parameters[n]['vel']]['vel']
+                        vel = float(self._parameters[self._parameters[n]['vel']]['vel'])
                     select = numpy.logical_and(x>restwave*(vel/300000.0 +1)-w/2.0, x<restwave*(vel/300000.0 +1)+w/2.0)
                     try:
                         width = numpy.sqrt(numpy.sum((temp_y[select]*(x[select]-restwave*(vel/300000.0 +1))**2))/(numpy.sum(temp_y[select])))
