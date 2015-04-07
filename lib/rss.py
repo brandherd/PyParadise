@@ -432,7 +432,7 @@ class RSS(Data):
                     sleep(0.01)
                 else:
                     result_fit.append(None)
-                    fiber[m] = m
+                fiber[m] = m
                 m += 1
             pool.close()
             pool.join()
