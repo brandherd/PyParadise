@@ -133,10 +133,10 @@ class ParadiseApp(object):
             Rvel = -numpy.ones(vel_fit.shape)
             Rdisp = -numpy.ones(disp_fit.shape)
             if self.__datatype == 'CUBE':
-                x_pos_kin = tab.field('x_cor')
-                y_pos_kin = tab.field('y_cor')
+                x_pixels = tab.field('x_cor')
+                y_pixels = tab.field('y_cor')
             elif self.__datatype == 'RSS':
-                fiber_kin = tab.field('fiber')
+                fibers = tab.field('fiber')
             vel_min = numpy.min(vel_fit)
             vel_max = numpy.max(vel_fit)
         min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
@@ -164,24 +164,21 @@ class ParadiseApp(object):
             print "The stellar population modelling has been started."
         if self.__datatype == 'CUBE':
             if kin_fix:
-                x_pixels = tab.field('x_cor')
-                y_pixels = tab.field('y_cor')
-                (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                (fitted, coeff, chi2, x_pix, y_pix, cube_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
                 vel_fit, disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                 mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
-                cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                cube_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn,
                 samples=samples, thin=thin, verbose=verbose, parallel=parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
-                fibers = tab.field('fiber')
-                (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                (fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
                 vel_fit, disp_fit, fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
-                rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                rss_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
         if verbose:
@@ -189,15 +186,15 @@ class ParadiseApp(object):
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=rss_model,
-                header=self.__inputData.getHeader())
-            res_out = RSS(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
+            model_out = RSS(wave=normDataSub.getWave(), data=rss_model, mask=mask,
+                header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
+            res_out = RSS(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(), data=cube_model,
-                header=self.__inputData.getHeader())
-            res_out = Cube(wave=self.__inputData.subWaveLimits(start_wave, end_wave).getWave(),
+            model_out = Cube(wave=normDataSub.getWave(), data=cube_model, mask=mask,
+                header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
+            res_out = Cube(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
                 header=self.__inputData.getHeader())
 
