@@ -185,6 +185,7 @@ class SSPlibrary(UserDict):
         select : numpy.ndarray
             The indices of the selected sample of template spectra.
         """
+        numpy.random.seed()
         select = (numpy.random.random(self.getBaseNumber()) <= modkeep)
         numpy.random.shuffle(select)
         return self.subLibrary(select), select

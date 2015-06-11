@@ -123,7 +123,7 @@ class Spectrum1D(Data):
 #        if self._error is not None and err_sim>0:
 #            sim  = numpy.zeros((err_sim, len(ref_wave)), dtype=numpy.float32)
 #            data = numpy.zeros(len(self._wave), dtype=numpy.float32)
-#
+#            numpy.random.seed()
 #            for i in range(err_sim):
 #                data = numpy.random.normal(self._data, self._error).astype(numpy.float32)
 #                if method=='spline':
@@ -244,6 +244,7 @@ class Spectrum1D(Data):
         In the case that the `error` equals None, a copy of the original
         Spectrum1D object is returned.
         """
+        numpy.random.seed()
         if self._error is not None:
             data_new = numpy.random.Normal(self._data, self._error)
             spec_out = Spectrum1D(wave=self._wave, data=data_new, error=self._error, mask=self._mask,
@@ -554,6 +555,7 @@ class Spectrum1D(Data):
         Returns
         -------
         """
+        numpy.random.seed()
         mass_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         lum_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
         kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(self.getWave())
