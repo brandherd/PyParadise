@@ -139,9 +139,9 @@ class ParadiseApp(object):
                 fibers = tab.field('fiber')
             vel_min = numpy.min(vel_fit)
             vel_max = numpy.max(vel_fit)
+            
         min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
         max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
-
         if nlib_guess < 0:
             select = numpy.arange(lib.getBaseNumber()) == nlib_guess * -1 - 1
             lib = lib.subLibrary(select)
@@ -149,6 +149,7 @@ class ParadiseApp(object):
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
+        
         lib_rebin = lib_norm.rebinLogarithmic()
 
         if verbose:
@@ -157,8 +158,10 @@ class ParadiseApp(object):
         normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
         normDataSub = normData.subWaveLimits(start_wave, end_wave)
-        #pylab.plot(self.__inputData._data[:,0,0],'-k')
-        #pylab.plot(normData._data[:,0,0],'-r')
+        
+        #pylab.plot(self.__inputData._data[0,:],'-k')
+        #pylab.plot(normData._normalization[0,:],'-g')
+        #pylab.plot(normData._data[0,:],'-r')
         #pylab.show()
         if verbose:
             print "The stellar population modelling has been started."
@@ -185,6 +188,8 @@ class ParadiseApp(object):
                 print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
+	#pylab.plot(rss_model[0,:],'-g')
+	#pylab.show()
         if self.__datatype == 'RSS':
             model_out = RSS(wave=normDataSub.getWave(), data=rss_model, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
@@ -197,9 +202,8 @@ class ParadiseApp(object):
             res_out = Cube(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
                 header=self.__inputData.getHeader())
-
         if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
-            self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.001:
+            self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.01:
             model_out.writeFitsData(self.__outPrefix + '.cont_model.fits')
             res_out.writeFitsData(self.__outPrefix + '.cont_res.fits')
         else:
@@ -328,9 +332,13 @@ class ParadiseApp(object):
             model_line = RSS(wave=res_out.getWave(), data=out_lines[3], header=self.__inputData.getHeader())
             line_res = RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
-        model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
-        line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
-
+	if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
+            self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.01:    
+	  model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
+	  line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
+	else:
+	  model_line.writeFitsData(self.__outPrefix + '.eline_model.fits',store_wave=True)
+	  line_res.writeFitsData(self.__outPrefix + '.eline_res.fits',store_wave=True)
         indices = numpy.arange(len(out_lines[2]))
         valid = numpy.zeros(len(out_lines[2]),dtype="bool")
         for i in range(len(out_lines[2])):
