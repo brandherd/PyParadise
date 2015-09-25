@@ -91,7 +91,8 @@ class CustomMasks(UserDict):
         fixed_found = 0
         rest_found = 0
         for i in range(len(lines)):
-            line = lines[i].split()
+            line = lines[i].split('!')[0]   # filter out any comments
+            line = line[i].split()
             if len(line) == 1 and line[0] == '[observed-frame]':
                 fixed_found = 1
                 rest_found = 0
