@@ -204,10 +204,10 @@ class Spectrum1D(Data):
         micron = self._wave / 10000.0
         wave_number = 1.0 / micron
         y = wave_number - 1.82
-        ax = 1 + (0.17699 * y) - (0.50447 * y ** 2) - (0.02427 * y ** 3) + (0.72085 * y ** 4) + (0.01979 * y ** 5)
-        - (0.77530 * y ** 6) + (0.32999 * y ** 7)
-        bx = (1.41338 * y) + (2.28305 * y ** 2) + (1.07233 * y ** 3) - (5.38434 * y ** 4) - (0.62251 * y ** 5)
-        + (5.30260 * y ** 6) - (2.09002 * y ** 7)
+        ax = 1 + (0.17699 * y) - (0.50447 * y ** 2) - (0.02427 * y ** 3) + (0.72085 * y ** 4) + (0.01979 * y ** 5)\
+            - (0.77530 * y ** 6) + (0.32999 * y ** 7)
+        bx = (1.41338 * y) + (2.28305 * y ** 2) + (1.07233 * y ** 3) - (5.38434 * y ** 4) - (0.62251 * y ** 5)\
+            + (5.30260 * y ** 6) - (2.09002 * y ** 7)
         Arat = ax + (bx / R_V)
         Alambda = Arat * A_V
         cor_factor = 10 ** (Alambda / -2.5)
@@ -578,58 +578,58 @@ class Spectrum1D(Data):
         m = 0
        # try:
         while m < bootstraps:
-                (sub_SSPlib, select) = kin_SSP.randomSubLibrary(float(modkeep / 100.0))
-                #select_bad = self.getError() <= 0
-                #self._error[select_bad] = 1e+10
-                #self._mask[select_bad] = True
+            (sub_SSPlib, select) = kin_SSP.randomSubLibrary(float(modkeep / 100.0))
+            #select_bad = self.getError() <= 0
+            #self._error[select_bad] = 1e+10
+            #self._mask[select_bad] = True
 
-                spec = Spectrum1D(wave=self.getWave(), data=numpy.random.normal(self.getData(), self.getError()),
-                error=self.getError(), mask=self.getMask(), normalization=self.getNormalization())
-                try:
-                    (coeff, bestfit_spec, chi2) = spec.fitSuperposition(sub_SSPlib)
-                    factors = numpy.zeros(kin_SSP.getBaseNumber(), dtype=numpy.float32)
-                    factors[select] = coeff
-                except RuntimeError:
-                    coeff=-1e10
-                if numpy.sum(coeff) > -10000:
-                    mass_weighted_pars[m, :] = kin_SSP.massWeightedPars(factors)
-                    lum_weighted_pars[m, :] = kin_SSP.lumWeightedPars(factors)
-                    if par_eline is not None:
-                        res = Spectrum1D(wave=self.getWave(), data=(spec.getData() - bestfit_spec.getData()), error=spec.getError(),
-                        mask=spec.getMask(), normalization=self.getNormalization()).unnormalizedSpec()
-                        (out_model, best_fit, best_res) = res.fitELines(par_eline, select_wave_eline, method=method_eline,
-                        guess_window=guess_window, spectral_res=spectral_res, ftol=ftol, xtol=xtol, parallel=parallel)
-                        if plot and m>=0 and m<30:
-                            print m
-                            print coeff
-                            pylab.plot(res.getWave(),spec.getData(),'-k')
-                            pylab.plot(res.getWave(),bestfit_spec.getData(),'-r')
-                            #pylab.plot(res.getWave(),res.getData(),'-k')
-                            #pylab.plot(res.getWave(),res.getError(),'-r')
-                            #pylab.plot(res.getWave(),best_fit,'-b')
-                            pylab.show()
-                        for n in par_eline._names:
-                            if par_eline._profile_type[n] == 'Gauss':
-                                line_models[n]['flux'][m] = out_model[n][0]
-                                line_models[n]['vel'][m] = out_model[n][1]
-                                line_models[n]['fwhm'][m] = out_model[n][2] * 2.354
-                    else:
-                        line_models = None
-                    m += 1
+            spec = Spectrum1D(wave=self.getWave(), data=numpy.random.normal(self.getData(), self.getError()),
+            error=self.getError(), mask=self.getMask(), normalization=self.getNormalization())
+            try:
+                (coeff, bestfit_spec, chi2) = spec.fitSuperposition(sub_SSPlib)
+                factors = numpy.zeros(kin_SSP.getBaseNumber(), dtype=numpy.float32)
+                factors[select] = coeff
+            except RuntimeError:
+                coeff=-1e10
+            if numpy.sum(coeff) > -10000:
+                mass_weighted_pars[m, :] = kin_SSP.massWeightedPars(factors)
+                lum_weighted_pars[m, :] = kin_SSP.lumWeightedPars(factors)
+                if par_eline is not None:
+                    res = Spectrum1D(wave=self.getWave(), data=(spec.getData() - bestfit_spec.getData()), error=spec.getError(),
+                    mask=spec.getMask(), normalization=self.getNormalization()).unnormalizedSpec()
+                    (out_model, best_fit, best_res) = res.fitELines(par_eline, select_wave_eline, method=method_eline,
+                    guess_window=guess_window, spectral_res=spectral_res, ftol=ftol, xtol=xtol, parallel=parallel)
+                    if plot and m>=0 and m<30:
+                        print m
+                        print coeff
+                        pylab.plot(res.getWave(),spec.getData(),'-k')
+                        pylab.plot(res.getWave(),bestfit_spec.getData(),'-r')
+                        #pylab.plot(res.getWave(),res.getData(),'-k')
+                        #pylab.plot(res.getWave(),res.getError(),'-r')
+                        #pylab.plot(res.getWave(),best_fit,'-b')
+                        pylab.show()
+                    for n in par_eline._names:
+                        if par_eline._profile_type[n] == 'Gauss':
+                            line_models[n]['flux'][m] = out_model[n][0]
+                            line_models[n]['vel'][m] = out_model[n][1]
+                            line_models[n]['fwhm'][m] = out_model[n][2] * 2.354
                 else:
-                    if line_models is not None:
-                        lines_error = {}
-                        for n in par_eline._names:
-                            error = {}
-                            if par_eline._profile_type[n] == 'Gauss':
-                                error['flux'] = numpy.nan
-                                error['vel'] = numpy.nan
-                                error['fwhm'] = numpy.nan
-                            lines_error[n] = error
-                    else:
-                        lines_error = None
-                    mass_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
-                    lum_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
+                    line_models = None
+                m += 1
+            else:
+                if line_models is not None:
+                    lines_error = {}
+                    for n in par_eline._names:
+                        error = {}
+                        if par_eline._profile_type[n] == 'Gauss':
+                            error['flux'] = numpy.nan
+                            error['vel'] = numpy.nan
+                            error['fwhm'] = numpy.nan
+                        lines_error[n] = error
+                else:
+                    lines_error = None
+                mass_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
+                lum_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
         #except RuntimeError:
             #if line_models is not None:
                 #lines_error = {}

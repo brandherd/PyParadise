@@ -332,13 +332,13 @@ class ParadiseApp(object):
             model_line = RSS(wave=res_out.getWave(), data=out_lines[3], header=self.__inputData.getHeader())
             line_res = RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
-	if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
-            self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.01:    
-	  model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
-	  line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
-	else:
-	  model_line.writeFitsData(self.__outPrefix + '.eline_model.fits',store_wave=True)
-	  line_res.writeFitsData(self.__outPrefix + '.eline_res.fits',store_wave=True)
+        if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
+                     self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.01:
+            model_line.writeFitsData(self.__outPrefix + '.eline_model.fits')
+            line_res.writeFitsData(self.__outPrefix + '.eline_res.fits')
+        else:
+            model_line.writeFitsData(self.__outPrefix + '.eline_model.fits',store_wave=True)
+            line_res.writeFitsData(self.__outPrefix + '.eline_res.fits',store_wave=True)
         indices = numpy.arange(len(out_lines[2]))
         valid = numpy.zeros(len(out_lines[2]),dtype="bool")
         for i in range(len(out_lines[2])):
