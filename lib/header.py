@@ -1,4 +1,7 @@
-import pyfits
+try:
+    import astropy.io.fits as pyfits
+except ImportError:
+    import pyfits
 
 class Header(object):
     def __init__(self, header=None, cardlist=None, origin=None):

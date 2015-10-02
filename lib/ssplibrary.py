@@ -1,11 +1,12 @@
-import pyfits
+try:
+    import astropy.io.fits as pyfits
+except ImportError:
+    import pyfits
 import numpy
 import pymc
-import pylab
 import Paradise
 from scipy import ndimage
 from scipy import interpolate
-from scipy import special
 from scipy import optimize
 from UserDict import UserDict
 

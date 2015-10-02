@@ -1,11 +1,10 @@
 from Paradise.lib.header import *
-import pyfits
+try:
+    import astropy.io.fits as pyfits
+except ImportError:
+    import pyfits
 import numpy
-import pylab
 from scipy import ndimage
-from copy import deepcopy
-from multiprocessing import cpu_count
-from multiprocessing import Pool
 
 
 class Data(Header):
