@@ -188,8 +188,8 @@ class ParadiseApp(object):
                 print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
                     self.__outPrefix + '.stellar_table.fits')
-	#pylab.plot(rss_model[0,:],'-g')
-	#pylab.show()
+        # pylab.plot(rss_model[0,:],'-g')
+        # pylab.show()
         if self.__datatype == 'RSS':
             model_out = RSS(wave=normDataSub.getWave(), data=rss_model, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
