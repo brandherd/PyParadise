@@ -66,6 +66,8 @@ class ParameterList(UserDict):
                     msg += 'Please consult the user manual for instructions ' \
                            'on the correct formatting instructions.'
                     raise ValueError(msg)
+                else:
+                    continue
                 (parname, value) = prepart.split()
                 self[parname] = Parameter(value, description.replace('\n', ''))
 
