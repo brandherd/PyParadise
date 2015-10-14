@@ -55,7 +55,12 @@ class ParameterList(UserDict):
             lines = infile.readlines()
             infile.close()
             for i in range(len(lines)):
-                (prepart, description) = lines[i].split('!')
+                split = lines[i].split('!')
+                if len(split) == 1:
+                    prepart = split[0]
+                    description = ''
+                elif len(split) == 2:
+                    (prepart, description) = split
                 (parname, value) = prepart.split()
                 self[parname] = Parameter(value, description.replace('\n', ''))
 
@@ -92,7 +97,7 @@ class CustomMasks(UserDict):
         rest_found = 0
         for i in range(len(lines)):
             line = lines[i].split('!')[0]   # filter out any comments
-            line = line[i].split()
+            line = line.split()
             if len(line) == 1 and line[0] == '[observed-frame]':
                 fixed_found = 1
                 rest_found = 0
