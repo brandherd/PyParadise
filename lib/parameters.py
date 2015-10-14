@@ -61,6 +61,11 @@ class ParameterList(UserDict):
                     description = ''
                 elif len(split) == 2:
                     (prepart, description) = split
+                elif len(split) != 0:
+                    msg = 'Error while parsing the file {}. '.format(filename)
+                    msg += 'Please consult the user manual for instructions ' \
+                           'on the correct formatting instructions.'
+                    raise ValueError(msg)
                 (parname, value) = prepart.split()
                 self[parname] = Parameter(value, description.replace('\n', ''))
 
@@ -108,6 +113,11 @@ class CustomMasks(UserDict):
                 fixed_frame.append([float(line[0]), float(line[1])])
             elif len(line) == 2 and rest_found == 1:
                 rest_frame.append([float(line[0]), float(line[1])])
+            elif len(line) != 0:
+                msg = 'Error while parsing the file {}. '.format(filename)
+                msg += 'Please consult the user manual for instructions ' \
+                       'on the correct formatting instructions.'
+                raise ValueError(msg)
         self['observed_frame'] = numpy.array(fixed_frame)
         self['rest_frame'] = numpy.array(rest_frame)
 
