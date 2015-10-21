@@ -339,7 +339,7 @@ class Spectrum1D(Data):
         libFit = fit_profile.fit_linearComb(tempLib.getBase())
         libFit.fit(self._data, error, self._mask, negative=negative)
 
-        #print vel,disp,negative
+        #print(vel,disp,negative)
        # pylab.plot(self._wave,self._data,'-k')
 
         #pylab.plot(self._wave,libFit(),'-r')
@@ -488,7 +488,7 @@ class Spectrum1D(Data):
             vel_err = numpy.std(trace_vel)
             disp = numpy.mean(trace_disp)
             disp_err = numpy.std(trace_disp)
-            #print vel,vel_err,trace_vel
+            #print(vel,vel_err,trace_vel)
             lib_vel = lib_SSP.applyGaussianLOSVD(vel, disp)
             (coeff, bestfit_spec, chi2) = self.fitSuperposition(lib_vel)
             if nlib_guess<0:
@@ -603,8 +603,8 @@ class Spectrum1D(Data):
                     (out_model, best_fit, best_res) = res.fitELines(par_eline, select_wave_eline, method=method_eline,
                     guess_window=guess_window, spectral_res=spectral_res, ftol=ftol, xtol=xtol, parallel=parallel)
                     if plot and m>=0 and m<30:
-                        print m
-                        print coeff
+                        print(m)
+                        print(coeff)
                         pylab.plot(res.getWave(),spec.getData(),'-k')
                         pylab.plot(res.getWave(),bestfit_spec.getData(),'-r')
                         #pylab.plot(res.getWave(),res.getData(),'-k')
@@ -664,7 +664,7 @@ class Spectrum1D(Data):
         else:
             lines_error = None
         if plot==True:
-            print line_models['Halpha']['vel'],line_models['Halpha']['vel'][deselect_outliers],lines_error['Halpha']['vel'],lines_error['Halpha']['fwhm'],lines_error['Halpha']['flux'],lines_error['NII6583']['flux']
+            print(line_models['Halpha']['vel'],line_models['Halpha']['vel'][deselect_outliers],lines_error['Halpha']['vel'],lines_error['Halpha']['fwhm'],lines_error['Halpha']['flux'],lines_error['NII6583']['flux'])
         return numpy.nanmean(mass_weighted_pars, 0), numpy.nanstd(mass_weighted_pars,0), numpy.nanmean(lum_weighted_pars, 0), numpy.nanstd(lum_weighted_pars,0), lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):

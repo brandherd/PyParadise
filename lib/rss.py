@@ -190,8 +190,8 @@ class RSS(Data):
             chi2[i] = result[8]
             rss_model[i, :] = result[6].unnormalizedSpec().getData()
             if verbose:
-                print "Fitting of SSP(s) to fiber %d finished." %i
-                print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i])
+                print("Fitting of SSP(s) to fiber %d finished." %i)
+                print("vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i]))
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -213,7 +213,7 @@ class RSS(Data):
                         result = spec.fit_Kin_Lib_simple(*args)
                         extract_result(result, m)
                     except (ValueError, IndexError):
-                        print "Fitting of spectrum %d failed." % m
+                        print("Fitting of spectrum %d failed." % m)
 
         if cpus > 1:
             pool.close()
@@ -222,7 +222,7 @@ class RSS(Data):
                 try:
                     result.get()
                 except (ValueError, IndexError):
-                    print "Fitting of spectrum %d failed." % i
+                    print("Fitting of spectrum %d failed." % i)
 
         return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model
 
@@ -300,8 +300,8 @@ class RSS(Data):
             chi2[i] = result[2]
             rss_model[i, :] = result[1].unnormalizedSpec().getData()
             if verbose:
-                print "Fitting of SSP(s) to fiber %d finished." %i
-                print "chi2: %.2f" % (chi2[i])
+                print("Fitting of SSP(s) to fiber %d finished." %i)
+                print("chi2: %.2f" % (chi2[i]))
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -323,7 +323,7 @@ class RSS(Data):
                         result = spec.fitSuperposition(*args)
                         extract_result(result, m)
                     except (ValueError, IndexError):
-                        print "Fitting of spectrum %d failed." % m
+                        print("Fitting of spectrum %d failed." % m)
 
         if cpus > 1:
             pool.close()
@@ -332,7 +332,7 @@ class RSS(Data):
                 try:
                     result.get()
                 except (ValueError, IndexError):
-                    print "Fitting of spectrum %d failed." % i
+                    print("Fitting of spectrum %d failed." % i)
 
         return fitted, coeff, chi2, fiber, rss_model
 
@@ -406,7 +406,7 @@ class RSS(Data):
             fiber[m] = m
             rss_model[i, :] = result[1]
             if verbose:
-                print "Fitting of emission lines to fiber %d finished." %i
+                print("Fitting of emission lines to fiber %d finished." %i)
             for n in par._names:
                 if par._profile_type[n] == 'Gauss':
                     maps[n]['flux'][i] = result[0][n][0]
@@ -532,7 +532,7 @@ class RSS(Data):
             lum_weighted_pars_mean[i, :] = result[2]
             lum_weighted_pars_err[i, :] = result[3]
             if verbose:
-                print "Bootstrapping fiber %d finished." %i
+                print("Bootstrapping fiber %d finished." %i)
             if par_eline is not None:
                 for n in par_eline._names:
                     if par_eline._profile_type[n] == 'Gauss':

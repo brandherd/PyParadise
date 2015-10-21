@@ -202,8 +202,8 @@ class Cube(Data):
             y_pix[i] = y
             cube_model[:, y, x] = result[6].unnormalizedSpec().getData()
             if verbose:
-                print "Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x)
-                print "vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i])
+                print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x))
+                print("vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i]))
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -226,7 +226,7 @@ class Cube(Data):
                             result = spec.fit_Kin_Lib_simple(*args)
                             extract_result(result, m, x, y)
                         except (ValueError, IndexError):
-                            print "Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x)
+                            print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x))
                 m += 1
 
         if cpus > 1:
@@ -236,7 +236,7 @@ class Cube(Data):
                 try:
                     result.get()
                 except (ValueError, IndexError):
-                    print "Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x)
+                    print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x))
 
         return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix, cube_model
 
@@ -322,8 +322,8 @@ class Cube(Data):
             y_pix[i] = y
             cube_model[:, y, x] = result[1].unnormalizedSpec().getData()
             if verbose:
-                print "Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x)
-                print "chi2: %.2f" % (chi2[i])
+                print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x))
+                print("chi2: %.2f" % (chi2[i]))
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -346,7 +346,7 @@ class Cube(Data):
                         result = spec.fitSuperposition(*args)
                         extract_result(result, m, x, y)
                     except (ValueError, IndexError):
-                        print "Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x)
+                        print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x))
 
         if cpus > 1:
             pool.close()
@@ -355,7 +355,7 @@ class Cube(Data):
                 try:
                     result.get()
                 except (ValueError, IndexError):
-                    print "Fitting of spectrum (y, x) = (%d, %d) failed." % (y_pos[m], x_pos[m])
+                    print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y_pos[m], x_pos[m]))
 
         return fitted, coeff, chi2, x_pix, y_pix, cube_model
 
@@ -437,7 +437,7 @@ class Cube(Data):
             y_pix[i] = y
             cube_model[:, y, x] = result[1]
             if verbose:
-                print "Fitting of emission lines to spectrum (y, x) = (%d, %d) finished." % (y, x)
+                print("Fitting of emission lines to spectrum (y, x) = (%d, %d) finished." % (y, x))
             for n in par._names:
                 if par._profile_type[n] == 'Gauss':
                     maps[n]['flux'][i] = result[0][n][0]
@@ -496,7 +496,7 @@ class Cube(Data):
             lum_weighted_pars_mean[i, :] = result[2]
             lum_weighted_pars_err[i, :] = result[3]
             if verbose:
-                print "Bootstrapping spectrum (y, x) = (%d, %d) finished." % (y, x)
+                print("Bootstrapping spectrum (y, x) = (%d, %d) finished." % (y, x))
             if par_eline is not None:
                 for n in par_eline._names:
                     if par_eline._profile_type[n] == 'Gauss':

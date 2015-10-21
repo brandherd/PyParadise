@@ -137,7 +137,7 @@ class Header(object):
                 self._header.rename_key(keyword, 'hierarch '+add_prefix+' '+keyword)
             else:
                 if verbose==1:
-                    print "The keyword %s does already exists!"%(add_prefix.upper()+' '+keyword.upper())
+                    print("The keyword %s does already exists!"%(add_prefix.upper()+' '+keyword.upper()))
         else:
             pass
        

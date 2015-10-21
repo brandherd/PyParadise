@@ -444,7 +444,7 @@ class parFile(fit_profile1D):
             #self._parameters[n]['disp']=0.0
                     except:
                         pass
-        #print self._parameters
+        #print(self._parameters)
         self.freePar()
 
 
@@ -747,7 +747,7 @@ class LegandrePoly(object):
                 self._coeff = numpy.zeros(len(self._coeff))
                 self._coeff[i]=1
                 eigen_poly[:, i] = self(x)
-#        print eigen_poly, y
+#        print(eigen_poly, y)
         self._coeff=numpy.linalg.lstsq(eigen_poly, y)[0]
 
 

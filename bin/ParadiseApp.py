@@ -120,7 +120,7 @@ class ParadiseApp(object):
         max_y = int(parList['max_y'].getValue())
 
         if verbose:
-            print "The stellar population library is being prepared."
+            print("The stellar population library is being prepared.")
         lib = SSPlibrary(filename=parList['tmpldir'].getValue() + '/' + parList['tmplfile'].getValue())
         if kin_fix is True:
             hdu = pyfits.open(self.__outPrefix + '.kin_table.fits')
@@ -152,7 +152,7 @@ class ParadiseApp(object):
         lib_rebin = lib_norm.rebinLogarithmic()
 
         if verbose:
-            print "The input cube is being normalized."
+            print("The input cube is being normalized.")
 
         normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
@@ -163,7 +163,7 @@ class ParadiseApp(object):
         #pylab.plot(normData._data[0,:],'-r')
         #pylab.show()
         if verbose:
-            print "The stellar population modelling has been started."
+            print("The stellar population modelling has been started.")
         if self.__datatype == 'CUBE':
             if kin_fix:
                 (fitted, coeff, chi2, x_pix, y_pix, cube_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
@@ -184,9 +184,9 @@ class ParadiseApp(object):
                 min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
         if verbose:
-                print "Storing the results to %s (model), %s (residual) and %s (parameters)." % (
+                print("Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
-                    self.__outPrefix + '.stellar_table.fits')
+                    self.__outPrefix + '.stellar_table.fits'))
         # pylab.plot(rss_model[0,:],'-g')
         # pylab.show()
         if self.__datatype == 'RSS':
@@ -454,7 +454,7 @@ class ParadiseApp(object):
                 fiber_eline = eline_table.field('fiber')
 
         if verbose:
-            print "The stellar population library is being prepared."
+            print("The stellar population library is being prepared.")
         lib = SSPlibrary(filename=tmpldir + '/' + tmplfile)
         min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
         max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
@@ -470,7 +470,7 @@ class ParadiseApp(object):
         lib_rebin = lib_norm.rebinLogarithmic()
 
         if verbose:
-            print "The input data is being normalized."
+            print("The input data is being normalized.")
         normData = self.__inputData.normalizeSpec(nwidth_norm, excl_cont.maskPixelsObserved(self.__inputData.getWave(),
              vel_guess / 300000.0))
         #normData.writeFitsData('test.fits')
