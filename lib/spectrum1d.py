@@ -8,7 +8,10 @@ import pymc
 import pylab
 from Paradise.lib.data import Data
 from copy import deepcopy
-import copy_reg
+try:
+    import copy_reg
+except ImportError:
+    import copyreg as copy_reg
 from types import *
 
 

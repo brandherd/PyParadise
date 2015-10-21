@@ -8,7 +8,6 @@ import time
 import os
 import pyfits
 from Paradise import *
-import copy_reg
 import pylab
 
 

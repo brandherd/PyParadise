@@ -1,6 +1,10 @@
 from lib import *
 
-import exceptions, copy_reg
+import exceptions
+try:
+    import copy_reg
+except ImportError:
+    import copyreg as copy_reg
 from types import *
 
 def _pickle_method(method):
