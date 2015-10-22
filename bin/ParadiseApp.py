@@ -1,14 +1,8 @@
 #!/usr/bin/env python
+import argparse
+from Paradise import *
 
 __version__ = "0.1"
-
-import sys
-import argparse
-import time
-import os
-import pyfits
-from Paradise import *
-import pylab
 
 
 class ParadiseApp(object):
@@ -166,21 +160,21 @@ class ParadiseApp(object):
             print("The stellar population modelling has been started.")
         if self.__datatype == 'CUBE':
             if kin_fix:
-                (fitted, coeff, chi2, x_pix, y_pix, cube_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
                 vel_fit, disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
                 mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
-                cube_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn,
                 samples=samples, thin=thin, verbose=verbose, parallel=parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
-                (fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
                 vel_fit, disp_fit, fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit, verbose=verbose, parallel=parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
-                rss_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
                 verbose=verbose, parallel=parallel)
         if verbose:
@@ -190,13 +184,13 @@ class ParadiseApp(object):
         # pylab.plot(rss_model[0,:],'-g')
         # pylab.show()
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=normDataSub.getWave(), data=rss_model, mask=mask,
+            model_out = RSS(wave=normDataSub.getWave(), data=rss_model,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
             res_out = RSS(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=normDataSub.getWave(), data=cube_model, mask=mask,
+            model_out = Cube(wave=normDataSub.getWave(), data=cube_model,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
             res_out = Cube(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
@@ -575,7 +569,8 @@ Program to model the stellar population model from spectrosopic data stored eith
 Estimated parameters are velocity, velocity disperion, the best fit continuum model, and the star formation history.
 Additionally the program allows to model emission lines in the residual spectra and infer the errors using a bootstrap
 Monte Carlo simulation taking systematic uncertainties of the continuum model estimation into account.""",
-formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='Paradise', version='Paradise version %s' % (__version__))
+formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='Paradise')
+    parser.add_argument('--version', action='version', version='Paradise version %s' % (__version__))
 
     parser.add_argument("input", type=str, help="""File name of the input datacube or RSS file. Please have a look at the
         documentation for the correct format of each file.""")
