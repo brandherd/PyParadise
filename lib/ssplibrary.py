@@ -8,7 +8,10 @@ import Paradise
 from scipy import ndimage
 from scipy import interpolate
 from scipy import optimize
-from UserDict import UserDict
+try:
+    from UserDict import UserDict
+except ImportError:
+    from collections import UserDict
 
 
 class SSPlibrary(UserDict):
