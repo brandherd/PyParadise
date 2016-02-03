@@ -294,7 +294,7 @@ class RSS(Data):
         coeff = numpy.zeros((self._fibers, SSPLib.getBaseNumber()), dtype=numpy.float32)
 
         def extract_result(result, i):
-            fiber[m] = m
+            fiber[i] = i
             fitted[i] = True
             coeff[i, :] = result[0]
             chi2[i] = result[2]
