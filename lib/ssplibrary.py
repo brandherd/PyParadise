@@ -468,7 +468,7 @@ class SSPlibrary(UserDict):
             smooth_FWHM = numpy.sqrt(instFWHM ** 2 - (self.__spectralFWHM * redshift) ** 2)
             disp_pix = (smooth_FWHM / 2.354) / (wave[1] - wave[0])
             data = ndimage.filters.gaussian_filter1d(self.__data, disp_pix, axis=0, mode='constant')
-            new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
+            new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=instFWHM, infoSSP=self,
                  coefficients=self.__coefficients)
         else:
             raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, instFWHM, redshift))
