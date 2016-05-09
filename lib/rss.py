@@ -403,7 +403,7 @@ class RSS(Data):
 
         def extract_result(result, i):
             fitted[i] = True
-            fiber[m] = m
+            fiber[i] = i
             rss_model[i, :] = result[1]
             if verbose:
                 print("Fitting of emission lines to fiber %d finished." %i)
