@@ -213,6 +213,7 @@ class SSPlibrary(UserDict):
         new_SSP : SSPlibrary
             A new instance with only the template spectra normalized.
         """
+        temp_data = numpy.array(self.__data)
         if exclude_obj is not None and redshift is not None:
             mask = exclude_obj.maskPixelsRest(self.__wave, redshift)
             indices = numpy.indices(self.__wave.shape)[0]
@@ -220,7 +221,6 @@ class SSPlibrary(UserDict):
             gaps = (mask_idx[1:]-mask_idx[:-1])>1
             split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
             split_mask = numpy.split(mask_idx,split_idx)
-            temp_data = numpy.array(self.__data)
             if split_idx.shape != (0,):
                 for mask in split_mask:
                     if mask[0] == 0:
