@@ -154,8 +154,8 @@ class Spectrum1D(Data):
         spec : Spectrum1D
             A new Spectrum1D object with the `data` in logarithmic base.
         """
-        wave_log = 10 ** numpy.arange(numpy.log10(self._wave[0]), numpy.log10(self._wave[-1]), (numpy.log10(self._wave[-1])
-        - numpy.log10(self._wave[0])) / len(self._wave))
+        wave_log = numpy.logspace(numpy.log10(self._wave[0]),
+                                  numpy.log10(self._wave[-1]), len(self._wave))
         new_spec = self.resampleSpec(wave_log)
         new_spec.setVelSampling((self._wave[1] - self._wave[0]) / self._wave[0] * 300000.0)
         return new_spec

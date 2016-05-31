@@ -437,8 +437,8 @@ class SSPlibrary(UserDict):
             A new instance of the SSPlibrary with a logarithmic wavelength grid
             and resampled spectra.
         """
-        wave_log = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
-        - numpy.log10(self.__wave[0])) / len(self.__wave))
+        wave_log = numpy.logspace(numpy.log10(self.__wave[0]),
+                                  numpy.log10(self.__wave[-1]), len(self.__wave))
         new_SSP = self.resampleBase(wave_log)
         new_SSP.__vel_sampling = (self.__wave[1] - self.__wave[0]) / self.__wave[0] * 300000.0
         return new_SSP
