@@ -171,6 +171,7 @@ class RSS(Data):
             combination of template spectra.
         """
         rss_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        mask = numpy.zeros(self.getShape(), dtype=numpy.bool)
         vel_fit = numpy.zeros(self._fibers, dtype=numpy.float32)
         vel_fit_err = numpy.zeros(self._fibers, dtype=numpy.float32)
         Rvel = numpy.zeros(self._fibers, dtype=numpy.float32)
@@ -194,6 +195,7 @@ class RSS(Data):
             coeff[i, :] = result[7]
             chi2[i] = result[8]
             rss_model[i, :] = result[6].unnormalizedSpec().getData()
+            mask[i, :] = result[6].getMask()
             if verbose:
                 print("Fitting of SSP(s) to fiber %d finished." %i)
                 print("vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i]))
@@ -230,7 +232,7 @@ class RSS(Data):
                 except (ValueError, IndexError):
                     print("Fitting of spectrum %d failed." % i)
 
-        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model
+        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model, mask
 
     def fit_Lib_fixed_kin(self, SSPLib, nlib_guess, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
@@ -294,6 +296,7 @@ class RSS(Data):
             combination of template spectra.
         """
         rss_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        mask = numpy.zeros(self.getShape(), dtype=numpy.bool)
         chi2 = numpy.zeros(self._fibers, dtype=numpy.float32)
         fiber = numpy.zeros(self._fibers, dtype=numpy.int16)
         fitted = numpy.zeros(self._fibers, dtype="bool")
@@ -305,6 +308,7 @@ class RSS(Data):
             coeff[i, :] = result[0]
             chi2[i] = result[2]
             rss_model[i, :] = result[1].unnormalizedSpec().getData()
+            mask[i, :] = result[1].getMask()
             if verbose:
                 print("Fitting of SSP(s) to fiber %d finished." %i)
                 print("chi2: %.2f" % (chi2[i]))
@@ -340,7 +344,7 @@ class RSS(Data):
                 except (ValueError, IndexError):
                     print("Fitting of spectrum %d failed." % i)
 
-        return fitted, coeff, chi2, fiber, rss_model
+        return fitted, coeff, chi2, fiber, rss_model, mask
 
     def fitELines(self, par, select_wave, min_y, max_y, method='leastsq', guess_window=0.0, spectral_res=0.0,
     ftol=1e-4, xtol=1e-4, verbose=1, parallel='auto'):

@@ -180,6 +180,7 @@ class Cube(Data):
             combination of template spectra.
         """
         cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        mask = numpy.zeros(self.getShape(), dtype=numpy.bool)
         vel_fit = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         vel_fit_err = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
         Rvel = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.float32)
@@ -205,6 +206,7 @@ class Cube(Data):
             x_pix[i] = x
             y_pix[i] = y
             cube_model[:, y, x] = result[6].unnormalizedSpec().getData()
+            mask[:, y, x] = result[6].getMask()
             if verbose:
                 print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x))
                 print("vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i]))
@@ -244,7 +246,7 @@ class Cube(Data):
                 except (ValueError, IndexError):
                     print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x))
 
-        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix, cube_model
+        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix, cube_model, mask
 
     def fit_Lib_fixed_kin(self, SSPLib, nlib_guess, vel, vel_disp, x_pos,y_pos, min_x, max_x, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):
@@ -314,6 +316,7 @@ class Cube(Data):
             combination of template spectra.
         """
         cube_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
+        mask = numpy.zeros(self.getShape(), dtype=numpy.bool)
         chi2 = numpy.zeros(len(x_pos), dtype=numpy.float32)
         x_pix = numpy.zeros(len(x_pos), dtype=numpy.int16)
         y_pix = numpy.zeros(len(x_pos), dtype=numpy.int16)
@@ -327,6 +330,7 @@ class Cube(Data):
             x_pix[i] = x
             y_pix[i] = y
             cube_model[:, y, x] = result[1].unnormalizedSpec().getData()
+            mask[:, y, x] = result[1].getMask()
             if verbose:
                 print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x))
                 print("chi2: %.2f" % (chi2[i]))
@@ -363,7 +367,7 @@ class Cube(Data):
                 except (ValueError, IndexError):
                     print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y_pos[m], x_pos[m]))
 
-        return fitted, coeff, chi2, x_pix, y_pix, cube_model
+        return fitted, coeff, chi2, x_pix, y_pix, cube_model, mask
 
     def fitELines(self, par, select_wave, min_x, max_x, min_y, max_y, method='leastsq', guess_window=0.0, spectral_res=0.0,
     ftol=1e-4, xtol=1e-4, verbose=1, parallel='auto'):

@@ -356,7 +356,7 @@ class Spectrum1D(Data):
 
         #pylab.plot(self._wave,libFit(),'-r')
         #pylab.show()
-        bestfit_spec = Spectrum1D(self._wave, data=libFit(),normalization=self.getNormalization())
+        bestfit_spec = Spectrum1D(self._wave, data=libFit(), normalization=self.getNormalization(), mask=self.getMask())
         chi2 = libFit.chisq(self._data, sigma=error, mask=self._mask)
         return libFit.getCoeff(), bestfit_spec, chi2
 

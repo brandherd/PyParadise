@@ -162,21 +162,21 @@ class ParadiseApp(object):
             print("The stellar population modelling has been started.")
         if self.__datatype == 'CUBE':
             if kin_fix:
-                (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                (fitted, coeff, chi2, x_pix, y_pix, cube_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
                 vel_fit, disp_fit, x_pixels, y_pixels, min_x, max_x, min_y, max_y,
                 excl_fit, verbose, parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
-                cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                cube_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_x, max_x, min_y, max_y, excl_fit, iterations, mcmc_code,
                 walkers, burn, samples, thin, verbose, parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
-                (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
+                (fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
                 vel_fit, disp_fit, fibers, min_y, max_y, excl_fit, verbose, parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
-                rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
+                rss_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
                 min_y, max_y, excl_fit, iterations, mcmc_code, walkers,
                 burn, samples, thin, verbose, parallel)
         if verbose:
@@ -186,13 +186,13 @@ class ParadiseApp(object):
         # pylab.plot(rss_model[0,:],'-g')
         # pylab.show()
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=normDataSub.getWave(), data=rss_model,
+            model_out = RSS(wave=normDataSub.getWave(), data=rss_model, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
             res_out = RSS(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=normDataSub.getWave(), data=cube_model,
+            model_out = Cube(wave=normDataSub.getWave(), data=cube_model, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
             res_out = Cube(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
