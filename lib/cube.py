@@ -470,8 +470,11 @@ class Cube(Data):
                         pool.apply_async(spec.fitELines, args, callback=partial(extract_result, i=m, x=x, y=y))
                         sleep(0.01)
                     else:
-                        result = spec.fitELines(*args)
-                        extract_result(result, m, x, y)
+                        try:
+                            result = spec.fitELines(*args)
+                            extract_result(result, m, x, y)
+                        except (ValueError, IndexError):
+                            print("Fitting of spectrum (y, x) = (%d, %d) failed." % (y, x))
                 m += 1
 
         if cpus > 1:
