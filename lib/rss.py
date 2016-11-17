@@ -83,7 +83,7 @@ class RSS(Data):
         return spec
 
     def fit_Kin_Lib_simple(self, SSPLib, nlib_guess, vel_min, vel_max, disp_min, disp_max, min_y, max_y, mask_fit,
-        iterations=2, burn=1500, samples=4000, thin=2, verbose=False, parallel='auto'):
+        iterations=2, mcmc_code='emcee', walkers=50, burn=1500, samples=4000, thin=2, verbose=False, parallel='auto'):
         """Fits template spectra according to Markov chain Monte Carlo
         algorithm. This uses the PyMC library. The MCMC code is runned to
         determine the velocity and the velocity dispersion while the
@@ -209,7 +209,8 @@ class RSS(Data):
             spec = self.getSpec(m)
             if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
                 args = (SSPLib, nlib_guess, vel_min, vel_max, disp_min,
-                        disp_max, mask_fit, iterations, burn, samples, thin)
+                        disp_max, mask_fit, iterations, mcmc_code,
+                        walkers, burn, samples, thin)
                 if cpus > 1:
                     results.append([m, pool.apply_async(spec.fit_Kin_Lib_simple, args, callback=partial(extract_result, i=m))])
                     sleep(0.01)

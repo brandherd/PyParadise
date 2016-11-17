@@ -3,7 +3,6 @@ try:
 except ImportError:
     import pyfits
 import numpy
-import pymc
 import Paradise
 from scipy import ndimage
 from scipy import interpolate
@@ -599,6 +598,10 @@ class SSPlibrary(UserDict):
         M : pymc.MCMC
             An object which contains all the information from the fit.
         """
+        try:
+            import pymc
+        except ImportError:
+            pymc = None
         valid_pix = numpy.logical_not(inputSpec._mask)
         wave = inputSpec._wave[valid_pix]
 

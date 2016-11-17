@@ -1,9 +1,15 @@
 import numpy
-from . import fit_profile
-from scipy import optimize
+import fit_profile
 from scipy import ndimage
 from scipy import interpolate
-import pymc
+try:
+    import emcee
+except ImportError:
+    emcee = None
+try:
+    import pymc
+except ImportError:
+    pymc = None
 import pylab
 from Paradise.lib.data import Data
 from copy import deepcopy
@@ -348,7 +354,7 @@ class Spectrum1D(Data):
         chi2 = libFit.chisq(self._data, sigma=error, mask=self._mask)
         return libFit.getCoeff(), bestfit_spec, chi2
 
-    def fitKinMCMC_fixedpop(self, spec_model, vel_min, vel_max, vel_disp_min, vel_disp_max, burn=1000, samples=3000, thin=2):
+    def fitKinMCMC_fixedpop(self, spec_model, vel_min, vel_max, vel_disp_min, vel_disp_max, mcmc_code='emcee', walkers=50, burn=1000, samples=3000, thin=2):
         """Fits a spectrum according to Markov chain Monte Carlo
         algorithm to obtain statistics on the kinematics. This uses the
         PyMC library.
@@ -382,25 +388,52 @@ class Spectrum1D(Data):
             Contains all the relevant information from the PyMC-run.
         """
         valid_pix = numpy.logical_not(self._mask)
-        wave = self._wave[valid_pix]
+        if mcmc_code == 'pymc':
+            vel = pymc.Uniform('vel', lower=vel_min, upper=vel_max)
+            disp = pymc.Uniform('disp', lower=vel_disp_min, upper=vel_disp_max)
 
-        vel = pymc.Uniform('vel', lower=vel_min, upper=vel_max)
-        disp = pymc.Uniform('disp', lower=vel_disp_min, upper=vel_disp_max)
+            @pymc.deterministic(plot=False)
+            def m(vel=vel, disp=disp):
+                return spec_model.applyKin(vel, disp, self._wave).getData()[
+                    valid_pix]
 
-        @pymc.deterministic(plot=False)
-        def m(vel=vel, disp=disp):
-            return spec_model.applyKin(vel, disp, self._wave).getData()[valid_pix]
-        d = pymc.Normal('d', mu=m, tau=self._error[valid_pix] ** (-2), value=self._data[valid_pix], observed=True)
-        #d = pymc.Normal('d', mu=m, tau=0, value=self._data[valid_pix], observed=True)
-        M = pymc.MCMC([vel, disp, m, d])
-        M.use_step_method(pymc.AdaptiveMetropolis, [vel, disp])
-        #M.MAP(m)
-        #M.fit()
-        M.sample(burn=burn, iter=samples, thin=thin, progress_bar=False)
-        return M
+            d = pymc.Normal('d', mu=m, tau=self._error[valid_pix] ** (-2),
+                            value=self._data[valid_pix], observed=True)
+            m = pymc.MCMC([vel, disp, m, d])
+            m.use_step_method(pymc.AdaptiveMetropolis, [vel, disp])
+            for i in range(walkers):
+                m.sample(samples, burn, thin, progress_bar=False)
+            return m
+
+        ndim = 2
+
+        def log_prior(theta):
+            vel, disp = theta
+            if vel_min < vel < vel_max and vel_disp_min < disp < vel_disp_max:
+                return 0.0
+            return -numpy.inf
+
+        def log_likelihood(theta, x, y, e):
+            vel, disp = theta
+            y_model = spec_model.applyKin(vel, disp, x).getData()[valid_pix]
+            inv_sigma2 = 1.0 / (e[valid_pix] ** 2)
+            return -0.5 * numpy.sum((y[valid_pix] - y_model) ** 2 * inv_sigma2 - numpy.log(inv_sigma2))
+
+        def log_posterior(theta, x, y, e):
+            return log_prior(theta) + log_likelihood(theta, x, y, e)
+
+        guess = numpy.c_[numpy.random.uniform(vel_min, vel_max, walkers),
+                         numpy.random.uniform(vel_disp_min, vel_disp_max, walkers)]
+        sampler = emcee.EnsembleSampler(walkers, ndim, log_posterior,
+                                        args=(self.getWave(), self.getData(),
+                                              self.getError()))
+        sampler.run_mcmc(guess, samples, thin=thin)
+        trace = sampler.chain[:, burn / thin:, :].T
+
+        return trace
 
     def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None,
-         iterations=3, burn=50, samples=200, thin=1):
+         iterations=3, mcmc_code='emcee', walkers=50, burn=50, samples=200, thin=1):
         """Fits template spectra according to Markov chain Monte Carlo
         algorithm. This uses the PyMC library.
 
@@ -481,17 +514,24 @@ class Spectrum1D(Data):
             else:
                 self.setMask(excl_fit_init)
         for i in range(iterations):
-            M = self.fitKinMCMC_fixedpop(spec_lib_guess, vel_min, vel_max, disp_min, disp_max, burn=burn, samples=samples, thin=thin)
-            trace_vel = M.trace('vel', chain=None)[:]
-            trace_disp = M.trace('disp', chain=None)[:]
+            w = walkers
+            if mcmc_code == 'pymc' and i != iterations - 1:
+                w = 1
+            m = self.fitKinMCMC_fixedpop(spec_lib_guess, vel_min, vel_max,
+                                         disp_min, disp_max, mcmc_code, w,
+                                         burn, samples, thin)
+            if mcmc_code == 'pymc':
+                trace_vel = m.trace('vel', chain=None)[:]
+                trace_disp = m.trace('disp', chain=None)[:]
+            else:
+                trace_vel, trace_disp = m
             vel = numpy.mean(trace_vel)
             vel_err = numpy.std(trace_vel)
             disp = numpy.mean(trace_disp)
             disp_err = numpy.std(trace_disp)
-            #print(vel,vel_err,trace_vel)
             lib_vel = lib_SSP.applyGaussianLOSVD(vel, disp)
             (coeff, bestfit_spec, chi2) = self.fitSuperposition(lib_vel)
-            if nlib_guess<0:
+            if nlib_guess < 0:
                 break
             spec_lib_guess = lib_SSP.compositeSpectrum(coeff)
             if mask_fit is not None:
@@ -500,12 +540,21 @@ class Spectrum1D(Data):
                     self.setMask(numpy.logical_or(mask_init, excl_fit))
                 else:
                     self.setMask(excl_fit)
-        ## Create additional chains for determination of the Gelman-Rubin parameter
-        for i in range(4):
-            M.sample(burn=burn, iter=samples, thin=thin, progress_bar=False)
-        goodnessOfFit = pymc.gelman_rubin(M)
-        Rvel = goodnessOfFit['vel']
-        Rdisp = goodnessOfFit['disp']
+
+        if mcmc_code == 'pymc':
+            gelman_rubin = pymc.gelman_rubin(m)
+            Rvel = gelman_rubin['vel']
+            Rdisp = gelman_rubin['disp']
+        else:
+            n = float(trace_vel.shape[0])
+
+            Bvel = n * numpy.var(trace_vel.mean(axis=0), ddof=1)
+            Wvel = numpy.mean(numpy.var(trace_vel, axis=0, ddof=1))
+            Rvel = numpy.sqrt(1 - 1 / n + Bvel / n / Wvel)
+
+            Bdisp = n * numpy.var(trace_disp.mean(axis=0), ddof=1)
+            Wdisp = numpy.mean(numpy.var(trace_disp, axis=0, ddof=1))
+            Rdisp = numpy.sqrt(1 - 1 / n + Bdisp / n / Wdisp)
 
         return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
 

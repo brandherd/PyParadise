@@ -99,9 +99,11 @@ class ParadiseApp(object):
         disp_min = float(parList['disp_min'].getValue())
         disp_max = float(parList['disp_max'].getValue())
         kin_fix = bool(float(parList['kin_fix'].getValue()))
+        mcmc_code = parList['mcmc_code'].getValue()
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         iterations = int(parList['iterations'].getValue())
         samples = int(parList['samples'].getValue())
+        walkers = int(parList['walkers'].getValue())
         burn = int(parList['burn'].getValue())
         thin = int(parList['thin'].getValue())
         start_wave = float(parList['start_wave'].getValue())
@@ -161,22 +163,22 @@ class ParadiseApp(object):
         if self.__datatype == 'CUBE':
             if kin_fix:
                 (fitted, coeff, chi2, x_pix, y_pix, cube_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
-                vel_fit, disp_fit, x_pixels, y_pixels, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y,
-                mask_fit=excl_fit, verbose=verbose, parallel=parallel)
+                vel_fit, disp_fit, x_pixels, y_pixels, min_x, max_x, min_y, max_y,
+                excl_fit, verbose, parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, x_pix, y_pix,
                 cube_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn,
-                samples=samples, thin=thin, verbose=verbose, parallel=parallel)
+                min_x, max_x, min_y, max_y, excl_fit, iterations, mcmc_code,
+                walkers, burn, samples, thin, verbose, parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
                 (fitted, coeff, chi2, fiber, rss_model) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
-                vel_fit, disp_fit, fibers, min_y=min_y, max_y=max_y, mask_fit=excl_fit, verbose=verbose, parallel=parallel)
+                vel_fit, disp_fit, fibers, min_y, max_y, excl_fit, verbose, parallel)
             else:
                 (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
                 rss_model) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_y=min_y, max_y=max_y, mask_fit=excl_fit, iterations=iterations, burn=burn, samples=samples, thin=thin,
-                verbose=verbose, parallel=parallel)
+                min_y, max_y, excl_fit, iterations, mcmc_code, walkers,
+                burn, samples, thin, verbose, parallel)
         if verbose:
                 print("Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
