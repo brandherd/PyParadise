@@ -151,7 +151,7 @@ class Spectrum1D(Data):
         spec_out = Spectrum1D(wave=ref_wave, data=new_data)
         return spec_out
 
-    def rebinLogarithmic(self):
+    def rebinLogarithmic(self, oversampling=2):
         """Rebin the spectrum from a linear wavelength grid to a logarithmic
         wavelength grid.
 
@@ -161,7 +161,8 @@ class Spectrum1D(Data):
             A new Spectrum1D object with the `data` in logarithmic base.
         """
         wave_log = numpy.logspace(numpy.log10(self._wave[0]),
-                                  numpy.log10(self._wave[-1]), len(self._wave))
+                                  numpy.log10(self._wave[-1]),
+                                  len(self._wave) * oversampling)
         new_spec = self.resampleSpec(wave_log)
         new_spec.setVelSampling((self._wave[1] - self._wave[0]) / self._wave[0] * 300000.0)
         return new_spec

@@ -100,6 +100,7 @@ class ParadiseApp(object):
         disp_max = float(parList['disp_max'].getValue())
         kin_fix = bool(float(parList['kin_fix'].getValue()))
         mcmc_code = parList['mcmc_code'].getValue()
+        oversampling = float(parList['oversampling'].getValue())
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         iterations = int(parList['iterations'].getValue())
         samples = int(parList['samples'].getValue())
@@ -144,8 +145,7 @@ class ParadiseApp(object):
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
-        
-        lib_rebin = lib_norm.rebinLogarithmic()
+        lib_rebin = lib_norm.rebinLogarithmic(oversampling)
 
         if verbose:
             print("The input cube is being normalized.")
@@ -410,6 +410,7 @@ class ParadiseApp(object):
         vel_guess = float(parList['vel_guess'].getValue())
         vel_min = float(parList['vel_min'].getValue())
         vel_max = float(parList['vel_max'].getValue())
+        oversampling = float(parList['oversampling'].getValue())
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         start_wave = float(parList['start_wave'].getValue())
         end_wave = float(parList['end_wave'].getValue())
@@ -463,7 +464,7 @@ class ParadiseApp(object):
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
-        lib_rebin = lib_norm.rebinLogarithmic()
+        lib_rebin = lib_norm.rebinLogarithmic(oversampling)
 
         if verbose:
             print("The input data is being normalized.")
