@@ -5,6 +5,8 @@ except ImportError:
     import pyfits
 import numpy
 from scipy import ndimage
+from scipy import __version__ as scipyversion
+from scipy.interpolate import interp1d
 
 
 class Data(Header):
@@ -207,55 +209,49 @@ class Data(Header):
 
         Parameters
         ----------
-        pixel_width : None
+        pixel_width : int
             The length of the running mean filter window.
         mask_norm : numpy.ndarray
             The 1D boolean numpy array which is added to the mask which is
             already in place for the normalization process.
 
         Returns
+        -------
         data_out : `Data`
             A new instance where the normalization is applied to.
         """
 
         temp_data = numpy.array(self._data)
+        axis = 0 if self._datatype == 'CUBE' else -1
         if mask_norm is not None:
             indices = numpy.indices(self.getWave().shape)[0]
-            mask_idx = indices[mask_norm]
-            gaps = (mask_idx[1:]-mask_idx[:-1])>1
-            split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
-            split_mask = numpy.split(mask_idx, split_idx)
-            if split_idx.shape != (0,):
-                for mask in split_mask:
-                    if self._datatype == 'RSS':
-                        slicer = numpy.s_[:, mask]
-                        left = numpy.s_[:, mask[0]-1]
-                        right = numpy.s_[:, mask[-1]+1]
-                    elif self._datatype == 'CUBE':
-                        slicer = numpy.s_[mask, :, :]
-                        left = numpy.s_[mask[0]-1, :, :]
-                        right = numpy.s_[mask[-1]+1, :, :]
-                    elif self._datatype == 'Spectrum1D':
-                        slicer = numpy.s_[mask]
-                        left = numpy.s_[mask[0]-1]
-                        right = numpy.s_[mask[-1]+1]
-                    if mask[0] == 0:
-                        temp_data[slicer] = self.getData()[right]
-                        continue
-                    elif mask[-1] == indices[-1]:
-                        temp_data[slicer] = self.getData()[left]
-                        continue
-                    a = (self.getData()[right]-self.getData()[left])/(self.getWave()[mask[-1]+1]-self.getWave()[mask[0]-1])
-                    b = self.getData()[left]-a*self.getWave()[mask[0]-1]
-                    if self._datatype == 'RSS':
-                        temp_data[slicer] = a[:,numpy.newaxis] * self.getWave()[mask][numpy.newaxis,:] + b[:, numpy.newaxis]
-                    elif self._datatype == 'CUBE':
-                        temp_data[slicer] = a[numpy.newaxis, :, :] * self.getWave()[mask][:, numpy.newaxis, numpy.newaxis] + b[numpy.newaxis, :, :]
-                    elif self._datatype == 'Spectrum1D':
-                        temp_data[slicer] = a * self.getWave()[mask] + b
+            mask_idx = indices[~mask_norm]
+            if self._datatype == 'RSS':
+                slicer = numpy.s_[:, ~mask_norm]
+                left = self._data[:, mask_idx[0]].flatten()
+                right = self._data[:, mask_idx[-1]].flatten()
+            elif self._datatype == 'CUBE':
+                slicer = numpy.s_[~mask_norm, :, :]
+                left = self._data[mask_idx[0], :, :].flatten()
+                right = self._data[mask_idx[-1], :, :].flatten()
+            elif self._datatype == 'Spectrum1D':
+                slicer = numpy.s_[~mask_norm]
+                left = self._data[mask_idx[0]]
+                right = self._data[mask_idx[-1]]
+        if pixel_width == 0:
+            temp_data /= numpy.mean(self._data[slicer], axis=axis)
+        else:
+            if mask_norm is not None:
+                if scipyversion < "0.17":
+                    edges = numpy.r_[left * numpy.ones((mask_idx[0] - indices[0], 1)), right * numpy.ones((indices[-1] - mask_idx[-1], 1))]
+                    if edges.size == 0:
+                        edges = numpy.nan
+                    interp = interp1d(mask_idx, self._data[slicer], axis=axis, bounds_error=False, fill_value=edges)
+                else:
+                    interp = interp1d(mask_idx, self._data[slicer], axis=axis, bounds_error=False, fill_value='extrapolate')
+                temp_data = interp(indices)
 
-        axis = 0 if self._datatype == 'CUBE' else -1
-        mean = ndimage.filters.convolve1d(temp_data,numpy.ones(pixel_width) / pixel_width, axis=axis, mode='nearest')
+            mean = ndimage.filters.convolve1d(temp_data,numpy.ones(pixel_width) / pixel_width, axis=axis, mode='nearest')
 
         select_zero = mean == 0
         mean[select_zero] = 1
