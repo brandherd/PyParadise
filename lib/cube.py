@@ -487,11 +487,8 @@ class Cube(Data):
         mask_fit=None, method_eline='leastsq', guess_window=10.0, spectral_res=0.0, ftol=1e-4, xtol=1e-4, bootstraps=100,
         modkeep=80, parallel=1, verbose=False):
 
-
-        mass_weighted_pars_mean = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
-        mass_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
-        lum_weighted_pars_mean = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
-        lum_weighted_pars_err = numpy.zeros((len(x_cor), 5), dtype=numpy.float32)
+        coeffs = numpy.zeros((len(x_cor), bootstraps, lib_SSP.getBaseNumber()),
+                             dtype=numpy.float32)
 
         if par_eline is not None:
             maps = {}
@@ -504,18 +501,15 @@ class Cube(Data):
                 maps[n] = model
 
         def extract_result(result, i, x, y):
-            mass_weighted_pars_mean[i, :] = result[0]
-            mass_weighted_pars_err[i, :] = result[1]
-            lum_weighted_pars_mean[i, :] = result[2]
-            lum_weighted_pars_err[i, :] = result[3]
+            coeffs[i, :] = result[0]
             if verbose:
                 print("Bootstrapping spectrum (y, x) = (%d, %d) finished." % (y, x))
             if par_eline is not None:
                 for n in par_eline._names:
                     if par_eline._profile_type[n] == 'Gauss':
-                        maps[n]['flux_err'][i] = result[4][n]['flux']
-                        maps[n]['vel_err'][i] = result[4][n]['vel']
-                        maps[n]['fwhm_err'][i] = result[4][n]['fwhm']
+                        maps[n]['flux_err'][i] = result[1][n]['flux']
+                        maps[n]['vel_err'][i] = result[1][n]['vel']
+                        maps[n]['fwhm_err'][i] = result[1][n]['fwhm']
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -525,8 +519,11 @@ class Cube(Data):
             pool = Pool(cpus, maxtasksperchild=200, initializer=init_worker)
         for m in range(len(x_cor)):
             spec = self.getSpec(x_cor[m], y_cor[m])
-            args = (lib_SSP, vel[m], disp[m], None, None, par_eline, select_wave_eline, mask_fit,
-                    method_eline, guess_window, spectral_res, ftol, xtol, bootstraps, modkeep, 1)
+            vel_err_m = None if vel_err is None else vel_err[m]
+            disp_err_m = None if disp_err is None else disp_err[m]
+            args = (lib_SSP, vel[m], disp[m], vel_err_m, disp_err_m, par_eline,
+                    select_wave_eline, mask_fit, method_eline, guess_window,
+                    spectral_res, ftol, xtol, bootstraps, modkeep, 1)
             if cpus > 1:
                 pool.apply_async(spec.fit_Lib_Boots, args, callback=partial(extract_result, i=m, x=x_cor[m], y=y_cor[m]))
                 sleep(0.01)
@@ -540,7 +537,7 @@ class Cube(Data):
 
         if par_eline is None:
             maps = None
-        return mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps
+        return coeffs, maps
 
 
 def loadCube(infile, extension_data=None, extension_mask=None, extension_error=None):

@@ -98,7 +98,7 @@ class ParadiseApp(object):
         vel_max = float(parList['vel_max'].getValue())
         disp_min = float(parList['disp_min'].getValue())
         disp_max = float(parList['disp_max'].getValue())
-        kin_fix = bool(float(parList['kin_fix'].getValue()))
+        kin_fix = bool(int(parList['kin_fix'].getValue()))
         mcmc_code = parList['mcmc_code'].getValue()
         oversampling = float(parList['oversampling'].getValue())
         nwidth_norm = int(parList['nwidth_norm'].getValue())
@@ -115,6 +115,18 @@ class ParadiseApp(object):
         max_x = int(parList['max_x'].getValue())
         min_y = int(parList['min_y'].getValue())
         max_y = int(parList['max_y'].getValue())
+        bins = [[None, None]]
+        try:
+            f = open(parList['agebinfile'].getValue())
+            try:
+                for l in f.readlines():
+                    bins.append([float(l.split()[0]), float(l.split()[1])])
+            finally:
+                f.close()
+        except (IOError, ValueError):
+            if verbose:
+                print('agebinfile is non-existent or ignored.')
+                print('Optional stellar population binning will not occur.')
 
         if verbose:
             print("The stellar population library is being prepared.")
@@ -205,18 +217,19 @@ class ParadiseApp(object):
             model_out.writeFitsData(self.__outPrefix + '.cont_model.fits', store_wave=True)
             res_out.writeFitsData(self.__outPrefix + '.cont_res.fits', store_wave=True)
 
-        mass_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
-        lum_weighted_pars = numpy.zeros((len(fitted), 5), dtype=numpy.float32)
+        mass_weighted_pars = numpy.zeros((len(fitted), 5, len(bins) + 1), dtype=numpy.float32)
+        lum_weighted_pars = numpy.zeros((len(fitted), 5, len(bins) + 1), dtype=numpy.float32)
         for i in range(len(fitted)):
             if fitted[i]:
-                try:
-                    mass_weighted_pars[i, :] = lib_norm.massWeightedPars(coeff[i, :])
-                except:
-                    mass_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
-                try:
-                    lum_weighted_pars[i, :] = lib_norm.lumWeightedPars(coeff[i, :])
-                except:
-                    lum_weighted_pars[i, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
+                for j in range(len(bins)):
+                    try:
+                        mass_weighted_pars[i, :, j] = lib_norm.massWeightedPars(coeff[i, :], bins[j][0], bins[j][1])
+                    except:
+                        mass_weighted_pars[i, :, j] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
+                    try:
+                        lum_weighted_pars[i, :, j] = lib_norm.lumWeightedPars(coeff[i, :], bins[j][0], bins[j][1])
+                    except:
+                        lum_weighted_pars[i, :, j] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
 
         columns = []
         if self.__datatype == 'CUBE':
@@ -235,16 +248,17 @@ class ParadiseApp(object):
             columns.append(pyfits.Column(name='base_coeff', format='%dE' % (lib.getBaseNumber()), array=coeff[fitted, :]))
         else:
             columns.append(pyfits.Column(name='base_coeff', format='E', array=coeff[fitted].flatten()))
-        columns.append(pyfits.Column(name='lum_coeff_frac_total', format='E', array=lum_weighted_pars[fitted, 0]))
-        columns.append(pyfits.Column(name='lum_age_total', format='E', array=lum_weighted_pars[fitted, 1]))
-        columns.append(pyfits.Column(name='lum_M/L_total', format='E', array=lum_weighted_pars[fitted, 2]))
-        columns.append(pyfits.Column(name='lum_[Fe/H]_total', format='E', array=lum_weighted_pars[fitted, 3]))
-        columns.append(pyfits.Column(name='lum_[A/Fe]_total', format='E', array=lum_weighted_pars[fitted, 4]))
-        columns.append(pyfits.Column(name='mass_coeff_frac_total', format='E', array=mass_weighted_pars[fitted, 0]))
-        columns.append(pyfits.Column(name='mass_age_total', format='E', array=mass_weighted_pars[fitted, 1]))
-        columns.append(pyfits.Column(name='mass_M/L_total', format='E', array=mass_weighted_pars[fitted, 2]))
-        columns.append(pyfits.Column(name='mass_[Fe/H]_total', format='E', array=mass_weighted_pars[fitted, 3]))
-        columns.append(pyfits.Column(name='mass_[A/Fe]_total', format='E', array=mass_weighted_pars[fitted, 4]))
+        for i, postfix in enumerate(['total'] + ['bin{}'.format(i) for i in range(1, len(bins))]):
+            columns.append(pyfits.Column(name='lum_coeff_frac_' + postfix, format='E', array=lum_weighted_pars[fitted, 0, i]))
+            columns.append(pyfits.Column(name='lum_age_' + postfix, format='E', array=lum_weighted_pars[fitted, 1, i]))
+            columns.append(pyfits.Column(name='lum_M/L_' + postfix, format='E', array=lum_weighted_pars[fitted, 2, i]))
+            columns.append(pyfits.Column(name='lum_[Fe/H]_' + postfix, format='E', array=lum_weighted_pars[fitted, 3, i]))
+            columns.append(pyfits.Column(name='lum_[A/Fe]_' + postfix, format='E', array=lum_weighted_pars[fitted, 4, i]))
+            columns.append(pyfits.Column(name='mass_coeff_frac_' + postfix, format='E', array=mass_weighted_pars[fitted, 0, i]))
+            columns.append(pyfits.Column(name='mass_age_' + postfix, format='E', array=mass_weighted_pars[fitted, 1, i]))
+            columns.append(pyfits.Column(name='mass_M/L_' + postfix, format='E', array=mass_weighted_pars[fitted, 2, i]))
+            columns.append(pyfits.Column(name='mass_[Fe/H]_' + postfix, format='E', array=mass_weighted_pars[fitted, 3, i]))
+            columns.append(pyfits.Column(name='mass_[A/Fe]_' + postfix, format='E', array=mass_weighted_pars[fitted, 4, i]))
 
         try:
             table_out = pyfits.BinTableHDU.from_columns(columns)
@@ -417,6 +431,21 @@ class ParadiseApp(object):
         excl_fit = CustomMasks(parList['excl_fit'].getValue())
         excl_cont = CustomMasks(parList['excl_cont'].getValue())
         nlib_guess = int(parList['tmplinitspec'].getValue())
+        kin_bootstrap = bool(int(parList['kin_bootstrap'].getValue()))
+
+        bins = [[None, None]]
+        try:
+            f = open(parList['agebinfile'].getValue())
+            try:
+                for l in f.readlines():
+                    bins.append([float(l.split()[0]), float(l.split()[1])])
+            finally:
+                f.close()
+        except (IOError, ValueError):
+            if verbose:
+                print('agebinfile is non-existent or ignored.')
+                print('Optional stellar population binning will not occur.')
+
         if nlib_guess < 0:
             modkeep = 100.0
 
@@ -429,6 +458,12 @@ class ParadiseApp(object):
             fiber = stellar_table.field('fiber')
         vel = stellar_table.field('vel_fit')
         disp = stellar_table.field('disp_fit')
+        if kin_bootstrap:
+            vel_err = stellar_table.field('vel_fit_err')
+            disp_err = stellar_table.field('disp_fit_err')
+        else:
+            vel_err = None
+            disp_err = None
 
         if eline_parfile is not None:
             parList = ParameterList(eline_parfile)
@@ -475,53 +510,100 @@ class ParadiseApp(object):
         excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
-                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) =\
-                    normDataSub.fit_Lib_Boots(lib_rebin, x_cor, y_cor, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps,
-                    modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (coeffs, maps) = normDataSub.fit_Lib_Boots(
+                    lib_rebin, x_cor, y_cor, vel, disp, vel_err, disp_err,
+                    mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep,
+                    parallel=parallel, verbose=verbose)
             elif self.__datatype == 'RSS':
-                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) =\
-                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, mask_fit=excl_fit, bootstraps=bootstraps,
-                    modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (coeffs, maps) = normDataSub.fit_Lib_Boots(
+                    lib_rebin, fiber, vel, disp, vel_err, disp_err,
+                    mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep,
+                    parallel=parallel, verbose=verbose)
         else:
             select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
             if self.__datatype == 'CUBE':
-                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) = \
-                    normDataSub.fit_Lib_Boots(lib_rebin, x_cor, y_cor, vel, disp, bootstraps=bootstraps, par_eline=line_par,
-                    select_wave_eline=select_wave_eline, method_eline=efit_method, mask_fit=excl_fit,
-                    guess_window=guess_window, spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol,
-                    modkeep=modkeep, parallel=parallel, verbose=verbose)
+                (coeffs, maps) = normDataSub.fit_Lib_Boots(
+                    lib_rebin, x_cor, y_cor, vel, disp, vel_err, disp_err,
+                    line_par, select_wave_eline, excl_fit, efit_method,
+                    guess_window, self.__instrFWHM, efit_ftol, efit_xtol,
+                    bootstraps, modkeep, parallel, verbose)
             elif self.__datatype == 'RSS':
-                (mass_weighted_pars_mean, mass_weighted_pars_err, lum_weighted_pars_mean, lum_weighted_pars_err, maps) = \
-                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, bootstraps=bootstraps, par_eline=line_par,
+                (coeffs, maps) = \
+                    normDataSub.fit_Lib_Boots(lib_rebin, fiber, vel, disp, vel_err, disp_err, bootstraps=bootstraps, par_eline=line_par,
                     select_wave_eline=select_wave_eline, mask_fit=excl_fit, method_eline=efit_method,
                     guess_window=guess_window, spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol,
                     modkeep=modkeep, parallel=parallel, verbose=verbose)
+        mass_weighted_pars_full = numpy.zeros((len(vel), bootstraps, 5, len(bins) + 1), dtype=numpy.float32)
+        lum_weighted_pars_full = numpy.zeros((len(vel), bootstraps, 5, len(bins) + 1), dtype=numpy.float32)
+        for i in range(len(vel)):
+            for j in range(len(bins)):
+                for m in range(bootstraps):
+                    try:
+                        mass_weighted_pars_full[i, m, :, j] = lib_norm.massWeightedPars(coeffs[i, m, :], min_age=bins[j][0], max_age=bins[j][1])
+                    except:
+                        mass_weighted_pars_full[i, m, :, j] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
+                    try:
+                        lum_weighted_pars_full[i, m, :, j] = lib_norm.lumWeightedPars(coeffs[i, m, :], min_age=bins[j][0], max_age=bins[j][1])
+                    except:
+                        lum_weighted_pars_full[i, m, :, j] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan])
+        mass_weighted_pars_mean = numpy.nanmean(mass_weighted_pars_full, axis=1)
+        mass_weighted_pars_err = numpy.nanstd(mass_weighted_pars_full, axis=1)
+        lum_weighted_pars_mean = numpy.nanmean(lum_weighted_pars_full, axis=1)
+        lum_weighted_pars_err = numpy.nanstd(lum_weighted_pars_full, axis=1)
         columns_stellar = []
-        columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_btmean', format='E', array=lum_weighted_pars_mean[:, 0]))
-        columns_stellar.append(pyfits.Column(name='lum_coeff_frac_total_err', format='E', array=lum_weighted_pars_err[:, 0]))
-        columns_stellar.append(pyfits.Column(name='lum_age_total_btmean', format='E', array=lum_weighted_pars_mean[:, 1]))
-        columns_stellar.append(pyfits.Column(name='lum_age_total_err', format='E', array=lum_weighted_pars_err[:, 1]))
-        columns_stellar.append(pyfits.Column(name='lum_M/L_total_btmean', format='E', array=lum_weighted_pars_mean[:, 2]))
-        columns_stellar.append(pyfits.Column(name='lum_M/L_total_err', format='E', array=lum_weighted_pars_err[:, 2]))
-        columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_total_btmean', format='E', array=lum_weighted_pars_mean[:, 3]))
-        columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_total_err', format='E', array=lum_weighted_pars_err[:, 3]))
-        columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_total_btmean', format='E', array=lum_weighted_pars_mean[:, 4]))
-        columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_total_err', format='E', array=lum_weighted_pars_err[:, 4]))
-        columns_stellar.append(pyfits.Column(name='mass_coeff_frac_total_btmean', format='E', array=mass_weighted_pars_mean[:, 0]))
-        columns_stellar.append(pyfits.Column(name='mass_coeff_frac_total_err', format='E', array=mass_weighted_pars_err[:, 0]))
-        columns_stellar.append(pyfits.Column(name='mass_age_total_btmean', format='E', array=mass_weighted_pars_mean[:, 1]))
-        columns_stellar.append(pyfits.Column(name='mass_age_total_err', format='E', array=mass_weighted_pars_err[:, 1]))
-        columns_stellar.append(pyfits.Column(name='mass_M/L_total_btmean', format='E', array=mass_weighted_pars_mean[:, 2]))
-        columns_stellar.append(pyfits.Column(name='mass_M/L_total_err', format='E', array=mass_weighted_pars_err[:, 2]))
-        columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_btmean', format='E', array=mass_weighted_pars_mean[:, 3]))
-        columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_total_err', format='E', array=mass_weighted_pars_err[:, 3]))
-        columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_btmean', format='E', array=mass_weighted_pars_mean[:, 4]))
-        columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_total_err', format='E', array=mass_weighted_pars_err[:, 4]))
+        for i, postfix in enumerate(['total'] + ['bin{}'.format(i) for i in range(1, len(bins))]):
+            columns_stellar.append(pyfits.Column(name='lum_coeff_frac_' + postfix + '_btmean', format='E', array=lum_weighted_pars_mean[:, 0, i]))
+            columns_stellar.append(pyfits.Column(name='lum_coeff_frac_' + postfix + '_err', format='E', array=lum_weighted_pars_err[:, 0, i]))
+            columns_stellar.append(pyfits.Column(name='lum_age_' + postfix + '_btmean', format='E', array=lum_weighted_pars_mean[:, 1, i]))
+            columns_stellar.append(pyfits.Column(name='lum_age_' + postfix + '_err', format='E', array=lum_weighted_pars_err[:, 1, i]))
+            columns_stellar.append(pyfits.Column(name='lum_M/L_' + postfix + '_btmean', format='E', array=lum_weighted_pars_mean[:, 2, i]))
+            columns_stellar.append(pyfits.Column(name='lum_M/L_' + postfix + '_err', format='E', array=lum_weighted_pars_err[:, 2, i]))
+            columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_' + postfix + '_btmean', format='E', array=lum_weighted_pars_mean[:, 3, i]))
+            columns_stellar.append(pyfits.Column(name='lum_[Fe/H]_' + postfix + '_err', format='E', array=lum_weighted_pars_err[:, 3, i]))
+            columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_' + postfix + '_btmean', format='E', array=lum_weighted_pars_mean[:, 4, i]))
+            columns_stellar.append(pyfits.Column(name='lum_[A/Fe]_' + postfix + '_err', format='E', array=lum_weighted_pars_err[:, 4, i]))
+            columns_stellar.append(pyfits.Column(name='mass_coeff_frac_' + postfix + '_btmean', format='E', array=mass_weighted_pars_mean[:, 0, i]))
+            columns_stellar.append(pyfits.Column(name='mass_coeff_frac_' + postfix + '_err', format='E', array=mass_weighted_pars_err[:, 0, i]))
+            columns_stellar.append(pyfits.Column(name='mass_age_' + postfix + '_btmean', format='E', array=mass_weighted_pars_mean[:, 1, i]))
+            columns_stellar.append(pyfits.Column(name='mass_age_' + postfix + '_err', format='E', array=mass_weighted_pars_err[:, 1, i]))
+            columns_stellar.append(pyfits.Column(name='mass_M/L_' + postfix + '_btmean', format='E', array=mass_weighted_pars_mean[:, 2, i]))
+            columns_stellar.append(pyfits.Column(name='mass_M/L_' + postfix + '_err', format='E', array=mass_weighted_pars_err[:, 2, i]))
+            columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_' + postfix + '_btmean', format='E', array=mass_weighted_pars_mean[:, 3, i]))
+            columns_stellar.append(pyfits.Column(name='mass_[Fe/H]_' + postfix + '_err', format='E', array=mass_weighted_pars_err[:, 3, i]))
+            columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_' + postfix + '_btmean', format='E', array=mass_weighted_pars_mean[:, 4, i]))
+            columns_stellar.append(pyfits.Column(name='mass_[A/Fe]_' + postfix + '_err', format='E', array=mass_weighted_pars_err[:, 4, i]))
 
+        columns_bootstrap = None
         try:
-            hdu = pyfits.BinTableHDU.from_columns(stellar_table.columns[:19] + pyfits.ColDefs(columns_stellar))
+            if bool(int(parList['bootstrap_verb'].getValue())) != 0:
+                columns_bootstrap = []
+                for m in range(bootstraps):
+                    if lib.getBaseNumber() > 1:
+                        columns_bootstrap.append(pyfits.Column(
+                            name='bootstrap_coeff_{}'.format(m),
+                            format='%dE' % (lib.getBaseNumber()),
+                            array=coeffs[:, m]))
+                    else:
+                        columns_bootstrap.append(pyfits.Column(
+                            name='bootstrap_coeff_{}'.format(m),
+                            format='E', array=coeffs[:, m].flatten()))
+        except KeyError:  # in case bootstrap_verb is not in the parameters-file
+            pass
+
+        tbl_size = 8 + 2 if self.__datatype == 'CUBE' else 8 + 1
+        tbl_size += 10 * len(bins)
+        try:
+            hdu = pyfits.BinTableHDU.from_columns(stellar_table.columns[:tbl_size] + pyfits.ColDefs(columns_stellar))
+            if columns_bootstrap is not None:
+                btunit = pyfits.BinTableHDU.from_columns(pyfits.ColDefs(columns_bootstrap))
         except:
-            hdu = pyfits.new_table(stellar_table.columns[:19] + pyfits.new_table(columns_stellar).columns)
+            hdu = pyfits.new_table(stellar_table.columns[:tbl_size] + pyfits.new_table(columns_stellar).columns)
+            if columns_bootstrap is not None:
+                btunit = pyfits.new_table(columns_bootstrap)
+        if columns_bootstrap is None:
+            hdu = pyfits.HDUList([pyfits.PrimaryHDU([]), hdu])
+        else:
+            hdu = pyfits.HDUList([pyfits.PrimaryHDU([]), hdu, btunit])
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
         if self.__datatype == 'CUBE' and eline_parfile is not None:

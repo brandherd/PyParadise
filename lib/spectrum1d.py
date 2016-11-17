@@ -614,9 +614,10 @@ class Spectrum1D(Data):
         -------
         """
         numpy.random.seed()
-        mass_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
-        lum_weighted_pars = numpy.zeros((bootstraps, 5), dtype=numpy.float32)
-        kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(self.getWave())
+        coeff_full = numpy.zeros((bootstraps, lib_SSP.getBaseNumber()))
+        if vel_err is None or disp_err is None:
+            kin_SSP = lib_SSP.applyGaussianLOSVD(vel, disp).resampleBase(
+                self.getWave())
         line_models = None
         if par_eline is not None:
             line_models = {}
@@ -636,6 +637,11 @@ class Spectrum1D(Data):
         m = 0
        # try:
         while m < bootstraps:
+            if vel_err is not None and disp_err is not None:
+                v = numpy.random.normal(vel, vel_err)
+                d = numpy.random.normal(disp, disp_err)
+                kin_SSP = lib_SSP.applyGaussianLOSVD(v, d).resampleBase(
+                    self.getWave())
             (sub_SSPlib, select) = kin_SSP.randomSubLibrary(float(modkeep / 100.0))
             #select_bad = self.getError() <= 0
             #self._error[select_bad] = 1e+10
@@ -650,8 +656,7 @@ class Spectrum1D(Data):
             except RuntimeError:
                 coeff=-1e10
             if numpy.sum(coeff) > -10000:
-                mass_weighted_pars[m, :] = kin_SSP.massWeightedPars(factors)
-                lum_weighted_pars[m, :] = kin_SSP.lumWeightedPars(factors)
+                coeff_full[m] = factors
                 if par_eline is not None:
                     res = Spectrum1D(wave=self.getWave(), data=(spec.getData() - bestfit_spec.getData()), error=spec.getError(),
                     mask=spec.getMask(), normalization=self.getNormalization()).unnormalizedSpec()
@@ -686,8 +691,6 @@ class Spectrum1D(Data):
                         lines_error[n] = error
                 else:
                     lines_error = None
-                mass_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
-                lum_weighted_pars[m, :] = numpy.array([numpy.nan, numpy.nan, numpy.nan, numpy.nan,numpy.nan])
         #except RuntimeError:
             #if line_models is not None:
                 #lines_error = {}
@@ -720,7 +723,7 @@ class Spectrum1D(Data):
             lines_error = None
         if plot==True:
             print(line_models['Halpha']['vel'],line_models['Halpha']['vel'][deselect_outliers],lines_error['Halpha']['vel'],lines_error['Halpha']['fwhm'],lines_error['Halpha']['flux'],lines_error['NII6583']['flux'])
-        return numpy.nanmean(mass_weighted_pars, 0), numpy.nanstd(mass_weighted_pars,0), numpy.nanmean(lum_weighted_pars, 0), numpy.nanstd(lum_weighted_pars,0), lines_error
+        return coeff_full, lines_error
 
     def fitParFile(self, par, err_sim=0, ftol=1e-8, xtol=1e-8, method='leastsq', parallel='auto'):
         """Fits the spectrum and determines the parameters and the corresponding
