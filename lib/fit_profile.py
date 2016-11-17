@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import numpy
 from scipy import special
 from scipy import linalg
@@ -12,9 +11,15 @@ try:
     import pylab
 except:
     pass
+import signal
+
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 fact = numpy.sqrt(2.*numpy.pi)
+
 
 class fit_linearComb(object):
     """This class performs and stores results from the least squares fitting.
@@ -275,7 +280,7 @@ class fit_profile1D(object):
                 cpus = int(parallel)
             self._par_err_models = numpy.zeros((err_sim, len(self._par)), dtype=numpy.float32)
             if cpus>1:
-                pool = Pool(processes=cpus)
+                pool = Pool(processes=cpus, initializer=init_worker)
                 results=[]
                 for i in xrange(err_sim):
                     perr = deepcopy(self)

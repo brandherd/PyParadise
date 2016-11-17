@@ -1,12 +1,16 @@
-from Paradise.lib.header import *
 from Paradise.lib.data import *
 from Paradise.lib.spectrum1d import Spectrum1D
 import numpy
-import pylab
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 from time import sleep
 from functools import partial
+import signal
+
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
 
 class Cube(Data):
     """A class representing 3D spectra.
@@ -210,7 +214,7 @@ class Cube(Data):
         else:
             cpus = int(parallel)
         if cpus > 1:
-            pool = Pool(cpus, maxtasksperchild=200)
+            pool = Pool(cpus, maxtasksperchild=200, initializer=init_worker)
             results = []
         m = 0
         for x in range(self._dim_x):
@@ -330,7 +334,7 @@ class Cube(Data):
         else:
             cpus = int(parallel)
         if cpus > 1:
-            pool = Pool(cpus, maxtasksperchild=200)
+            pool = Pool(cpus, maxtasksperchild=200, initializer=init_worker)
             results = []
         for m in range(len(x_pos)):
             x = x_pos[m]
@@ -449,7 +453,7 @@ class Cube(Data):
         else:
             cpus = int(parallel)
         if cpus > 1:
-            pool = Pool(cpus, maxtasksperchild=200)
+            pool = Pool(cpus, maxtasksperchild=200, initializer=init_worker)
         m = 0
         for x in range(self._dim_x):
             for y in range(self._dim_y):
@@ -509,7 +513,7 @@ class Cube(Data):
         else:
             cpus = int(parallel)
         if cpus > 1:
-            pool = Pool(cpus, maxtasksperchild=200)
+            pool = Pool(cpus, maxtasksperchild=200, initializer=init_worker)
         for m in range(len(x_cor)):
             spec = self.getSpec(x_cor[m], y_cor[m])
             args = (lib_SSP, vel[m], disp[m], None, None, par_eline, select_wave_eline, mask_fit,
