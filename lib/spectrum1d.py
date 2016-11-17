@@ -336,6 +336,8 @@ class Spectrum1D(Data):
             self.setMask(numpy.logical_or(self.getMask(), mask_fit))
         elif mask_fit is not None:
             self.setMask(mask_fit)
+        if self._mask.sum() == self._mask.size:
+            raise ValueError('No data points in spectrum left for fitting.')
 
         if vel is not None and disp is not None:
             SSPLibrary = SSPLibrary.applyGaussianLOSVD(vel, disp)
