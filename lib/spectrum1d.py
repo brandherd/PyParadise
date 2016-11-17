@@ -345,8 +345,11 @@ class Spectrum1D(Data):
             tempLib = SSPLibrary.resampleBase(self._wave)
         else:
             tempLib = SSPLibrary
-        libFit = fit_profile.fit_linearComb(tempLib.getBase())
-        libFit.fit(self._data, error, self._mask, negative=negative)
+        if SSPLibrary.getBaseNumber() == 1:
+            libFit = fit_profile.fit_linearComb(tempLib.getBase(), coeff=numpy.array([1], dtype=numpy.float32))
+        else:
+            libFit = fit_profile.fit_linearComb(tempLib.getBase())
+            libFit.fit(self._data, error, self._mask, negative=negative)
 
         #print(vel,disp,negative)
        # pylab.plot(self._wave,self._data,'-k')
