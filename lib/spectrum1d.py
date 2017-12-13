@@ -438,8 +438,7 @@ class Spectrum1D(Data):
 
         return trace
 
-    def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None,
-         iterations=3, mcmc_code='emcee', walkers=50, burn=50, samples=200, thin=1):
+    def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None, iterations=3, mcmc_code='emcee', walkers=50, burn=50, samples=200, thin=1):
         """Fits template spectra according to Markov chain Monte Carlo
         algorithm. This uses the PyMC library.
 
@@ -548,9 +547,13 @@ class Spectrum1D(Data):
                     self.setMask(excl_fit)
 
         if mcmc_code == 'pymc':
-            gelman_rubin = pymc.gelman_rubin(m)
-            Rvel = gelman_rubin['vel']
-            Rdisp = gelman_rubin['disp']
+            if walkers>2:
+                gelman_rubin = pymc.gelman_rubin(m)
+                Rvel = gelman_rubin['vel']
+                Rdisp = gelman_rubin['disp']
+            else:
+                Rvel = 0
+                Rdisp = 0
         else:
             n = float(trace_vel.shape[0])
 
