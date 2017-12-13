@@ -127,10 +127,15 @@ class Header(object):
         if self._header is None:
             self._header=pyfits.Header()
         if comment is None:
-            self._header.update(keyword, value)
+            try:
+                self._header.update(keyword, value)
+            except ValueError:
+                self._header[keyword] = (value)
         else:
-            self._header.update(keyword, value, comment)
-        
+            try:
+                self._header.update(keyword, value, comment)
+            except ValueError:
+                self._header[keyword] = (value, comment)
     def extendHierarch(self, keyword, add_prefix, verbose=1):
         if self._header is not None:
             if self._header.has_key(add_prefix.upper()+' '+keyword.upper())==0:
