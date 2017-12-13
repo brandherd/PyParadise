@@ -116,6 +116,7 @@ class ParadiseApp(object):
         min_y = int(parList['min_y'].getValue())
         max_y = int(parList['max_y'].getValue())
         bins = [[None, None]]
+        
         try:
             f = open(parList['agebinfile'].getValue())
             try:
@@ -157,7 +158,7 @@ class ParadiseApp(object):
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
-        lib_rebin = lib_norm.rebinLogarithmic(oversampling)
+        lib_rebin = lib_norm.rebinLogarithmic()
 
         if verbose:
             print("The input cube is being normalized.")
@@ -184,13 +185,10 @@ class ParadiseApp(object):
                 walkers, burn, samples, thin, verbose, parallel)
         elif self.__datatype == 'RSS':
             if kin_fix:
-                (fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess,
-                vel_fit, disp_fit, fibers, min_y, max_y, excl_fit, verbose, parallel)
+                (fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess, vel_fit, disp_fit, fibers, min_y, max_y, excl_fit, verbose, parallel)
             else:
-                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber,
-                rss_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess, vel_min, vel_max, disp_min, disp_max,
-                min_y, max_y, excl_fit, iterations, mcmc_code, walkers,
-                burn, samples, thin, verbose, parallel)
+                
+                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess,vel_min, vel_max, disp_min, disp_max, min_y, max_y, excl_fit, iterations, mcmc_code, walkers, burn, samples, thin, verbose, parallel)
         if verbose:
                 print("Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',

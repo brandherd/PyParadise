@@ -438,7 +438,10 @@ class SSPlibrary(UserDict):
         """
         wave_log = numpy.logspace(numpy.log10(self.__wave[0]),
                                   numpy.log10(self.__wave[-1]),
-                                  len(self.__wave) * oversampling)
+                                  len(self.__wave))
+        wave_log2 = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
+        - numpy.log10(self.__wave[0])) / len(self.__wave))
+        print wave_log,wave_log2
         new_SSP = self.resampleBase(wave_log)
         new_SSP.__vel_sampling = (self.__wave[1] - self.__wave[0]) / self.__wave[0] * 300000.0
         return new_SSP
