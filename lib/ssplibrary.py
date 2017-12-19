@@ -467,14 +467,16 @@ class SSPlibrary(UserDict):
         """
         redshift = (1 + obs_velocity / 300000.0)
         wave = self.__wave * redshift
-        if instFWHM > self.__spectralFWHM * redshift:
-            smooth_FWHM = numpy.sqrt(instFWHM ** 2 - (self.__spectralFWHM * redshift) ** 2)
-            disp_pix = (smooth_FWHM / 2.354) / (wave[1] - wave[0])
+        instFWHM_wave = instFWHM.getRes(wave)
+        valid = instFWHM.compareRes(self.__spectralFWHM/2.354*redshift,wave)
+        if valid:
+            smooth_FWHM = numpy.sqrt(instFWHM_wave ** 2 - (self.__spectralFWHM/2.354 * redshift) ** 2)
+            disp_pix = (smooth_FWHM) / (wave[1] - wave[0])
             data = ndimage.filters.gaussian_filter1d(self.__data, disp_pix, axis=0, mode='constant')
-            new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=instFWHM, infoSSP=self,
+            new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
                  coefficients=self.__coefficients)
         else:
-            raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, instFWHM, redshift))
+            raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the minimum targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, numpy.min(instFWHM.getRes(wave)), redshift))
 
         return new_SSP
 

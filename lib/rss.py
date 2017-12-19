@@ -13,7 +13,7 @@ def init_worker():
 
 
 class RSS(Data):
-    """A class representing 2D spectra.
+    """A class representing 2D spectra
 
     `RSS` is a subclass of Data which allows for handling and organizing a
     two-dimensional spectra. The class supports reading and writing FITS
@@ -83,7 +83,7 @@ class RSS(Data):
         return spec
 
     def fit_Kin_Lib_simple(self, SSPLib, nlib_guess, vel_min, vel_max, disp_min, disp_max, min_y, max_y, mask_fit,
-        iterations=2, mcmc_code='emcee', walkers=50, burn=1500, samples=4000, thin=2, verbose=False, parallel='auto'):
+        iterations=2, mcmc_code='emcee', walkers=50, burn=1500, samples=4000, thin=2, verbose=False,sample_out=False, parallel='auto'):
         """Fits template spectra according to Markov chain Monte Carlo
         algorithm. This uses the PyMC library. The MCMC code is runned to
         determine the velocity and the velocity dispersion while the
@@ -182,8 +182,15 @@ class RSS(Data):
         fiber = numpy.zeros(self._fibers, dtype=numpy.int16)
         fitted = numpy.zeros(self._fibers, dtype="bool")
         coeff = numpy.zeros((self._fibers, SSPLib.getBaseNumber()), dtype=numpy.float32)
+        if sample_out:
+            print samples,burn, (samples-burn)//2
+            vel_trace = numpy.zeros((self._fibers,(samples-burn)//2), dtype=numpy.float32)
+            disp_trace = numpy.zeros((self._fibers,(samples-burn)//2), dtype=numpy.float32)
+        else:
+            vel_trace = None
+            disp_trace = None
 
-        def extract_result(result, i):
+        def extract_result(result, i,sample_out):
             vel_fit[i] = result[0]
             vel_fit_err[i] = result[1]
             Rvel[i] = result[2]
@@ -194,6 +201,9 @@ class RSS(Data):
             fitted[i] = True
             coeff[i, :] = result[7]
             chi2[i] = result[8]
+            if sample_out:
+                vel_trace[i,:]= result[9]
+                disp_trace[i,:]= result[10]
             rss_model[i, :] = result[6].unnormalizedSpec().getData()
             mask[i, :] = result[6].getMask()
             if verbose:
@@ -212,14 +222,14 @@ class RSS(Data):
             if spec.hasData() and m >= (min_y - 1) and m <= (max_y - 1):
                 args = (SSPLib, nlib_guess, vel_min, vel_max, disp_min,
                         disp_max, mask_fit, iterations, mcmc_code,
-                        walkers, burn, samples, thin)
+                        walkers, burn, samples, thin, sample_out)
                 if cpus > 1:
-                    results.append([m, pool.apply_async(spec.fit_Kin_Lib_simple, args, callback=partial(extract_result, i=m))])
+                    results.append([m, pool.apply_async(spec.fit_Kin_Lib_simple, args, callback=partial(extract_result,i=m,sample_out=sample_out))])
                     sleep(0.01)
                 else:
                     try:
                         result = spec.fit_Kin_Lib_simple(*args)
-                        extract_result(result, m)
+                        extract_result(result, m, sample_out)
                     except (ValueError, IndexError) as e:
                         print("Fitting of spectrum %d failed: %s" %(m, e.message))
 
@@ -232,7 +242,7 @@ class RSS(Data):
                 except (ValueError, IndexError) as e:
                     print("Fitting of spectrum %d failed: %s" % (i, e.message))
 
-        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model, mask
+        return vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model, mask, vel_trace, disp_trace
 
     def fit_Lib_fixed_kin(self, SSPLib, nlib_guess, vel, vel_disp, fibers, min_y, max_y, mask_fit,
         verbose=False, parallel='auto'):

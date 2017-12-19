@@ -21,6 +21,8 @@ from types import *
 from sys import version_info
 
 
+
+
 class Spectrum1D(Data):
     """A class representing 1D spectrum.
 
@@ -438,7 +440,7 @@ class Spectrum1D(Data):
 
         return trace
 
-    def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None, iterations=3, mcmc_code='emcee', walkers=50, burn=50, samples=200, thin=1):
+    def fit_Kin_Lib_simple(self, lib_SSP, nlib_guess, vel_min, vel_max, disp_min, disp_max, mask_fit=None, iterations=3, mcmc_code='emcee', walkers=50, burn=50, samples=200, thin=1,sample_out=False):
         """Fits template spectra according to Markov chain Monte Carlo
         algorithm. This uses the PyMC library.
 
@@ -564,8 +566,11 @@ class Spectrum1D(Data):
             Bdisp = n * numpy.var(trace_disp.mean(axis=0), ddof=1)
             Wdisp = numpy.mean(numpy.var(trace_disp, axis=0, ddof=1))
             Rdisp = numpy.sqrt(1 - 1 / n + Bdisp / n / Wdisp)
-
-        return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2
+        
+        if sample_out==False:       
+            return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2, None, None
+        else:
+            return vel, vel_err, Rvel, disp, disp_err, Rdisp, bestfit_spec, coeff, chi2, trace_vel, trace_disp
 
 
     def fit_Lib_Boots(self, lib_SSP, vel, disp, vel_err=None, disp_err=None, par_eline=None, select_wave_eline=None,
@@ -856,6 +861,34 @@ class Spectrum1D(Data):
         best_spec = (lib_SSP.compositeSpectrum(best_coeff)).correctExtinction(best_AV, mode='apply')
 
         return best_AV, best_coeff, best_spec, best_chisq
+    
+class SpectralResolution(object):
+    def __init__(self,res=None):
+        self._res = res
+        self._inter = None
+        
+    def getRes(self,wave):
+        if self._inter is None:
+            return self._res/2.354
+        else:
+            return self._inter(wave)/2.354
+        
+    def compareRes(self,res,wave=None):
+        if self._inter is None:
+            return res < self.getRes(wave)
+        else:
+            return numpy.count_nonzero(res > self.getRes(wave))==0
+    
+    def readFile(self,name):
+        temp = open(name,'r')
+        lines = temp.readlines()
+        wave_res = numpy.zeros(len(lines))
+        res = numpy.zeros(len(lines))
+        for i in range(len(lines)):
+            line = lines[i].split()
+            wave_res[i] = float(line[0])
+            res[i] = float(line[1])
+        self._inter= interpolate.interp1d(wave_res, res)
 
 def loadSpectrum(infile):
     spec = Spectrum1D()

@@ -2,7 +2,7 @@
 import argparse
 from Paradise import *
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 
 class ParadiseApp(object):
@@ -57,7 +57,17 @@ class ParadiseApp(object):
                 m = None
             self.__inputData = RSS(wave=data._wave, data=numpy.array([data._data]), error=err, mask=m)
         self.__outPrefix = outprefix
-        self.__instrFWHM = instrFWHM
+        try:
+            self.__instrFWHM = SpectralResolution(res=float(instrFWHM))
+        except ValueError:
+            try:
+                self.__instrFWHM=SpectralResolution()
+                self.__instrFWHM.readFile(instrFWHM)
+            except IOError:
+                print("Wrong input for spectral resolution. Specify either a float number or the path to an ASCII file with columns wavelengt and spectral resolution as content.")
+                
+           
+            
 
     def run_SSP_fit(self, parfile, parallel, verbose):
         """This functions fits a linear combination of template spectra to the
@@ -100,13 +110,13 @@ class ParadiseApp(object):
         disp_max = float(parList['disp_max'].getValue())
         kin_fix = bool(int(parList['kin_fix'].getValue()))
         mcmc_code = parList['mcmc_code'].getValue()
-        oversampling = float(parList['oversampling'].getValue())
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         iterations = int(parList['iterations'].getValue())
         samples = int(parList['samples'].getValue())
         walkers = int(parList['walkers'].getValue())
         burn = int(parList['burn'].getValue())
         thin = int(parList['thin'].getValue())
+        store_chain = bool(int(parList['store_chain'].getValue()))
         start_wave = float(parList['start_wave'].getValue())
         end_wave = float(parList['end_wave'].getValue())
         excl_fit = CustomMasks(parList['excl_fit'].getValue())
@@ -188,7 +198,7 @@ class ParadiseApp(object):
                 (fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Lib_fixed_kin(lib_rebin, nlib_guess, vel_fit, disp_fit, fibers, min_y, max_y, excl_fit, verbose, parallel)
             else:
                 
-                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model, mask) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess,vel_min, vel_max, disp_min, disp_max, min_y, max_y, excl_fit, iterations, mcmc_code, walkers, burn, samples, thin, verbose, parallel)
+                (vel_fit, vel_fit_err, Rvel, disp_fit, disp_fit_err, Rdisp, fitted, coeff, chi2, fiber, rss_model, mask, vel_trace, disp_trace) = normDataSub.fit_Kin_Lib_simple(lib_rebin, nlib_guess,vel_min, vel_max, disp_min, disp_max, min_y, max_y, excl_fit, iterations, mcmc_code, walkers, burn, samples, thin, verbose, store_chain, parallel)
         if verbose:
                 print("Storing the results to %s (model), %s (residual) and %s (parameters)." % (
                     self.__outPrefix + '.cont_model.fits', self.__outPrefix + '.cont_res.fits',
@@ -237,9 +247,13 @@ class ParadiseApp(object):
             columns.append(pyfits.Column(name='fiber', format='J', array=fiber[fitted]))
         columns.append(pyfits.Column(name='vel_fit', format='E', unit='km/s', array=vel_fit[fitted]))
         columns.append(pyfits.Column(name='vel_fit_err', format='E', unit='km/s', array=vel_fit_err[fitted]))
+        if store_chain and self.__datatype == 'RSS':
+            columns.append(pyfits.Column(name='vel_trace', format='%dE'%(vel_trace.shape[1]), unit='km/s', array=vel_trace[fitted,:]))
         columns.append(pyfits.Column(name='Rvel', format='E', unit='km/s', array=Rvel[fitted]))
         columns.append(pyfits.Column(name='disp_fit', format='E', unit='km/s', array=disp_fit[fitted]))
         columns.append(pyfits.Column(name='disp_fit_err', format='E', unit='km/s', array=disp_fit_err[fitted]))
+        if store_chain and self.__datatype == 'RSS':
+            columns.append(pyfits.Column(name='disp_trace', format='%dE'%(disp_trace.shape[1]), unit='km/s', array=disp_trace[fitted,:]))
         columns.append(pyfits.Column(name='Rdisp', format='E', unit='km/s', array=Rdisp[fitted]))
         columns.append(pyfits.Column(name='chi2', format='E', array=chi2[fitted]))
         if lib.getBaseNumber() > 1:
@@ -314,7 +328,7 @@ class ParadiseApp(object):
         elif self.__datatype == 'RSS':
             fiber = stellar_table.field('fiber')
 
-        line_par = fit_profile.parFile(eCompFile, self.__instrFWHM / 2.354)
+        line_par = fit_profile.parFile(eCompFile, self.__instrFWHM)
         if self.__datatype == 'CUBE':
             res_out = loadCube(self.__outPrefix + '.cont_res.fits')
         elif self.__datatype == 'RSS':
@@ -422,7 +436,6 @@ class ParadiseApp(object):
         vel_guess = float(parList['vel_guess'].getValue())
         vel_min = float(parList['vel_min'].getValue())
         vel_max = float(parList['vel_max'].getValue())
-        oversampling = float(parList['oversampling'].getValue())
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         start_wave = float(parList['start_wave'].getValue())
         end_wave = float(parList['end_wave'].getValue())
@@ -473,7 +486,7 @@ class ParadiseApp(object):
             efit_xtol = float(parList['efit_xtol'].getValue())
             guess_window = int(parList['eguess_window'].getValue())
 
-            line_par = fit_profile.parFile(eCompFile, self.__instrFWHM / 2.354)
+            line_par = fit_profile.parFile(eCompFile, self.__instrFWHM)
 
             hdu = pyfits.open(self.__outPrefix + '.eline_table.fits')
             eline_table = hdu[1].data
@@ -497,7 +510,7 @@ class ParadiseApp(object):
         lib = lib.matchInstFWHM(self.__instrFWHM, vel_guess)
         lib = lib.resampleWaveStepLinear(self.__inputData.getWaveStep(), vel_guess / 300000.0)
         lib_norm = lib.normalizeBase(nwidth_norm, excl_cont, vel_guess / 300000.0)
-        lib_rebin = lib_norm.rebinLogarithmic(oversampling)
+        lib_rebin = lib_norm.rebinLogarithmic()
 
         if verbose:
             print("The input data is being normalized.")
@@ -658,7 +671,7 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='Paradise')
     parser.add_argument("input", type=str, help="""File name of the input datacube or RSS file. Please have a look at the
         documentation for the correct format of each file.""")
     parser.add_argument("outprefix", type=str, help="""Prefix used for nameing all the output file names.""")
-    parser.add_argument("instrFWHM", type=float, help="""Instrumental spectral resolution of the input spectra.""")
+    parser.add_argument("instrFWHM", type=str, help="""Instrumental spectral resolution of the input spectra.""")
     parser.add_argument("--SSP_par", type=str, default=None, help="""File name of the parameter file that controls the fitting procedure""")
     parser.add_argument("--line_par", type=str, default=None, help="""File name of the parameter file that controls the fitting procedure""")
     parser.add_argument("--bootstraps", type=int, default=None, help="""Number of bootstraps iterations per spectrum""")
