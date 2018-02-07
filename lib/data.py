@@ -545,9 +545,21 @@ class Data(Header):
             else:
                 if self._wave is not None and not store_wave:
                     if self._datatype== 'CUBE':
-                        hdu[0].header.update('CRVAL3', self._wave[0])
-                        hdu[0].header.update('CDELT3', self._wave[1] - self._wave[0])
+                        try:
+                            hdu[0].header.update('CRVAL3', self._wave[0])
+                        except:
+                            hdu[0].header['CRVAL3']=( self._wave[0])
+                        try:
+                            hdu[0].header.update('CDELT3', self._wave[1] - self._wave[0])
+                        except:
+                            hdu[0].header['CDELT3']=( self._wave[1] - self._wave[0])
                     else:
-                        hdu[0].header.update('CRVAL1', self._wave[0])
-                        hdu[0].header.update('CDELT1', self._wave[1] - self._wave[0])
+                        try:
+                            hdu[0].header.update('CRVAL1', self._wave[0])
+                        except:
+                            hdu[0].header['CRVAL1']=(self._wave[0])
+                        try:
+                            hdu[0].header.update('CDELT1', self._wave[1] - self._wave[0])
+                        except:
+                            hdu[0].header['CDELT1']=( self._wave[1] - self._wave[0])
         hdu.writeto(filename, clobber=True)  # write FITS file to disc
