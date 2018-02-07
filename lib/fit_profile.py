@@ -7,10 +7,10 @@ from copy import deepcopy
 from multiprocessing import cpu_count
 from multiprocessing import Pool
 from time import sleep
-try:
-    import pylab
-except:
-    pass
+#try:
+    #import pylab
+#except:
+    #pass
 import signal
 
 
@@ -442,8 +442,8 @@ class parFile(fit_profile1D):
                     select = numpy.logical_and(x>restwave*(vel/300000.0 +1)-w/2.0, x<restwave*(vel/300000.0 +1)+w/2.0)
                     try:
                         width = numpy.sqrt(numpy.sum((temp_y[select]*(x[select]-restwave*(vel/300000.0 +1))**2))/(numpy.sum(temp_y[select])))
-                        if width>self._spec_res and numpy.isnan(width)==False:
-                            disp = numpy.sqrt(width**2-self._spec_res**2)/(restwave*(vel/300000.0+1))*300000.0
+                        if width>self._spec_res.getRes(wave_z) and numpy.isnan(width)==False:
+                            disp = numpy.sqrt(width**2-self._spec_res.getRes(wave_z)**2)/(restwave*(vel/300000.0+1))*300000.0
                             self._parameters[n]['disp']=disp
             # else:
             #self._parameters[n]['disp']=0.0
@@ -492,7 +492,7 @@ class parFile(fit_profile1D):
                     except ValueError:
                         disp = float(self._parameters[self._parameters[n]['disp']]['disp'])
 
-                width=numpy.sqrt((disp/300000.0*wave)**2+self._spec_res**2)
+                width=numpy.sqrt((disp/300000.0*wave)**2+self._spec_res.getRes(wave)**2)
                 y += flux*numpy.exp(-0.5*((x-wave)/width)**2)/(fact*numpy.fabs(width))
         return y
 
