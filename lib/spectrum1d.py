@@ -813,7 +813,7 @@ class Spectrum1D(Data):
             A 1D numpy array representing the residuals at the wavelength range
             `select_wave`.
         """
-        spec_res = float(spectral_res / 2.354)
+        #spec_res = spectral_res.getRes()
         #par = fit_profile.parFile(par_file, spec_res)
         fit_par = deepcopy(par)
         spec_fit = self.subWaveMask(select_wave)
