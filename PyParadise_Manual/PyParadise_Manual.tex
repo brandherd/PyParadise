@@ -431,7 +431,6 @@ In case the fitting of a spectrum failed, the files will contain zero as the mod
 One can check if the fitting of a spectrum failed by checking if the spectral index is missing from \fname{<stellar table>}.
 
 The kinematic and stellar population parameters, together with the parameters describing the quality of the fit, are saved in the \fname{<stellar table>}.
-A number of additional parameters are saved in the file during the bootstrapping procedure.
 \begin{itemize}
     \item \tblcol{fiber} (\texttt{int}).
         This parameter is only written if the \texttt{<input file>} is a single spectrum or a RSS file.
@@ -462,8 +461,6 @@ A number of additional parameters are saved in the file during the bootstrapping
         Due to noise and template mismatches, this value in normal cases is close to 1.
     \item \tblcol{lum_<ssp_prop>_total} (\texttt{float}).
         The luminosity-weighted stellar population average of a stellar population property, where \tblcol{<ssp_prop>} can be \tblcol{age}, \tblcol{[Fe/H]}, \tblcol{[A/Fe]}.
-    \item \tblcol{lum_<ssp_prop>_total_err} (\texttt{float}).
-        The error on the mean value provided in the column (could be just standard deviation) \tblcol{lum_<ssp_prop>_total}.
     \item \tblcol{mass_coeff_frac_total} (\texttt{float}).
         When fitting a normalised spectrum, in the ideal case the sum of \tblcol{base_coeff} value will equal 1.
         Due to noise and template mismatches, this value in normal cases is close to 1.
@@ -471,9 +468,18 @@ A number of additional parameters are saved in the file during the bootstrapping
     \item \tblcol{mass_<ssp_prop>_total} (\texttt{float}).
         The mass-weighted stellar population average of a stellar population property, where \tblcol{<ssp_prop>} can be \tblcol{age}, \tblcol{[Fe/H]}, \tblcol{[A/Fe]}.
         To obtain the mass-weighted properties, a conversion is performed based on the \tblcol{mass-to-light}-values inside the template library.
-    \item \tblcol{mass_<ssp_prop>_total_err} (\texttt{float}).
-        The error on the mean value provided in the column (could be just standard deviation) \tblcol{mass_<ssp_prop>_total}.
     \item More items will be added here, once the agebins file implementation is completed.
+\end{itemize}
+A number of additional parameters are saved in the file \fname{<prefix>.stellar_table.fits} during the bootstrapping procedure. The columns with the appendix \tblcol{*_err} contain the standard deviation of the corresponding value and the columns with the appendix \tblcol{*_btmean} contain the arithmetic mean of the corresponding value.
+\begin{itemize}
+    \item \tblcol{lum_coeff_frac_total_err} (\texttt{float}).
+     \item \tblcol{lum_coeff_frac_total_btmean} (\texttt{float}).
+    \item \tblcol{lum_<ssp_prop>_total_err} (\texttt{float}).
+    \item \tblcol{lum_<ssp_prop>_total_btmean} (\texttt{float}).
+    \item \tblcol{mass_coeff_frac_total_err} (\texttt{float}).
+     \item \tblcol{mass_coeff_frac_total_btmean} (\texttt{float}).
+    \item \tblcol{mass_<ssp_prop>_total_err} (\texttt{float}).
+     \item \tblcol{mass_<ssp_prop>_total_btmean} (\texttt{float}).
 \end{itemize}
 
 \subsection{Emission-line results}
@@ -495,17 +501,15 @@ The data is located as a FITS table in the second HDU, with the column structure
         The velocity of the emission line.
     \item \tblcol{<line>_fwhm} (\texttt{float}).
         The FWHM of the emission line.
-    \item The last three columns are repeated for each emission line specified in the file .
+    \item[] The last three columns are repeated for each emission line specified in the file.
+    \item[] The following columns are only produced after the bootstrap run:
     \item \tblcol{<line>_flux_err} (\texttt{float}).
-        The integrated flux of the emission line.
-        Only produced after the bootstrap run.
+        The error of the integrated flux of the emission line.
     \item \tblcol{<line>_vel_err} (\texttt{float}).
-        The velocity of the emission line.getVa
-        Only produced after the bootstrap run.
+        The error of the velocity of the emission line.
     \item \tblcol{<line>_fwhm_err} (\texttt{float}).
-        The FWHM of the emission line.
-        Only produced after the bootstrap run.
-    \item The last three columns are repeated for each emission line specified in the file .
+        The error of the FWHM of the emission line.
+    \item[] The last three columns are repeated for each emission line specified in the file .
 \end{itemize}
 
 \section{Using PyParadise as a python module}
