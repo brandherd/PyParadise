@@ -1,5 +1,5 @@
 import numpy
-import fit_profile
+from Paradise.lib import fit_profile
 from scipy import ndimage
 from scipy import interpolate
 try:
@@ -436,7 +436,7 @@ class Spectrum1D(Data):
                                         args=(self.getWave(), self.getData(),
                                               self.getError()))
         sampler.run_mcmc(guess, samples, thin=thin)
-        trace = sampler.chain[:, burn / thin:, :].T
+        trace = sampler.chain[:, burn // thin:, :].T
 
         return trace
 
@@ -764,7 +764,7 @@ class Spectrum1D(Data):
             sigma = self.getError()
         else:
             sigma = 1.0
-        par.fit(self.getWave(), self.getData(), sigma=sigma, err_sim=err_sim, maxfev=1000, method=method, ftol=ftol, xtol=xtol,
+        par.fit(self.getWave(), self.getData(), sigma=sigma, err_sim=err_sim, maxfev=9999, method=method, ftol=ftol, xtol=xtol,
         parallel=parallel)
         par.restoreResult()
         if err_sim > 0 and self._error is not None:

@@ -183,7 +183,7 @@ class RSS(Data):
         fitted = numpy.zeros(self._fibers, dtype="bool")
         coeff = numpy.zeros((self._fibers, SSPLib.getBaseNumber()), dtype=numpy.float32)
         if sample_out:
-            print samples,burn, (samples-burn)//2
+            print(samples,burn, (samples-burn)//2)
             vel_trace = numpy.zeros((self._fibers,(samples-burn)//2), dtype=numpy.float32)
             disp_trace = numpy.zeros((self._fibers,(samples-burn)//2), dtype=numpy.float32)
         else:

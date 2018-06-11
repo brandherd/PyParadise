@@ -291,7 +291,7 @@ class SSPlibrary(UserDict):
         mean : numpy.ndarray
             Luminosity-weighted averages stored in a 1D numpy array. The first
             value is age, the second value the mass-to-light ratio, the third
-            value [Fe/H], and the fourth value [alpha/Fe]
+            value [Fe/H], and the fourth vEnsembleSampleralue [alpha/Fe]
         """
         parameters = ['age', 'mass-to-light', '[Fe/H]', '[A/Fe]']
 
@@ -441,7 +441,7 @@ class SSPlibrary(UserDict):
                                   len(self.__wave))
         wave_log2 = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
         - numpy.log10(self.__wave[0])) / len(self.__wave))
-        print wave_log,wave_log2
+        print(wave_log,wave_log2)
         new_SSP = self.resampleBase(wave_log)
         new_SSP.__vel_sampling = (self.__wave[1] - self.__wave[0]) / self.__wave[0] * 300000.0
         return new_SSP
