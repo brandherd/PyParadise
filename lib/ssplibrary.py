@@ -441,7 +441,6 @@ class SSPlibrary(UserDict):
                                   len(self.__wave))
         wave_log2 = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
         - numpy.log10(self.__wave[0])) / len(self.__wave))
-        print(wave_log,wave_log2)
         new_SSP = self.resampleBase(wave_log)
         new_SSP.__vel_sampling = (self.__wave[1] - self.__wave[0]) / self.__wave[0] * 300000.0
         return new_SSP
@@ -470,10 +469,22 @@ class SSPlibrary(UserDict):
         instFWHM_wave = instFWHM.getRes(wave)
         valid = instFWHM.compareRes(self.__spectralFWHM/2.354*redshift,wave)
         if valid:
-            smooth_FWHM = numpy.sqrt(instFWHM_wave ** 2 - (self.__spectralFWHM/2.354 * redshift) ** 2)
-            disp_pix = (smooth_FWHM) / (wave[1] - wave[0])
-            data = ndimage.filters.gaussian_filter1d(self.__data, disp_pix, axis=0, mode='constant')
-            new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
+            if instFWHM._inter is None:
+                smooth_FWHM = numpy.sqrt(instFWHM_wave ** 2 - (self.__spectralFWHM/2.354 * redshift) ** 2)
+                disp_pix = (smooth_FWHM) / (wave[1] - wave[0])
+                data = ndimage.filters.gaussian_filter1d(self.__data, disp_pix, axis=0, mode='nearest')
+                new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
+                 coefficients=self.__coefficients)
+            else:
+                smooth_FWHM = numpy.sqrt(instFWHM_wave ** 2 - (self.__spectralFWHM/2.354 * redshift) ** 2)
+                disp_pix = (smooth_FWHM)
+                fact = numpy.sqrt(2.*numpy.pi)
+                kernel=numpy.exp(-0.5*((wave-wave[:,numpy.newaxis])/abs(disp_pix[:,numpy.newaxis]))**2)/(fact*abs(disp_pix[:,numpy.newaxis]))
+                kernel = kernel/numpy.sum(kernel,axis=1)
+                smooth_data = numpy.zeros(self.__data.shape)
+                for i in range(self.__nbasis):
+                    smooth_data[:,i] = numpy.sum(self.__data[:,i][:,numpy.newaxis]*kernel,axis=0)
+                new_SSP = SSPlibrary(data=smooth_data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
                  coefficients=self.__coefficients)
         else:
             raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the minimum targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, numpy.min(instFWHM.getRes(wave)), redshift))
