@@ -492,6 +492,8 @@ class Cube(Data):
 
         if par_eline is not None:
             maps = {}
+            x_line = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
+            y_line = numpy.zeros(self._dim_y * self._dim_x, dtype=numpy.int16)
             for n in par_eline._names:
                 model = {}
                 if par_eline._profile_type[n] == 'Gauss':
@@ -502,6 +504,8 @@ class Cube(Data):
 
         def extract_result(result, i, x, y):
             coeffs[i, :] = result[0]
+            x_line[i] = x
+            y_line[i] = y
             if verbose:
                 print("Bootstrapping spectrum (y, x) = (%d, %d) finished." % (y, x))
             if par_eline is not None:
@@ -537,7 +541,7 @@ class Cube(Data):
 
         if par_eline is None:
             maps = None
-        return coeffs, maps
+        return coeffs, maps,x_line,y_line
 
 
 def loadCube(infile, extension_data=None, extension_mask=None, extension_error=None):

@@ -521,7 +521,7 @@ class ParadiseApp(object):
         excl_fit = excl_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
         if eline_parfile is None:
             if self.__datatype == 'CUBE':
-                (coeffs, maps) = normDataSub.fit_Lib_Boots(
+                (coeffs, maps, x_line, y_line) = normDataSub.fit_Lib_Boots(
                     lib_rebin, x_cor, y_cor, vel, disp, vel_err, disp_err,
                     mask_fit=excl_fit, bootstraps=bootstraps, modkeep=modkeep,
                     parallel=parallel, verbose=verbose)
@@ -533,7 +533,7 @@ class ParadiseApp(object):
         else:
             select_wave_eline = line_fit.maskPixelsObserved(normDataSub.getWave(), vel_guess / 300000.0)
             if self.__datatype == 'CUBE':
-                (coeffs, maps) = normDataSub.fit_Lib_Boots(
+                (coeffs, maps, x_line, y_line) = normDataSub.fit_Lib_Boots(
                     lib_rebin, x_cor, y_cor, vel, disp, vel_err, disp_err,
                     line_par, select_wave_eline, excl_fit, efit_method,
                     guess_window, self.__instrFWHM, efit_ftol, efit_xtol,
@@ -618,41 +618,41 @@ class ParadiseApp(object):
         hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
 
         if self.__datatype == 'CUBE' and eline_parfile is not None:
-            mapping=numpy.zeros(len(x_eline),dtype=numpy.int16)
-            indices = numpy.arange(len(x_cor))
-            valid = numpy.zeros(len(x_eline),dtype="bool")
+            mapping=numpy.zeros(len(x_eline),dtype=numpy.int32)
+            indices = numpy.arange(len(x_line))
             for i in range(len(x_eline)):
-                select_pos = (x_cor==x_eline[i]) & (y_cor==y_eline[i])
-                if numpy.sum(select_pos)>0:
-                    valid[i]=True
-                    mapping[i]=indices[select_pos][0]
+                select_pos = (x_line==x_eline[i]) & (y_line==y_eline[i])
+                if numpy.sum(select_pos)==1:
+                    mapping[i]=indices[select_pos]
                 else:
                     mapping[i]=-1
         elif self.__datatype == 'RSS' and eline_parfile is not None:
             mapping=numpy.zeros(len(fiber_eline),dtype=numpy.int16)
             indices = numpy.arange(len(fiber))
-            valid = numpy.zeros(len(fiber_eline),dtype="bool")
             for i in range(len(fiber_eline)):
-                select_pos = (fiber==fiber_eline[i])
-                if numpy.sum(select_pos)>0:
-                    valid[i]=True
-                    mapping[i]=indices[select_pos][0]
+                select_pos = fiber==fiber_eline[i]
+                if numpy.sum(select_pos)==1:
+                    mapping[i]=indices[select_pos]
                 else:
                     mapping[i]=-1
-
-
+	
         if maps is not None:
             columns_eline = []
             for n in line_par._names:
                 if line_par._profile_type[n] == 'Gauss':
-                    columns_eline.append(pyfits.Column(name='%s_flux_err' % (n), format='E', array=maps[n]['flux_err'][valid][mapping[valid]]))
+                    columns_eline.append(pyfits.Column(name='%s_flux_err' % (n), format='E', array=maps[n]['flux_err'][mapping]))
                     columns_eline.append(pyfits.Column(name='%s_vel_err' % (n), format='E', unit='km/s',
-                        array=maps[n]['vel_err'][valid][mapping[valid]]))
+                        array=maps[n]['vel_err'][mapping]))
                     columns_eline.append(pyfits.Column(name='%s_fwhm_err' % (n), format='E', unit='km/s',
-                            array=maps[n]['fwhm_err'][valid][mapping[valid]]))
+                            array=maps[n]['fwhm_err'][mapping]))
 
+            
+            if self.__datatype == 'CUBE':
+                add_column=2
+            else:
+                add_column=1
             try:
-                hdu = pyfits.BinTableHDU.from_columns(eline_table.columns[:len(columns_eline) + 2] + pyfits.ColDefs(columns_eline))
+                hdu = pyfits.BinTableHDU.from_columns(eline_table.columns[:len(columns_eline) + add_column] + pyfits.ColDefs(columns_eline))
             except:
                 hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
             hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)

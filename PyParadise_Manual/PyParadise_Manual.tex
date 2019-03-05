@@ -291,23 +291,72 @@ Some chains do show correlations between the $i^{\rm th}$ and the $(i + 1)^{\rm 
 We therefore recommend letting the value of \paramdef{thin} to be set to 1 or 2.
 The autocorrelation value (not outputted yet by \textsc{PyParadise}), should be multiplied by at least 10 to obtain accurate uncertainties on $v$ and $\sigma$.
 
-\section{Emission-line modelling}
-\label{sec:em}
-\subsection{Algorithm}
-\label{subsec:em_algo}
-\subsection{Line profiles}
-\label{subsec:em_profile}
-\subsection{Configuration file}
-\label{subsec:em_config}
+\section{Emission-line modelling}\label{sec:em}
+\textsc{PyParadise} can also fit emission lines after the continuum subtraction has been performed. Hence, emission lines are not fitted simultaneously with the stellar continuum, which has certain advantages and disadvantges. Below we describe the adopted algorithm, available line shapes and how to setup the configuration files for running the emission-line modelling. 
 
-\textsc{PyParadise} can also fit emission lines.
-This is performed separately with respect to the stellar absorption fitting.
-From the observed spectrum, the model stellar absorption spectrum is subtracted.
-The emission lines are fitted to this stellar residual spectrum.
-One needs to provide estimates for the flux, velocity, and dispersion of every emission line.
-As this can be cumbersome, one can connect, e.g. the velocity of an emission line to the velocity of another emission line, and set the flux up such that it is at 1/3 the flux level of the first line.
-Note that the connected parameters of the line are not fitted simultaneously, e.g. the velocity of the first and second emission line are not fitted simultaneously.
-We therefore recommend letting the parameters of the strongest emission line be free, and that the parameters of weaker emission lines can be tied to the strong emission line.
+\subsection{Algorithm}\label{subsec:em_algo}
+Fitting emission lines is a non-linear process so we employ standard $\chi^2$ minimization algorithms to find the best-fit parameter set for a given model. In a spectrum of a galaxiy usually several emission lines of interest are present so that a typical model is usually of a superposition of several lines across the spectrum. In \textsc{PyParadise} we offer two different but widely adopted non-linear minimization algorithms. The user can chose between a Downhill-Simplex algorithm or the Levenberg-Marqudart algorithms. 
+
+The issue with fast $\chi^2$ algorithms is that they require a good starting point for exploring the $\chi^2$ surface to find the global minimum and not being trapped in a local minimum. Therefore, reasonable starting values are necessary are crucial for successful non-linear emission-line modelling. \textsc{PyParadise} is optimized for automated analysis of a large number of spectra, with a similar redshift, so that an individual tuning of starting values by hand become infeasible. Our strategy is that users only need to make a good guess for the redshift in all spectra and set a pixel window size so that the local spectral shape and integrated flux of each redshifted line can be empirically evaluated to obtain starting values. This procedure works best for isolated lines, but usually provides reasonable starting values for blended lines in most cases to allow a good fit. In very complex cases, however, this approach may not be sufficient.
+
+\subsection{Line profiles}\label{subsec:em_profile}
+Only simple \textbf{Gaussian} line profiles are available in the current version of \textsc{PyParadise}. It is planed to expand this further to Gauss-Hermite expansions of lines to take asymmetric line shapes into account. If asymmetric lines are present in the data, currently two separate Gaussian profiles need to be used to capture the asymmetry of lines implicitly.
+\subsubsection{Gaussian line}
+A Gaussian line is well described by a central wavelength, a line disperion, and an integrated line flux.  In \textsc{PyParadise} the central wavelength is computed from a provided \textit{rest-frame wavelength} for a specific line together with a \textit{redshift expressed in velocity space as $v= c\times z$ in units of km/s}. Also the line disperion is expressed by an \textit{intrinsic velocity dispersion} from which the line dispersion in unit wavelength at a given redshift is computed and enlarged in quadrature by the provided instrumental spectral resolution. Hence, four parameters (of which only three are free parameters to be optimized) need to be provided for each Gaussian component in the model.
+
+A key feature of \textsc{PyParadise} is that coupling redshift, line dispersion and fixing certain line ratios is easy. The user can simply indicate which lines should have the same redshift or intrinsic velocity diserpsion which can significantly reduce the number of free parameters and makes the optimization process more robust. Fixing line ratios is meant for known multiplets of lines with a-prior priors on their ratios.
+
+\subsection{Configuration files for emission line fitting}\label{subsec:em_config}
+Using the emission line modelling in \textsc{PyParadise} requires to prepare three configuration files as described below. In most cases they can be re-used for different spectra and purposes.
+
+\subsubsection{Model file}\label{subsec:model_file}
+The model file is a ASCII file that defines a list of different line components to be modelled. There is no limit on the number of components. Each component consistents of a block of several lines depending on the specific component as described below. \textbf{A typical parameter file looks like this}:\bigskip\\
+\codeline{Gauss: OIII5007}\\
+\codeline{restwave 5006.84}\\
+\codeline{flux 50.0 1}\\
+\codeline{vel 10350.0 1}\\
+\codeline{disp 100.0 1}\bigskip\\
+\codeline{Gauss: OIII4960}\\
+\codeline{restwave 4958.9}\\
+\codeline{flux OIII5007:0.33}\\
+\codeline{vel OIII5007}\\
+\codeline{disp OIII5007}\\
+
+The structure for each component is the same. The first line of each component always starts with a line TYPE: NAME, where TYPE is a component type, i.e. Gauss for Gaussian, and NAME is a unique identifier WITHOUT spaces for the emission line to be fitted. The second line for a Gaussian is the fixed rest-frame wavelength in the same wavelength units as the spectrum to be fitted. What follows are the settings for the three free parameters of a Gaussian to be fitted. The from for each line is PAR VALUE FLAG, where PAR is either flux, vel or disp to discribe the flux, centroid or disperion of the line. Those are starting values for the fitting which may be updated automatically by \textsc{PyParadise}. Flux are in the same units as the spectra multiplied by the wavelength unit, and vel and disp are in units of km/s as described above for the Gaussian component. The FLAG can be set to 1 or 0. In case of 1, the parameter is free to vary and will be fitted, and in case of 0 the parameter will be fixed to the provided value. 
+
+As shown for the second component some parameters of Gaussian can be coupled to other lines in various ways. The syntax for coupling is PAR NAME, where PAR is the parameter to be coupled and NAME is Gaussian component to which this parameter will be tight together. No FLAG parameter is needed in this case as this will be inherreted from the FLAG parameter of the component it is thight with. For the flux parameter it is additionally allowed to add a fixed multiplicative factor for the coupling which is important for known multiplets with fixed ratios. The syntax in this case is then \codeline{flux NAME:FACTOR}, where NAME is again the component the flux value will be replaced and FACTOR is a multiplicative factor for the coupled flux. 
+
+Not all the parameters of a Gaussian need to be coupled and a mixture of free, fixed and coupled parameters are all allowed for a component. However, an important issue is that the component with the primary parameters always need to be listed before the coupled parameters are defined as in the example case above. Since free parameters are usually updated automatically based on the empirical data, it is recommended that the brightest line is set with free parameter in case coupling between several lines is desired. This will provide the best guess value for coupled parameters.
+
+\subsubsection{Wavelength range file}\label{subsec:wavelength_range}
+Usually the emission lines are not spread over the full wavelength range of the input spectra. Computation speed and robustness is gained if the modelling of the emission lines is restricted to the wavelength range the emission line actually contribute signnificantly to. Hence, it is highly recommended to provide a file that defines certain wavelength intervals for which the model is actually evluated and a $\chi^2$ value is computed. The syntax of this file is the same as for the wavelength masking for the stellar continuum fitting, but only wavelength ranges defined in the rest-frame will be used. For the simple case of fitting the [OIII] double as defined in the Model file example above the wavelength range file would simply look like:\bigskip\\
+\codeline{[rest-frame]}
+\codeline{4930 5030}\bigskip\\
+
+This means that only the wavelength range from 4930 to 5030 (in Angstrom) would be fitted and the rest of the spectrum would be ignored. Of course, the unit of the wavelength ranges needs to match with that of the spectrum and adjusted as necessary.
+
+
+\subsubsection{Parameter file}
+All the setups for the emission line fitting will be combined in a parameter file which is provided to \textsc{PyParadise} at the start-up call. A typical example file looks like this:\bigskip\\
+\codeline{eCompFile  modelfile.txt !name of the line parameter file, None if no emission lines to be fitted}\\
+\codeline{vel\_guess   10300.0 !rough velocity guess for the object in km/s as cz (float)}\\
+\codeline{line\_fit\_region lines.fit !Wavelength regions considered during the fitting (string)}\\
+\codeline{efit\_method leastsq !method for line parameter fitting (leastsq/simplex)}\\
+\codeline{efit\_ftol  1e-8 !ftol convergence parameter}\\
+\codeline{efit\_xtol 1e-8 !xtol convergence parameter}\\
+\codeline{eguess\_window 20 !size of the spectral window in pixel to estimate initial guesses for each line}\\
+\codeline{min\_x 1 !Minimum x dimension}\\
+\codeline{max\_x 500 !Maximum x dimension}\\
+\codeline{min\_y 1 !Minimum y dimension}\\
+\codeline{max\_y 500 !Maximum y dimension}\bigskip\\
+Each line follows the usual convention for \textsc{PyParadise} parameter files, i.e. PAR VALUE !Description. The detailed description of the necessary parameters in this files are\\
+\paramdef{eCompFile} (\texttt{string})  Full path to the model file which is in ASCII format as described in Sect.~\ref{subsec:model_file} above.\\
+\paramdef{vel\_guess} (\texttt{float})  Best guess of mean redshift $z$ of all spectra to model expressed in velocity (km/s) via $c\times z$.\\
+\paramdef{line\_fit\_region} (\texttt{string}) Full path to the wavelength range file in ASCII format as described in Sect.~\ref{subsec:wavelength_range} above.\\
+\paramdef{efit\_method} (\texttt{string}) Method to find the minimal $\chi^2$ value. Only two options available now, either leastsq or simplex for the Levenberg-Marquardt or Downhill-simplex method, respectively.\\
+\paramdef{efit\_ftol} (\texttt{float}) and \paramdef{efit\_ftol} (\texttt{float}) are the relative errors desired for the $\chi^2$ and the in the approximate solution, respectively, which set stopping limits for the $\chi^2$ minimization alrogithms. Do not change numbers if unsure.\\
+\paramdef{eguess\_window} (\texttt{integer}) Based on the mean redshift defined by \paramdef{vel\_guess} and rest-frame wavelength of all lines defined in the model file, empirial measurements on line shape such as integrated flux, line centroid and line shape will be performe from all pixels within the given wavelength window in pixels. If this number is set to 0, no empirical estimates for the starting values will be done and the values in the model file will be used instead (CHECK IF TRUE!?).\\
+\paramdef{min\_x} (\texttt{integer})  till \paramdef{max\_y} (\texttt{integer}) define limits for spectra to be modelled in spatial domain. Indexing starts with 1. The syntax is the same as for the continuum modelling as described in Sect.~\ref{}.\\
 
 \section{Bootstrap errors}
 \label{sec:bootstrap}
