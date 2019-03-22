@@ -10,6 +10,7 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{enumitem}
+\usepackage{tcolorbox}
 \newcommand{\COzero}{${}^{12}\mathrm{CO}(1-0)$}
 \newcommand{\COtwo}{${}^{12}\mathrm{CO}(2-1)$}
 \newcommand{\Fe}{\textsc{feii}}
@@ -41,6 +42,7 @@
 \newcommand{\PyPar}{\mbox{\textsc{PyParadise}}}
 \newcommand{\myemail}{husemann@mpia.de}
 %\bibpunct{(}{)}{;}{a}{}{,}
+
 
 \definecolor{deepblue}{rgb}{0,0,0.5}
 \definecolor{deepred}{rgb}{0.6,0,0}
@@ -220,16 +222,49 @@ Certain wavelength windows need to be masked or selected at various instances du
 %\end{lstlisting}
 %which will produce the following three output files \fname{<prefix>.cont_model.fits}, \fname{<prefix>.cont_res.fits} and \fname{<prefix>.stellar_table.fits}.
 
-\section{Stellar population modelling}
-\label{sec:ssp_model}
-\subsection{Algorithm}
-\label{subsec:ssp_algo}
-The kinematics and the stellar populations determination are computationally two different steps and use different methods.
-\textsc{PyParadise} iterates through the fitting of the kinematics and stellar populations, e.g. the kinematics of an input spectrum is determined from a certain template spectrum.
-These kinematics are then applied to the template library and the best-fitting combination of template spectra are determined.
+\section{Stellar population modelling}\label{sec:ssp_model}
+\subsection{\PyPar\ philosophie of fitting stellar continuum spectra}\label{subsec:ssp_algo}
+The fitting of galaxy continuum spectra is a complex process and usually needs optimization of a highly multi-dimensional parameter space. All galaxy spectra can be described by the super-position of stellar template spectra which are convolved with the kinematics of the stars as described by a radial velocity (including cosmological redshift) and a velocity dispersion. Optimizing the mix of template spectra and the kinematics together is a non-linear optimization process.
 
-\subsubsection{Kinematics}
-\label{subsec:ssp_kin}
+\PyPar\ is breaking up the non-linear kinematic optimization and the linear super-position of template spectra into 2 indpendent steps using an iterative procedure. This has the advantage that only the few non-linear parameters are fitted with non-linear optimization methods, while the super-position of template spectra are preformed with very fast linear optimization methods. 
+
+Since real spectra are never perfect and dust extinction may significantly affect the shape of the spectra and would not provide a good match to the any super-position of the template spectra. This issue is often solved by adding additional functions to the optimization, such as polynomials. However, even polynominals may not capture all the arteficial variation in the spectra correctly. Instead, \PyPar\ is normalizing the global continuum shape of the input spectra and template spectra in a non-parametric way before the algorithms is actually trying to match them.
+
+\begin{tcolorbox}
+\textbf{Important:} Due to the continuum normalization, \PyPar\ finds the best template super-position by reducing only the residuals of absorption line features and basically ignores the different continuum slopes of young and old stellar populations. Also the dust extinction cannot be determined during the fitting this way. Obviously this has clear advantages or disadvantages depending on the type of input spectra and the scientific objectives of the user. 
+\end{tcolorbox}
+
+\subsection{Template broadening to match instrumental spectral resolution}
+The template library of continuum spectra has an intrinsic spectral resolution and spectral sampling, which is usually inhereted from the spectrograph the data are taken with. Before fitting the template spectra to the input data \PyPar\ therefore needs to match the spectral resolution by properly degrading the resolution of the template spectra, which is the first step in the process. Given that the input spectra are usually galaxy spectra with a significant redshift $z$, the redshifting of the templates need to be taken into account when computing the difference in spectral resolution of the templates ($\sigma_\mathrm{temp}$ in unit wavelength) and input data ($\sigma_\mathrm{data}(\lambda)$ in unit wavelength). The dispersion ($\sigma_\mathrm{smooth}$) of the Gaussian convolution kernel applied by \PyPar\ to the spectral template library is therefore given by
+\begin{equation}
+ \sigma_\mathrm{smooth}(\lambda) = \sqrt{\sigma_\mathrm{data}(\lambda)^2-\left(\left(1+\frac{v_\mathrm{guess}}{c}\right)\times \sigma_\mathrm{temp}\right)^2}
+\end{equation}
+Here, $v_\mathrm{guess}$ will be initially computed by \PyPar\ from the \fname{vel_guess} parameter in the \fname{parameter_stellar} stellar configuration file. 
+While the templates spectra are usually generated such that the spectral resolution is constant with wavelength this may not be true for the input data. \PyPar\ is able to work with both cases and can adaptively adjust the width of the convolution kernel as a function of wavelength when smoothing the template library. When running \fname{PyParadiseApp.py} the user needs to provide a value for the spectral resolution of the data which can either be a single float number for the spectral resolution expressed in terms of Full Width at Half Maximum (FWHM) which is $\mathrm{FWHM}_\mathrm{data}=2.354\times\sigma_\mathrm{data}$, or the path to an ASCII file which describes the wavelength-dependent spectral resolution. The format of the file is rather simple with just two columns for the wavelength and the spectral resolution (FWHM). When applying the wavelengt-dependent spectral resolution, \PyPar\ is linearly interpolating the provide wavelength grid to the redshifted wavelength grid of the template spectra. The wavelength coverage in the file therefore needs to cover the entire wavelength range of the input spectra. An exmaple file for MUSE based on the measured wavelength-dependent spectral resolution \citep{} is available in the example directory with the name \fname{MUSE_spec_res.txt}.
+
+\begin{tcolorbox}
+ \textbf{Important}: When the spectral resolution of the redshifted template spectra become worse than the input data, a correct machting of the spectra becomes impossible. This would lead to an incorrect determinations of the stellar kinematics and possible wrong mix of template spectra. \PyPar\ will refuse to fit but provides the minimum spectral resolution of the redshfit template spectra according to \fname{vel_guess}. There are 2 options to solve that issue:
+ \begin{itemize}
+  \item select a template library of spectra with higher spectral resolution
+  \item artifically set the input data spectral resolution to the redshifted spectral resolution of the templates
+ \end{itemize}
+\end{tcolorbox}
+
+\subsection{Continuum normalization of input data and template spectra}
+The next crucial step in the pre-fitting stage is the continuum normalization of the input data and the template spectra. This dependes crucially on masking all features that do not belong to the continuum such as emission lines, strong sky line residuals, detector artefact and bad pixels.  While bad pixels should already be provided with the input data (see Sect.~\ref{} for details of the input data format), wavelength regions covering emission lines and sky line residuals need to be defined by the user in the \fname{excl.cont} file as described in Sect.~\ref{} and available in the exmple directory. Here, wavelength windows can be defined in rest-frame and observed-frame seperately to aid the definition of masked wavelength regions.
+
+The masked wavelength regions are then linearly interpolated to approximate a continuum singal in those regions. A running mean is then applied to the pure input spectra to create highly smooth version of the continuum shape. The with of the running mean average box size is set by the user in the \fname{nwidth_norm} parameter in the \fname{parameter_stellar} parameter file. The input spectra are then devided by their respective smoothed continuum spectra to achieve a normalization of the continuum close to 1 across the entire wavelength range. An example of the normalization process is shown in Fig.~\ref{}. The template spectra are similarly normalized after redshifting to \fname{vel_guess} and matching to the spectral resolution. Here, the box size of the running mean is automatically adjusted to match the same size in wavelength space based on the respective wavelength sampling of the input data and the template spectra. 
+
+While the subsequent fitting is done with the continuum normalized spectra, the normalization information is stored throughout the process so that the results can be de-normalized at the end of the process to go back to normal space. 
+
+\begin{tcolorbox}
+ \textbf{Important:} The process crucially depends on propoer wavelength masks provided by the user. If artefact and emission lines are not properly masked in the input spectra, \PyPar\ will not be able to determine a good fit. It is therefore strongly encouraged, to review the definiation of the wavelength window by performing a test fit on a few characteristic spectra and use the visualization tools to check whether the provided wavelength masks are appropriate. General rule is that the wavelength regions should be broad enough to cover all non-continuum feature but small enough that enoug continuum signal remains to do a good continuum normalization. If the input spectra are nearly entirely dominated by non-continuum signal, \PyPar\ would not be the ideal software, but this is rarely the case.
+\end{tcolorbox}
+
+
+
+
+\subsection{Determination of stellar kinematics}\label{subsec:ssp_kin}
 A Markov Chain Monte Carlo (MCMC) lies on the basis of the determination of the kinematics.
 The constraints are the provided limits on the values that $v$ and $\sigma$ can take.
 A random value for $v$ and $\sigma$ are taken between these limits, followed by a random walk consisting of $n$ steps.
@@ -248,8 +283,7 @@ This then produces a correction value to $v$ and $\sigma$, which are the values 
 
 From the sample, $(n - m) / k$ points will be used to derive the mean and the errors of the $v$ and the $\sigma$.
 
-\subsubsection{Stellar populations}
-\label{subsec:ssp_ssp}
+\subsection{Super-position of template spectra}\label{subsec:ssp_ssp}
 Before the stellar populations are fitted, there are a few preparatory steps.
 Due to issues that often arise with in the data reduction and analysis of spectra, the continuum level is uncertain.
 To address this problem, \textsc{PyParadise} normalises the input spectra and the template library before fitting.
@@ -264,6 +298,9 @@ The NNLS therefore does not provide a unique solution and the recovery of the st
 We therefore provided a bootstrapping procedure, which re-fits the spectra a number of times with a subset of models.
 If a contributing SSP in the fiducial fit is real and is removed during the bootstrapping procedure, it should be recovered by the similar SSPs during the bootstrapping.
 See the paper for more details on recovery of stellar parameters from simulated galaxy spectra and a validation of bootstrapping to recover trustworthy star-formation histories.
+
+
+\subsection{Best-fit sellar population parameters}
 
 \subsection{Template handling}
 \label{subsec:ssp_template}
@@ -338,12 +375,6 @@ The emission lines and artefacts are therefore masked twice, while the strong ab
         The disadvantage of a high-value is that the total sample size needs to increase to obtain a statistically sufficient sample size.
     \item \paramdef{agebins} (\texttt{string})
         Currently implemented and being tested, but not distributed.
-    \item \paramdef{Ael} (\texttt{string})
-        Not implemented yet.
-    \item \paramdef{efflam} (\texttt{string})
-        Not implemented yet.
-   \item \paramdef{Rv} (\texttt{string})
-        Not implemented yet.
 \end{itemize}
 
 \subsubsection{Choosing parameter-values}
