@@ -1,0 +1,11 @@
+eCompFile		par.lines				!name of the line parameter file, None if no emission lines to be fitted 
+vel_guess		4040.0					!rough velocity guess for the object in km/s as cz (float)
+line_fit_region		lines.fit				!Wavelength regions considered during the fitting (string)
+efit_method		leastsq					!method for line parameter fitting (leastsq/simplex)
+efit_ftol		1e-8					!ftol convergence parameter
+efit_xtol		1e-8					!xtol convergence parameter
+eguess_window		20					!size of the spectral window in pixel to estimate initial guesses for each line
+min_x           1                             		!Minimum x dimension (int)
+max_x           10000                          		!Maximum x dimension (int)
+min_y           1                             		!Minimum y dimension (int)
+max_y           10000                          		!Maximum y dimension (int)

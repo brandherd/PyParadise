@@ -1,0 +1,204 @@
+Gauss: Halpha
+restwave 6562.80
+flux 10.0 1
+vel 4040.0 1
+disp 100 1
+
+Gauss: OIII5007
+restwave 5006.84
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: OIII4960
+restwave 4958.9
+flux OIII5007:0.33
+vel Halpha
+disp Halpha
+
+Gauss: Hbeta
+restwave 4861.33
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: Hgamma
+restwave 4340.47
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: Hdelta
+restwave 4101.74
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: H7
+restwave 3970.07
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: H8HeI
+restwave 3888.85
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: H9
+restwave 3835.39
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: H10
+restwave 3797.92
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: H11
+restwave 3770.63
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: H12
+restwave 3750.15
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: OIII4363
+restwave 4363.12
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: OII7330
+restwave 7330.20
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: OII7319
+restwave 7319.46
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: OII3727
+restwave 3727.00
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: OI6300
+restwave 6300.3
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: NII6583
+restwave 6583.45
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: NII6548
+restwave 6548.05
+flux NII6583:0.33
+vel Halpha
+disp Halpha
+
+Gauss: SII4068
+restwave 4068.60
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: SII6717
+restwave 6716.44
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: SII6730
+restwave  6730.81
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI7281
+restwave  7281.35
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI7065
+restwave  7065.25
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI6678
+restwave  6678.15
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI5876
+restwave  5875.67
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI4472
+restwave  4471.50
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI4026
+restwave  4026.21
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeI4922
+restwave  4921.93
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: HeII4686
+restwave  4686.00
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: ArIII7135
+restwave 7135.80
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: FeIII4658
+restwave 4658.00
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: FeIII5270
+restwave 5270.40
+flux 10.0 1
+vel Halpha
+disp Halpha
+
+Gauss: NeIII3869
+restwave 3868.75
+flux 10.0 1
+vel Halpha
+disp Halpha
+
