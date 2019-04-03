@@ -214,7 +214,7 @@ class fit_profile1D(object):
         """
         return numpy.sum(((y-self(x))/sigma)**2)
 
-    def fit(self, x, y, sigma=1.0, p0=None, ftol=1e-8, xtol=1e-8, maxfev=9999, err_sim=0, warning=True, method='leastsq',parallel='auto'):
+    def fit(self, x, y, sigma=1.0, p0=None, ftol=1e-8, xtol=1e-8, maxfev=9999, err_sim=0, method='leastsq',parallel='auto'):
         """Fits the provided set of data. The parameters of the fit and the
         corresponding errors are stored in the class. The parameters are
         available by calling the function `getPar`.
@@ -257,20 +257,17 @@ class fit_profile1D(object):
         p0 = self._par
         if method=='leastsq':
             try:
-                model = optimize.fmin(self.res, p0, (x, y, sigma), maxfev=maxfev, ftol=ftol, xtol=xtol,warning=warning)
-                #model = optimize.leastsq(self.res, p0, (x, y, sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None, warning)
+                model = optimize.leastsq(self.res, p0, (x, y, sigma), maxfev=maxfev,ftol=ftol, xtol=xtol, full_output=0)
             except TypeError:
-                model = optimize.leastsq(self.res, p0, (x, y, sigma), maxfev=maxfev,ftol=ftol, xtol=xtol)
+                model = optimize.leastsq(self.res, p0, (x, y, sigma), maxfev=maxfev,ftol=ftol, xtol=xtol, full_output=0)
             self._par = model[0]
 
         if method=='simplex':
             try:
-                model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0, full_output=0,warning=warning)
-                #model = optimize.leastsq(self.res, p0, (x, y, sigma), None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None, warning)
+                model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0, full_output=0)
             except TypeError:
                 model = optimize.fmin(self.residuum, p0, (x, y, sigma), ftol=ftol, xtol=xtol,disp=0,full_output=0)
             self._par = model
-            #model = optimize.leastsq(self.res, p0, (x, y, sigma),None, 0, 0, ftol, xtol, 0.0, maxfev, 0.0, 100.0, None)
 
         if err_sim!=0:
             numpy.random.seed()
@@ -301,13 +298,13 @@ class fit_profile1D(object):
                     perr = deepcopy(self)
                     if method=='leastsq':
                         try:
-                            model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol, warning=warning)
+                            model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol)
                         except TypeError:
                             model_err = optimize.leastsq(perr.res, perr._par, (x, numpy.random.normal(y, sigma), sigma), maxfev=maxfev, ftol=ftol, xtol=xtol)
                         self._par_err_models[i, :] = model_err[0]
                     if method=='simplex':
                         try:
-                            model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0,ftol=ftol, xtol=xtol, warning=warning)
+                            model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0,ftol=ftol, xtol=xtol)
                         except TypeError:
                             model_err = optimize.fmin(perr.residuum, perr._par, (x, numpy.random.normal(y, sigma), sigma), disp=0, ftol=ftol, xtol=xtol)
                         self._par_err_models[i, :] = model_err
