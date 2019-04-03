@@ -562,4 +562,4 @@ class Data(Header):
                             hdu[0].header.update('CDELT1', self._wave[1] - self._wave[0])
                         except:
                             hdu[0].header['CDELT1']=( self._wave[1] - self._wave[0])
-        hdu.writeto(filename, clobber=True)  # write FITS file to disc
+        hdu.writeto(filename, overwrite=True)  # write FITS file to disc

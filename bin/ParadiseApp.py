@@ -276,7 +276,7 @@ class ParadiseApp(object):
             table_out = pyfits.BinTableHDU.from_columns(columns)
         except:
             table_out = pyfits.new_table(columns)
-        table_out.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
+        table_out.writeto(self.__outPrefix + '.stellar_table.fits', overwrite=True)
 
     def run_eline_fit(self, parfile, parallel, verbose):
         """This functions fits a a set of emission lines to the spectra.
@@ -388,7 +388,7 @@ class ParadiseApp(object):
             table_out = pyfits.BinTableHDU.from_columns(columns)
         except:
             table_out = pyfits.new_table(columns)
-        table_out.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
+        table_out.writeto(self.__outPrefix + '.eline_table.fits', overwrite=True)
 
     def run_bootstrap(self, stellar_parfile, eline_parfile, bootstraps, modkeep, parallel, verbose):
         """The bootstrap functions performs a bootstrap on the data in order to
@@ -615,7 +615,7 @@ class ParadiseApp(object):
             hdu = pyfits.HDUList([pyfits.PrimaryHDU([]), hdu])
         else:
             hdu = pyfits.HDUList([pyfits.PrimaryHDU([]), hdu, btunit])
-        hdu.writeto(self.__outPrefix + '.stellar_table.fits', clobber=True)
+        hdu.writeto(self.__outPrefix + '.stellar_table.fits', overwrite=True)
 
         if self.__datatype == 'CUBE' and eline_parfile is not None:
             mapping=numpy.zeros(len(x_eline),dtype=numpy.int32)
@@ -655,7 +655,7 @@ class ParadiseApp(object):
                 hdu = pyfits.BinTableHDU.from_columns(eline_table.columns[:len(columns_eline) + add_column] + pyfits.ColDefs(columns_eline))
             except:
                 hdu = pyfits.new_table(eline_table.columns[:len(columns_eline) + 2] + pyfits.new_table(columns_eline).columns)
-            hdu.writeto(self.__outPrefix + '.eline_table.fits', clobber=True)
+            hdu.writeto(self.__outPrefix + '.eline_table.fits', overwrite=True)
 
 
 if __name__ == "__main__":
