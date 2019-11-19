@@ -69,15 +69,15 @@ $^2$Leibniz-Institut f\"ur Astrophysik Potsdam (AIP), An der Sternwarte 16, 1448
 \subsection{Software dependencies}
 \PyPar\ depends on the following software:
 \begin{itemize}
-    \item python version 2.7 or 3.x.
-    \item numpy, version ????? 
-    \item scipy, version ?????? 
-    \item astropy, version ?????? 
+    \item python version 2.7 or 3.X
+    \item numpy, version 1.12.1 or later
+    \item scipy, version 0.19.0 or later
+    \item astropy, version 2.X or later
 \end{itemize}
-For the MCMC algorithm two options are available of which only one needs to be installes:
+For the MCMC algorithm two options are available of which only one needs to be installed:
 \begin{itemize}
-    \item pymc, version ??????
-    \item emcee, version ?????
+    \item pymc, version 2.3.6 or later
+    \item emcee, version 2.2.1 or later
 \end{itemize}
 
 While different combination of package version may work as well, we suggest to create a dedicated python environment with miniconda (https://docs.conda.io/en/latest/miniconda.html). All packages can be easily install within the conda environment using the command 
@@ -335,10 +335,9 @@ The emission lines and artefacts are therefore masked twice, while the strong ab
         \end{itemize}
     \item \paramdef{tmplinitspec} (\texttt{int}) The initial spectrum to start the fitting with.
         A good guess can lead to a faster convergence, and a lower \paramdef{iterations} value might therefore be sufficient.
-    \item \paramdef{vel_guess} (\texttt{float}) 
+    \item \paramdef{vel_guess} (\texttt{float}). \paramdef{vel_guess} is the best guess for the systemic velocity corresponding to $cz$ for the object. 
     \item \paramdef{vel_min}, \paramdef{vel_max}, \paramdef{disp_min}, \paramdef{disp_max} (\texttt{float}).
-        The \paramdef{vel_min} and \paramdef{vel_max} define the lower and the upper boundary between which the MCMC calculations will try to converge to the best-fitting $v$.
-        The \paramdef{disp_min} and \paramdef{disp_max} values give the boundaries for $\sigma$.
+        The parameters \paramdef{vel_min} and \paramdef{vel_max} are the absolute upper and lower velocity boundaries expressed as $cz_\mathrm{min}$ and $cz_\mathrm{max}$ in km/s, respectively, which define the search range for systemtic velocity during MCMC iteration. The \paramdef{disp_min} and \paramdef{disp_max} values similarly define the absolute boundaries for $\sigma$ in km/s.
     \item \paramdef{kin_fix} (0 or 1)
         If the \paramdef{kin_fix} parameter is set to 1, the kinematics will not be fitted, but will instead be read from \fname{<prefix>.kin_table.fits}.
         This table is located as the second HDU unit, and should have the values for the kinematics of each spectrum in the columns named \tblcol{vel_fit} and \tblcol{disp_fit}.
