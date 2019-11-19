@@ -61,12 +61,14 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='SpectrumPlotting')
     if rss._datatype == 'CUBE':
         ax1.plot(rss._wave,rss._data[:,cube_y,cube_x],'-k',lw=1.5,label='data')
         ax1.plot(rss._wave,rss._error[:,cube_y,cube_x],'-g',lw=1.5,label='error')
-        ax1.plot(rss._wave,rss._mask[:,cube_y,cube_x]*0.1,'-b',lw=1.5,label='badpix')
+        if rss._mask is not None:
+            ax1.plot(rss._wave,rss._mask[:,cube_y,cube_x]*0.1,'-b',lw=1.5,label='badpix')
         ax1.plot(cont._wave,cont._data[:,cube_y,cube_x],'-r',lw=1.5,label='best-fit cont')
     elif rss._datatype == 'RSS':
         ax1.plot(rss._wave,rss._data[rss_fiber,:],'-k',lw=1.5,label='data')
         ax1.plot(rss._wave,rss._error[rss_fiber,:],'-g',lw=1.5,label='error')
-        ax1.plot(rss._wave,rss._mask[rss_fiber,:]*0.1,'-b',lw=1.5,label='badpix')
+        if rss._mask is not None:
+            ax1.plot(rss._wave,rss._mask[rss_fiber,:]*0.1,'-b',lw=1.5,label='badpix')
         ax1.plot(cont._wave,cont._data[rss_fiber,:],'-r',lw=1.5,label='best-fit cont')
     
     leg=ax1.legend(loc='upper left',fontsize=16)
