@@ -487,7 +487,7 @@ class SSPlibrary(UserDict):
                 new_SSP = SSPlibrary(data=smooth_data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
                  coefficients=self.__coefficients)
         else:
-            raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the minimum targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, numpy.min(instFWHM.getRes(wave)), redshift))
+            raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the minimum targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, numpy.min(instFWHM.getRes(wave)*2.354)*(redshift), redshift))
 
         return new_SSP
 
