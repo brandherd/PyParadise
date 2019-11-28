@@ -206,13 +206,13 @@ class ParadiseApp(object):
         # pylab.plot(rss_model[0,:],'-g')
         # pylab.show()
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=normDataSub.getWave(), data=rss_model, mask=mask,
+            model_out = RSS(wave=normDataSub.getWave(), data=rss_model, error=normDataSub.unnormalizedSpec()._error, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
             res_out = RSS(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=normDataSub.getWave(), data=cube_model, mask=mask,
+            model_out = Cube(wave=normDataSub.getWave(), data=cube_model, error=normDataSub.unnormalizedSpec()._error, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
             res_out = Cube(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
