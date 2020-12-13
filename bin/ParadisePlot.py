@@ -52,12 +52,12 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='SpectrumPlotting')
     rss._error[select]=0
 
     i=0
-    plt.style.use('seaborn')
+    #plt.style.use('seaborn')
     plt.rcParams['axes.linewidth'] = 1.5
     plt.rcParams['axes.edgecolor'] = 'k'
-    fig = plt.figure(figsize=(12,7))
-    ax1 = fig.add_axes([0.09,0.55,0.9,0.43])
-    ax2 = fig.add_axes([0.09,0.1,0.9,0.43])
+    fig = plt.figure(figsize=(13,7))
+    ax1 = fig.add_axes([0.08,0.55,0.91,0.43])
+    ax2 = fig.add_axes([0.08,0.1,0.91,0.43])
     if rss._datatype == 'CUBE':
         ax1.plot(rss._wave,rss._data[:,cube_y,cube_x],'-k',lw=1.5,label='data')
         ax1.plot(rss._wave,rss._error[:,cube_y,cube_x],'-g',lw=1.5,label='error')
@@ -105,6 +105,7 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='SpectrumPlotting')
 
     ax2.set_xlabel('observed-frame wavelength [$\AA$]',fontsize=18)
     ax2.set_ylabel(r'$f_\lambda$',fontsize=16)
+    plt.tight_layout()
     if args.figname is not None:
         plt.savefig(args.figname)
     plt.show()
