@@ -1,18 +1,19 @@
-#!/usr/bin/env python
-
-deps = ['numpy','scipy','pymc','matplotlib']
-try:
-    import pyfits
-    deps.append('pyfits')
-except ImportError:
-    deps.append('astropy')
+#!/usr/bin/env python3
 
 from distutils.core import setup
 setup(name='Paradise',
       version='0.2',
-      description="Modelling of spectra with superposition of stellar population templates and fitting of emission lines",
-      author='Bernd Husemann/Jakob Walcher',
+      description="Modelling of galaxy spectra as a superposition of stellar population templates and Gaussian components for emission lines",
+      author='Bernd Husemann, Jakob Walcher',
+      author_email='berndhusemann@gmx.de, jwalcher@aip.de',
+      license='MIT',
+      url='https://github.com/brandherd/PyParadise',
       packages=['Paradise','Paradise/lib'],
       package_dir={'Paradise' : './', 'Paradise/lib' : 'lib'},
-      requires=deps,
-      scripts=['bin/ParadiseApp.py'])
+      install_requires=['numpy',
+                        'scipy',
+                        'astropy',
+                        'pymc',
+                        'emcee',
+                        'matplotlib'],
+      scripts=['bin/ParadiseApp.py','bin/ParadisePlot.py'])

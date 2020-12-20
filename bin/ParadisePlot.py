@@ -1,9 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 from Paradise import *
 import numpy
 import sys
 from matplotlib import pyplot as plt
+
+__author__ = "Bernd Husemann"
+__contributor__ = ['Bernd Husemann', 'Omar Choudhury','Jakbo Walcher','Tanya Urrutia','Anika Beer']
+__copyright__ = "Copyright 2020, Bernd Husemann"
+__license__ = "MIT"
+__version__ = "0.2"
+__maintainer__ = "Bernd Husemann"
+__email__ = "berndhusemann@gmx.de"
+__status__ = "Production"
+__version__ = "0.2"
 
 
 if __name__ == "__main__":
