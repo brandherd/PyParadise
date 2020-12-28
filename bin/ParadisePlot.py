@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 import argparse
-from Paradise import *
-import numpy
 import sys
+from PyParadise import *
 from matplotlib import pyplot as plt
 
 __author__ = "Bernd Husemann"
 __contributor__ = ['Bernd Husemann', 'Omar Choudhury','Jakbo Walcher','Tanya Urrutia','Anika Beer']
+__credit__ = ['Bernd Husemann', 'Omar Choudhury','Jakbo Walcher','Tanya Urrutia','Anika Beer']
 __copyright__ = "Copyright 2020, Bernd Husemann"
 __license__ = "MIT"
-__version__ = "0.2"
 __maintainer__ = "Bernd Husemann"
 __email__ = "berndhusemann@gmx.de"
-__status__ = "Production"
+__status__ = "Development"
 __version__ = "0.2"
 
 
