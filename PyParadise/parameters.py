@@ -1,10 +1,7 @@
-try:
-    from UserDict import UserDict
-except ImportError:
-    from collections import UserDict
+from collections import UserDict
 import numpy
-import Paradise
-import pylab
+from .spectrum1d import Spectrum1D
+
 
 class Parameter(object):
     """A container for storing a parameter value and the corresponding
@@ -18,8 +15,8 @@ class Parameter(object):
         The type of object that is stored.
     """
     def __init__(self, value, description=''):
-        self.setValue(value)
-        self.setDescription(description)
+        self.__value = value
+        self.__description = description
 
     def getValue(self):
         """Obtain the value of the parameter."""
@@ -151,10 +148,11 @@ class CustomMasks(UserDict):
         else:
             mask = init_mask
         for i in range(len(self['observed_frame'])):
-            mask = numpy.logical_or(mask, (wave >= self['observed_frame'][i][0]) & (wave <= self['observed_frame'][i][1]))
+            mask = numpy.logical_or(mask, (wave >= self['observed_frame'][i][0]) &
+                                    (wave <= self['observed_frame'][i][1]))
         for i in range(len(self['rest_frame'])):
-            mask = numpy.logical_or(mask, (wave >= self['rest_frame'][i][0] * (1 + redshift)) & (wave <= self['rest_frame'][i][1]
-            * (1 + redshift)))
+            mask = numpy.logical_or(mask, (wave >= self['rest_frame'][i][0] * (1 + redshift)) &
+                                    (wave <= self['rest_frame'][i][1] * (1 + redshift)))
         return mask
 
     def maskPixelsRest(self, wave, redshift, init_mask=None):
@@ -183,8 +181,8 @@ class CustomMasks(UserDict):
         else:
             mask = init_mask
         for i in range(len(self['observed_frame'])):
-            mask = numpy.logical_or(mask, (wave >= self['observed_frame'][i][0] / (1 + redshift)) & (wave <=
-                self['observed_frame'][i][1] / (1 + redshift)))
+            mask = numpy.logical_or(mask, (wave >= self['observed_frame'][i][0] / (1 + redshift)) &
+                                    (wave <= self['observed_frame'][i][1] / (1 + redshift)))
         for i in range(len(self['rest_frame'])):
             mask = numpy.logical_or(mask, (wave > self['rest_frame'][i][0]) & (wave <= self['rest_frame'][i][1]))
         return mask
@@ -211,5 +209,5 @@ class CustomMasks(UserDict):
         error = inputSpec.getError()
         mask = inputSpec.getMask()
         new_mask = self.maskPixelsObserved(wave=wave, redshift=redshift, init_mask=mask)
-        new_spectrum = Paradise.Spectrum1D(wave=wave, data=values, error=error, mask=new_mask)
+        new_spectrum = Spectrum1D(wave=wave, data=values, error=error, mask=new_mask)
         return new_spectrum

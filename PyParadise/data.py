@@ -1,8 +1,5 @@
-from Paradise.lib.header import *
-try:
-    import astropy.io.fits as pyfits
-except ImportError:
-    import pyfits
+from .header import *
+import astropy.io.fits as pyfits
 import numpy
 from scipy import ndimage
 from scipy import __version__ as scipyversion
@@ -177,7 +174,7 @@ class Data(Header):
             new_normalization = self._normalization[slicer]
 
         data_out = Data(wave=new_wave, data=new_data, error=new_error, mask=new_mask,
-            normalization=new_normalization, inst_fwhm=new_fwhm)
+                        normalization=new_normalization, inst_fwhm=new_fwhm)
         data_out.__class__ = self.__class__
         return data_out
 
@@ -243,15 +240,18 @@ class Data(Header):
         else:
             if mask_norm is not None:
                 if scipyversion < "0.17":
-                    edges = numpy.r_[left * numpy.ones((mask_idx[0] - indices[0], 1)), right * numpy.ones((indices[-1] - mask_idx[-1], 1))]
+                    edges = numpy.r_[left * numpy.ones((mask_idx[0] - indices[0], 1)),
+                                     right * numpy.ones((indices[-1] - mask_idx[-1], 1))]
                     if edges.size == 0:
                         edges = numpy.nan
                     interp = interp1d(mask_idx, self._data[slicer], axis=axis, bounds_error=False, fill_value=edges)
                 else:
-                    interp = interp1d(mask_idx, self._data[slicer], axis=axis, bounds_error=False, fill_value='extrapolate')
+                    interp = interp1d(mask_idx, self._data[slicer], axis=axis, bounds_error=False,
+                                      fill_value='extrapolate')
                 temp_data = interp(indices)
 
-            mean = ndimage.filters.convolve1d(temp_data,numpy.ones(pixel_width) / pixel_width, axis=axis, mode='nearest')
+            mean = ndimage.filters.convolve1d(temp_data, numpy.ones(pixel_width) / pixel_width, axis=axis,
+                                              mode='nearest')
 
         select_zero = mean == 0
         mean[select_zero] = 1
@@ -259,7 +259,7 @@ class Data(Header):
         new_error = self._error / numpy.fabs(mean) if self._error is not None else None
 
         data_out = Data(wave=self._wave, data=new_data, error=new_error, mask=self._mask, normalization=mean,
-        inst_fwhm=self._inst_fwhm)
+                        inst_fwhm=self._inst_fwhm)
         data_out.__class__ = self.__class__
         return data_out
 
@@ -276,7 +276,8 @@ class Data(Header):
             error = self._error * numpy.fabs(self._normalization)
         else:
             error = None
-        data_out = Data(wave=self._wave, data=data, error=error, mask=self._mask, normalization=None, inst_fwhm=self._inst_fwhm)
+        data_out = Data(wave=self._wave, data=data, error=error, mask=self._mask, normalization=None,
+                        inst_fwhm=self._inst_fwhm)
         data_out.__class__ = self.__class__
         return data_out
 
@@ -295,8 +296,8 @@ class Data(Header):
         """Obtain the velocity sampling of the spectra in km/s."""
         return self._vel_sampling
 
-    def loadFitsData(self, file, extension_data=None, extension_mask=None, extension_error=None, extension_errorweight=None,
-    extension_hdr=0):
+    def loadFitsData(self, filename, extension_data=None, extension_mask=None, extension_error=None,
+                     extension_errorweight=None, extension_hdr=0):
         """
             Load data from a FITS image into a Data object
 
@@ -305,18 +306,27 @@ class Data(Header):
             filename : string
                 Name or Path of the FITS image from which the data shall be loaded
 
-            extension_data : int, optional with default: None
-                Number of the FITS extension containing the data
+            extension_data : int or string, optional with default: None
+                Number or name of the FITS extension containing the data
 
-            extension_mask : int, optional with default: None
-                Number of the FITS extension containing the masked pixels
+            extension_mask : int or string, optional with default: None
+                Number or name of the FITS extension containing the masked pixels
 
-            extension_error : int, optional with default: None
-                Number of the FITS extension containing the errors for the values
+            extension_error : int or string, optional with default: None
+                Number or string of the FITS extension containing the errors for the values
+
+            extension_errorweight : int or string, optional with default: None
+                Number or string of the FITS extension containing the errorweights that are only present in data
+                consisting of oversampled spatial information.
+
+            extension_hdr : int or string, optional with default: None
+                Number or name of the FITS extension containing the fits header to be used for the cube information like
+                wavelength or WCS system.
         """
-        hdu = pyfits.open(file)
+        hdu = pyfits.open(filename)
         self._dim = None
-        if extension_data is None and extension_mask is None and extension_error is None and extension_errorweight is None:
+        if extension_data is None and extension_mask is None and extension_error is None and \
+                extension_errorweight is None:
             if hdu[0].data is not None:
                 self._data = hdu[0].data
                 self._dim = self._data.shape
@@ -325,32 +335,32 @@ class Data(Header):
                     self.getHdrValue('ARRAY1')
                     for i in range(self._dim[0]):
                         try:
-                            array = self.getHdrValue('ARRAY%d' % (i + 1)).replace(' ','')
+                            array = self.getHdrValue('ARRAY%d' % (i + 1)).replace(' ', '')
                             if array == 'SPECTRUM' or array == 'DATA':
                                 self._data = hdu[0].data[i, :]
                                 self._dim = self._data.shape
                             elif array == 'ERROR':
                                 self._error = hdu[0].data[i, :]
-                            elif  array == 'WAVE':
+                            elif array == 'WAVE':
                                 self._wave = hdu[0].data[i, :]
                             elif array == 'MASK':
-                                self._mask = (hdu[0].data[i, :]>=1.0)
+                                self._mask = (hdu[0].data[i, :] >= 1.0)
                         except KeyError:
                             pass
 
                     if self._wave is None:
                         try:
-                            wave = (numpy.arange(self._dim[0]) - (self.getHdrValue('CRPIX1') - 1)) * self.getHdrValue('CD1_1'
-                            ) + self.getHdrValue('CRVAL1')
+                            wave = (numpy.arange(self._dim[0]) - (self.getHdrValue('CRPIX1') - 1)) * \
+                                   self.getHdrValue('CD1_1') + self.getHdrValue('CRVAL1')
                         except KeyError:
-                            wave = (numpy.arange(self._dim[0]) - (self.getHdrValue('CRPIX1') - 1)) * self.getHdrValue('CDELT1'
-                            ) + self.getHdrValue('CRVAL1')
+                            wave = (numpy.arange(self._dim[0]) - (self.getHdrValue('CRPIX1') - 1)) * \
+                                   self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
                         else:
                             pass
 
                         DC_flag = self.getHdrValue('DC-FLAG')
                         if int(DC_flag) == 1:
-                            self._wave = 10**(wave)
+                            self._wave = 10**wave
                         else:
                             self._wave = wave
                 except KeyError:
@@ -380,10 +390,10 @@ class Data(Header):
                     except KeyError:
                         pass
                 try:
-                    self._mask = tab['and_mask']!=0
+                    self._mask = tab['and_mask'] != 0
                 except KeyError:
                     try:
-                        self._mask = tab['mask']!=0
+                        self._mask = tab['mask'] != 0
                     except KeyError:
                         pass
                 self._dim = self._data.shape
@@ -410,19 +420,22 @@ class Data(Header):
                 self._dim_y = self._dim[1]
                 self._dim_x = self._dim[2]
                 if self._wave is None:
-                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT3') + self.getHdrValue('CRVAL3')
+                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT3') + \
+                                 self.getHdrValue('CRVAL3')
             elif len(self._dim) == 2:
                 self._datatype = "RSS"
                 self._res_elements = self._dim[1]
                 self._fibers = self._dim[0]
                 if self._wave is None:
-                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
+                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + \
+                                 self.getHdrValue('CRVAL1')
             elif len(self._dim) == 1:
                 self._datatype = "Spectrum1D"
                 self._pixels = numpy.arange(self._dim[0])
                 self._res_elements = self._dim[0]
                 if self._wave is None:
-                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + self.getHdrValue('CRVAL1')
+                    self._wave = numpy.arange(self._res_elements) * self.getHdrValue('CDELT1') + \
+                                 self.getHdrValue('CRVAL1')
 
         if extension_hdr is not None:
             self.setHeader(hdu[extension_hdr].header, origin=file)
@@ -432,7 +445,7 @@ class Data(Header):
         lines = file_in.readlines()
         wave = []
         data = []
-        error =[]
+        error = []
         mask = []
         for i in range(len(lines)):
             if '#' not in lines[i][0]:
@@ -458,9 +471,8 @@ class Data(Header):
         self._pixels = numpy.arange(self._dim[0])
         self._res_elements = self._dim[0]
 
-
     def writeFitsData(self, filename, extension_data=None, extension_mask=None, extension_error=None,
-    extension_errorweight=None,extension_normalization=None,store_wave=False):
+                      extension_errorweight=None, extension_normalization=None, store_wave=False):
         """
             Save information of the Data object into a FITS file.
             A single or multiple extension file are possible to create.
@@ -479,11 +491,12 @@ class Data(Header):
             extension_error : int, optional with default: None
                 Number of the FITS extension containing the errors for the values
         """
-        hdus = [None, None, None, None,None,None]  # create empty list for hdu storage
+        hdus = [None, None, None, None, None, None]  # create empty list for hdu storage
 
         # create primary hdus and image hdus
         # data hdu
-        if extension_data is None and extension_error is None and extension_mask is None and extension_errorweight is None and extension_normalization is None:
+        if extension_data is None and extension_error is None and extension_mask is None and \
+                extension_errorweight is None and extension_normalization is None:
             hdus[0] = pyfits.PrimaryHDU(self._data)
             if self._error is not None:
                 hdus[1] = pyfits.ImageHDU(self._error, name='ERROR')
@@ -544,22 +557,22 @@ class Data(Header):
                 hdu[0].update_header()
             else:
                 if self._wave is not None and not store_wave:
-                    if self._datatype== 'CUBE':
+                    if self._datatype == 'CUBE':
                         try:
                             hdu[0].header.update('CRVAL3', self._wave[0])
                         except:
-                            hdu[0].header['CRVAL3']=( self._wave[0])
+                            hdu[0].header['CRVAL3'] = (self._wave[0])
                         try:
                             hdu[0].header.update('CDELT3', self._wave[1] - self._wave[0])
                         except:
-                            hdu[0].header['CDELT3']=( self._wave[1] - self._wave[0])
+                            hdu[0].header['CDELT3'] = (self._wave[1] - self._wave[0])
                     else:
                         try:
                             hdu[0].header.update('CRVAL1', self._wave[0])
                         except:
-                            hdu[0].header['CRVAL1']=(self._wave[0])
+                            hdu[0].header['CRVAL1'] = (self._wave[0])
                         try:
                             hdu[0].header.update('CDELT1', self._wave[1] - self._wave[0])
                         except:
-                            hdu[0].header['CDELT1']=( self._wave[1] - self._wave[0])
+                            hdu[0].header['CDELT1'] = (self._wave[1] - self._wave[0])
         hdu.writeto(filename, overwrite=True)  # write FITS file to disc

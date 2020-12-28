@@ -1,16 +1,10 @@
-try:
-    import astropy.io.fits as pyfits
-except ImportError:
-    import pyfits
+import astropy.io.fits as pyfits
 import numpy
-import Paradise
+from .spectrum1d import Spectrum1D
 from scipy import ndimage
 from scipy import interpolate
 from scipy import optimize
-try:
-    from UserDict import UserDict
-except ImportError:
-    from collections import UserDict
+from collections import UserDict
 
 
 class SSPlibrary(UserDict):
@@ -39,7 +33,7 @@ class SSPlibrary(UserDict):
         A pyfits-file containing the template spectra.
     """
     def __init__(self, data=None, wave=None, spectralFWHM=None, infoSSP=None,
-         coefficients=None, normalization=None, filename=None):
+                 coefficients=None, normalization=None, filename=None):
         UserDict.__init__(self)
         if filename is not None:
             hdu = pyfits.open(filename)
@@ -84,7 +78,7 @@ class SSPlibrary(UserDict):
 
     def getSpec(self, i):
         """Obtain the ith template spectrum as a Spectrum1D object."""
-        spec = Paradise.Spectrum1D(wave=self.__wave, data=self.__data[:,i-1])
+        spec = Spectrum1D(wave=self.__wave, data=self.__data[:, i-1])
         try:
             spec.setVelSampling(self.getVelSampling())
         except:
@@ -142,8 +136,8 @@ class SSPlibrary(UserDict):
         infoSSP = {}
         for key in self.keys():
             infoSSP[key] = self[key]
-        new_SSP = SSPlibrary(data=self.__data[select_wave, :], wave=self.__wave[select_wave], spectralFWHM=self.__spectralFWHM,
-            infoSSP=infoSSP, coefficients=self.__coefficients)
+        new_SSP = SSPlibrary(data=self.__data[select_wave, :], wave=self.__wave[select_wave],
+                             spectralFWHM=self.__spectralFWHM, infoSSP=infoSSP, coefficients=self.__coefficients)
         new_SSP.__vel_sampling = self.__vel_sampling
         return new_SSP
 
@@ -168,7 +162,7 @@ class SSPlibrary(UserDict):
         for key in self.keys():
             infoSSP[key] = self[key][select]
         new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=self.__spectralFWHM,
-        infoSSP=infoSSP, coefficients=coefficients)
+                             infoSSP=infoSSP, coefficients=coefficients)
         new_SSP.__vel_sampling = self.__vel_sampling
         return new_SSP
 
@@ -217,33 +211,35 @@ class SSPlibrary(UserDict):
             mask = exclude_obj.maskPixelsRest(self.__wave, redshift)
             indices = numpy.indices(self.__wave.shape)[0]
             mask_idx = indices[mask]
-            gaps = (mask_idx[1:]-mask_idx[:-1])>1
+            gaps = (mask_idx[1:]-mask_idx[:-1]) > 1
             split_idx = numpy.arange(len(mask_idx[1:]))[gaps]+1
-            split_mask = numpy.split(mask_idx,split_idx)
+            split_mask = numpy.split(mask_idx, split_idx)
             if split_idx.shape != (0,):
                 for mask in split_mask:
                     if mask[0] == 0:
-                        temp_data[mask, :] = self.__data[mask[-1]+1,:]
+                        temp_data[mask, :] = self.__data[mask[-1]+1, :]
                         continue
                     elif mask[-1] == indices[-1]:
-                        temp_data[mask, :] = self.__data[mask[0]-1,:]
+                        temp_data[mask, :] = self.__data[mask[0]-1, :]
                         continue
-                    a = (self.__data[mask[-1]+1,:]-self.__data[mask[0]-1,:])/(self.__wave[mask[-1]+1]-self.__wave[mask[0]-1])
-                    b = self.__data[mask[0]-1,:]-a*self.__wave[mask[0]-1]
-                    temp_data[mask,:] = a[numpy.newaxis,:]*self.__wave[mask][:,numpy.newaxis]+b[numpy.newaxis,:]
+                    a = (self.__data[mask[-1]+1, :]-self.__data[mask[0]-1, :]) / \
+                        (self.__wave[mask[-1]+1]-self.__wave[mask[0]-1])
+                    b = self.__data[mask[0]-1, :]-a*self.__wave[mask[0]-1]
+                    temp_data[mask, :] = a[numpy.newaxis, :]*self.__wave[mask][:, numpy.newaxis]+b[numpy.newaxis, :]
 
         mean = ndimage.filters.convolve1d(temp_data, numpy.ones(pixel_width) / pixel_width, axis=0, mode='nearest')
         new_data = self.__data / mean
         new_SSP = SSPlibrary(data=new_data, wave=self.__wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
-        coefficients=self.__coefficients, normalization=mean)
+                             coefficients=self.__coefficients, normalization=mean)
         return new_SSP
 
     def unnormalizedBased(self):
         """Returns an object in which the normalization is removed from the
         template spectra.
         """
-        new_SSP = SSPlibrary(data=self.__data * self.__normalization, wave=self.__wave, spectralFWHM=self.__spectralFWHM,
-             infoSSP=self, coefficients=self.__coefficients, normalization=None)
+        new_SSP = SSPlibrary(data=self.__data * self.__normalization, wave=self.__wave,
+                             spectralFWHM=self.__spectralFWHM, infoSSP=self, coefficients=self.__coefficients,
+                             normalization=None)
         return new_SSP
 
     def compositeSpectrum(self, coefficients=None):
@@ -266,7 +262,7 @@ class SSPlibrary(UserDict):
             coeff = coefficients
         else:
             coeff = self.__coefficients
-        compositeSpec = Paradise.Spectrum1D(wave=self.__wave, data=numpy.dot(self.__data, coeff))
+        compositeSpec = Spectrum1D(wave=self.__wave, data=numpy.dot(self.__data, coeff))
         try:
             compositeSpec.setVelSampling(self.__vel_sampling)
         except:
@@ -306,13 +302,15 @@ class SSPlibrary(UserDict):
                 mean_out = [numpy.sum(coefficients[select_age])]
             else:
                 mean_out = [numpy.sum(self['luminosity'][select_age] * coefficients[select_age]) /
-                numpy.sum(self['luminosity'] * coefficients)]
+                            numpy.sum(self['luminosity'] * coefficients)]
             for par in parameters:
                 if self.__normalization is not None:
-                    mean_out.append(numpy.sum(self[par][select_age] * coefficients[select_age]) / numpy.sum(coefficients[select_age]))
+                    mean_out.append(numpy.sum(self[par][select_age] * coefficients[select_age]) /
+                                    numpy.sum(coefficients[select_age]))
                 else:
-                    mean_out.append(numpy.sum(self[par][select_age] * self['luminosity'][select_age] * coefficients[select_age]) /
-                        numpy.sum(self['luminosity'][select_age] * coefficients[select_age]))
+                    mean_out.append(numpy.sum(self[par][select_age] * self['luminosity'][select_age] *
+                                              coefficients[select_age])
+                                    / numpy.sum(self['luminosity'][select_age] * coefficients[select_age]))
         else:
             mean_out = [0.0, numpy.nan, numpy.nan, numpy.nan, numpy.nan]
         return numpy.array(mean_out)
@@ -344,20 +342,22 @@ class SSPlibrary(UserDict):
             select_age[self['age'] < min_age] = False
         if max_age is not None:
             select_age[self['age'] > max_age] = False
-        if numpy.sum(coefficients[select_age])>0:
+        if numpy.sum(coefficients[select_age]) > 0:
             if self.__normalization is not None:
                 mean_out = [numpy.sum(coefficients[select_age])]
             else:
                 mean_out = [numpy.sum(self['mass'][select_age] * coefficients[select_age]) /
-                numpy.sum(self['mass'] * coefficients)]
+                            numpy.sum(self['mass'] * coefficients)]
             for par in parameters:
                 if self.__normalization is not None:
-                    mean_out.append(numpy.sum(self[par][select_age] * self['mass'][select_age] / self['luminosity'][select_age] *
-                        coefficients[select_age]) / numpy.sum(self['mass'][select_age] / self['luminosity'][select_age]
-                        * coefficients[select_age]))
+                    mean_out.append(numpy.sum(self[par][select_age] * self['mass'][select_age] /
+                                              self['luminosity'][select_age] * coefficients[select_age])
+                                    / numpy.sum(self['mass'][select_age] / self['luminosity'][select_age]
+                                                * coefficients[select_age]))
                 else:
-                    mean_out.append(numpy.sum(self[par][select_age] * self['mass'][select_age] * coefficients[select_age]) /
-                        numpy.sum(self['mass'][select_age] * coefficients[select_age]))
+                    mean_out.append(numpy.sum(self[par][select_age] * self['mass'][select_age] *
+                                              coefficients[select_age]) /
+                                    numpy.sum(self['mass'][select_age] * coefficients[select_age]))
         else:
             mean_out = [0.0, numpy.nan, numpy.nan, numpy.nan, numpy.nan]
         return numpy.array(mean_out)
@@ -388,8 +388,8 @@ class SSPlibrary(UserDict):
             if self.__normalization is not None:
                 intp = interpolate.UnivariateSpline(self.__wave, self.__normalization[:, i], s=0)
                 normalization[:, i] = intp(new_wave)
-        new_SSP = SSPlibrary(data=data, wave=new_wave, spectralFWHM=self.__spectralFWHM, infoSSP=self, coefficients=
-        self.__coefficients, normalization=normalization)
+        new_SSP = SSPlibrary(data=data, wave=new_wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
+                             coefficients=self.__coefficients, normalization=normalization)
         return new_SSP
 
     def resampleWaveStepLinear(self, step, redshift):
@@ -423,7 +423,7 @@ class SSPlibrary(UserDict):
                 intp = interpolate.UnivariateSpline(self.__wave, self.__normalization[:, i], s=0)
                 normalization[:, i] = intp(new_wave)
         new_SSP = SSPlibrary(data=data, wave=new_wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
-        coefficients=self.__coefficients, normalization=normalization)
+                             coefficients=self.__coefficients, normalization=normalization)
         return new_SSP
 
     def rebinLogarithmic(self, oversampling=2):
@@ -439,8 +439,8 @@ class SSPlibrary(UserDict):
         wave_log = numpy.logspace(numpy.log10(self.__wave[0]),
                                   numpy.log10(self.__wave[-1]),
                                   len(self.__wave))
-        wave_log2 = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]), (numpy.log10(self.__wave[-1])
-        - numpy.log10(self.__wave[0])) / len(self.__wave))
+        wave_log2 = 10 ** numpy.arange(numpy.log10(self.__wave[0]), numpy.log10(self.__wave[-1]),
+                                       (numpy.log10(self.__wave[-1]) - numpy.log10(self.__wave[0])) / len(self.__wave))
         new_SSP = self.resampleBase(wave_log)
         new_SSP.__vel_sampling = (self.__wave[1] - self.__wave[0]) / self.__wave[0] * 300000.0
         return new_SSP
@@ -467,27 +467,32 @@ class SSPlibrary(UserDict):
         redshift = (1 + obs_velocity / 300000.0)
         wave = self.__wave * redshift
         instFWHM_wave = instFWHM.getRes(wave)
-        valid = instFWHM.compareRes(self.__spectralFWHM/2.354*redshift,wave)
+        valid = instFWHM.compareRes(self.__spectralFWHM/2.354*redshift, wave)
         if valid:
             if instFWHM._inter is None:
                 smooth_FWHM = numpy.sqrt(instFWHM_wave ** 2 - (self.__spectralFWHM/2.354 * redshift) ** 2)
                 disp_pix = (smooth_FWHM) / (wave[1] - wave[0])
                 data = ndimage.filters.gaussian_filter1d(self.__data, disp_pix, axis=0, mode='nearest')
                 new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
-                 coefficients=self.__coefficients)
+                                     coefficients=self.__coefficients)
             else:
                 smooth_FWHM = numpy.sqrt(instFWHM_wave ** 2 - (self.__spectralFWHM/2.354 * redshift) ** 2)
                 disp_pix = (smooth_FWHM)
                 fact = numpy.sqrt(2.*numpy.pi)
-                kernel=numpy.exp(-0.5*((wave-wave[:,numpy.newaxis])/abs(disp_pix[:,numpy.newaxis]))**2)/(fact*abs(disp_pix[:,numpy.newaxis]))
-                kernel = kernel/numpy.sum(kernel,axis=1)
+                kernel = numpy.exp(-0.5*((wave-wave[:, numpy.newaxis])/abs(disp_pix[:, numpy.newaxis]))**2) / \
+                         (fact*abs(disp_pix[:, numpy.newaxis]))
+                kernel = kernel/numpy.sum(kernel, axis=1)
                 smooth_data = numpy.zeros(self.__data.shape)
                 for i in range(self.__nbasis):
-                    smooth_data[:,i] = numpy.sum(self.__data[:,i][:,numpy.newaxis]*kernel,axis=0)
+                    smooth_data[:, i] = numpy.sum(self.__data[:, i][:, numpy.newaxis]*kernel, axis=0)
                 new_SSP = SSPlibrary(data=smooth_data, wave=self.__wave, spectralFWHM=instFWHM_wave, infoSSP=self,
-                 coefficients=self.__coefficients)
+                                     coefficients=self.__coefficients)
         else:
-            raise ValueError("The instrinic spectral resolution of the template spectra %E is higher than the minimum targetFWHM spectral resolution %E in the given observed frame z=%E" %(self.__spectralFWHM, numpy.min(instFWHM.getRes(wave)*2.354)*(redshift), redshift))
+            raise ValueError("The instrinic spectral resolution of the template spectra %E is higher"
+                             " than the minimum targetFWHM spectral resolution %E in the given observed frame "
+                             "z=%E" % (self.__spectralFWHM,
+                                       numpy.min(instFWHM.getRes(wave)*2.354)*redshift,
+                                       redshift))
 
         return new_SSP
 
@@ -513,12 +518,13 @@ class SSPlibrary(UserDict):
         disp_pix = disp_vel / self.__vel_sampling
         data = ndimage.filters.gaussian_filter1d(self.__data, numpy.fabs(disp_pix), axis=0, mode='constant')
         if self.__normalization is not None:
-            normalization = ndimage.filters.gaussian_filter1d(self.__normalization, numpy.fabs(disp_pix), axis=0, mode='constant')
+            normalization = ndimage.filters.gaussian_filter1d(self.__normalization, numpy.fabs(disp_pix), axis=0,
+                                                              mode='constant')
         else:
             normalization = None
         wave = self.__wave * (1 + vel / 300000.0)
         new_SSP = SSPlibrary(data=data, wave=wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
-        coefficients=self.__coefficients, normalization=normalization)
+                             coefficients=self.__coefficients, normalization=normalization)
         new_SSP.__vel_sampling = self.__vel_sampling
         return new_SSP
 
@@ -547,7 +553,7 @@ class SSPlibrary(UserDict):
         Alambda = Arat * A_V
         data = self.__data * 10 ** (Alambda[:, numpy.newaxis] / -2.5)
         new_SSP = SSPlibrary(data=data, wave=self.__wave, spectralFWHM=self.__spectralFWHM, infoSSP=self,
-        coefficients=self.__coefficients)
+                             coefficients=self.__coefficients)
         try:
             new_SSP.__vel_sampling = self.__vel_sampling
         except:
@@ -563,7 +569,7 @@ class SSPlibrary(UserDict):
         vel : float
             The velocity of the object in km/s to which the template spectra
             will be moved.
-        disp_vel : float
+        vel_disp : float
             The velocity dispersion of the object in km/s to which the template
             spectra will be broadened.
         A_V : float
@@ -662,6 +668,3 @@ class SSPlibrary(UserDict):
         best_fit = tempLib.findLinearCombination(inputSpec)
         self.setCoefficients(best_fit[2])
         return output, best_fit
-
-
-
