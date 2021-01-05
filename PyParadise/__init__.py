@@ -1,12 +1,12 @@
-from .cube import *
-from .rss import *
-from .ssplibrary import *
-from .fit_profile import *
-from .header import *
-from .parameters import *
-from .spectrum1d import *
-from .data import *
-from .data import *
+from . import data
+from . import cube
+from . import rss
+from . import spectrum1d
+from . import ssplibrary
+from . import parameters
+from . import fit_profile
+from . import header
+
 import copyreg as copy_reg
 from types import *
 

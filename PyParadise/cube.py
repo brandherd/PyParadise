@@ -1,4 +1,4 @@
-from .data import *
+from .data import Data
 from .spectrum1d import Spectrum1D
 from multiprocessing import cpu_count
 from multiprocessing import Pool
@@ -194,23 +194,23 @@ class Cube(Data):
         fitted = numpy.zeros(self._dim_y * self._dim_x, dtype="bool")
         coeff = numpy.zeros((self._dim_y * self._dim_x, SSPLib.getBaseNumber()), dtype=numpy.float32)
 
-        def extract_result(result, i, x, y):
-            vel_fit[i] = result[0]
-            vel_fit_err[i] = result[1]
-            Rvel[i] = result[2]
-            disp_fit[i] = result[3]
-            disp_fit_err[i] = result[4]
-            Rdisp[i] = result[5]
-            fitted[i] = True
-            coeff[i, :] = result[7]
-            chi2[i] = result[8]
-            x_pix[i] = x
-            y_pix[i] = y
+        def extract_result(result, j, x, y):
+            vel_fit[j] = result[0]
+            vel_fit_err[j] = result[1]
+            Rvel[j] = result[2]
+            disp_fit[j] = result[3]
+            disp_fit_err[j] = result[4]
+            Rdisp[j] = result[5]
+            fitted[j] = True
+            coeff[j, :] = result[7]
+            chi2[j] = result[8]
+            x_pix[j] = x
+            y_pix[j] = y
             cube_model[:, y, x] = result[6].unnormalizedSpec().getData()
             mask[:, y, x] = result[6].getMask()
             if verbose:
                 print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x))
-                print("vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[i], disp_fit[i], chi2[i]))
+                print("vel_fit: %.3f  disp_fit: %.3f chi2: %.2f" % (vel_fit[j], disp_fit[j], chi2[j]))
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -229,7 +229,7 @@ class Cube(Data):
                             walkers, burn, samples, thin)
                     if cpus > 1:
                         results.append([x, y, pool.apply_async(spec.fit_Kin_Lib_simple, args,
-                                                               callback=partial(extract_result, i=m, x=x, y=y))])
+                                                               callback=partial(extract_result, j=m, x=x, y=y))])
                         sleep(0.01)
                     else:
                         try:

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
-import PyParadise import *
+import numpy
+from astropy.io import fits as pyfits
+import PyParadise
 
 __author__ = "Bernd Husemann"
 __contributor__ = ['Bernd Husemann', 'Omar Choudhury']
@@ -42,17 +44,17 @@ class ParadiseApp(object):
             The instrumental resolution of the data in `input_file`.
         """
 
-        self.__inputData = loadSpectrum(input_file)
+        self.__inputData = PyParadise.spectrum1d.loadSpectrum(input_file)
         if self.__inputData._datatype == 'CUBE':
-            self.__inputData = loadCube(input_file)
+            self.__inputData = PyParadise.cube.loadCube(input_file)
             self.__inputData.correctError()
             self.__datatype = 'CUBE'
         elif self.__inputData._datatype == 'RSS':
-            self.__inputData = loadRSS(input_file)
+            self.__inputData = PyParadise.rss.loadRSS(input_file)
             self.__inputData.correctError()
             self.__datatype = 'RSS'
         elif self.__inputData._datatype == 'Spectrum1D':
-            data = loadSpectrum(input_file)
+            data = PyParadise.spectrum1D.loadSpectrum(input_file)
             data.correctError()
             self.__datatype = 'RSS'
             if data._error is not None:
@@ -63,13 +65,13 @@ class ParadiseApp(object):
                 m = numpy.array([data._mask])
             else:
                 m = None
-            self.__inputData = RSS(wave=data._wave, data=numpy.array([data._data]), error=err, mask=m)
+            self.__inputData = PyParadise.rss.RSS(wave=data._wave, data=numpy.array([data._data]), error=err, mask=m)
         self.__outPrefix = outprefix
         try:
-            self.__instrFWHM = SpectralResolution(res=float(instrFWHM))
+            self.__instrFWHM = PyParadise.spectrum1d.SpectralResolution(res=float(instrFWHM))
         except ValueError:
             try:
-                self.__instrFWHM=SpectralResolution()
+                self.__instrFWHM = PyParadise.spectrum1d.SpectralResolution()
                 self.__instrFWHM.readFile(instrFWHM)
             except IOError:
                 print("Wrong input for spectral resolution. Specify either a float number or the path to an ASCII file with columns wavelengt and spectral resolution as content.")
@@ -109,7 +111,7 @@ class ParadiseApp(object):
           mass-weighted parameters.
         """
         ## Read in parameter file and get values
-        parList = ParameterList(parfile)
+        parList = PyParadise.parameters.ParameterList(parfile)
         nlib_guess = int(parList['tmplinitspec'].getValue())
         vel_guess = float(parList['vel_guess'].getValue())
         vel_min = float(parList['vel_min'].getValue())
@@ -127,8 +129,8 @@ class ParadiseApp(object):
         store_chain = bool(int(parList['store_chain'].getValue()))
         start_wave = float(parList['start_wave'].getValue())
         end_wave = float(parList['end_wave'].getValue())
-        excl_fit = CustomMasks(parList['excl_fit'].getValue())
-        excl_cont = CustomMasks(parList['excl_cont'].getValue())
+        excl_fit = PyParadise.parameters.CustomMasks(parList['excl_fit'].getValue())
+        excl_cont = PyParadise.parameters.CustomMasks(parList['excl_cont'].getValue())
         min_x = int(parList['min_x'].getValue())
         max_x = int(parList['max_x'].getValue())
         min_y = int(parList['min_y'].getValue())
@@ -149,7 +151,7 @@ class ParadiseApp(object):
 
         if verbose:
             print("The stellar population library is being prepared.")
-        lib = SSPlibrary(filename=parList['tmpldir'].getValue() + '/' + parList['tmplfile'].getValue())
+        lib = PyParadise.ssplibrary.SSPlibrary(filename=parList['tmpldir'].getValue() + '/' + parList['tmplfile'].getValue())
         if kin_fix is True:
             hdu = pyfits.open(self.__outPrefix + '.kin_table.fits')
             tab = hdu[1].data
@@ -214,15 +216,15 @@ class ParadiseApp(object):
         # pylab.plot(rss_model[0,:],'-g')
         # pylab.show()
         if self.__datatype == 'RSS':
-            model_out = RSS(wave=normDataSub.getWave(), data=rss_model, error=normDataSub.unnormalizedSpec()._error, mask=mask,
+            model_out = PyParadise.rss.RSS(wave=normDataSub.getWave(), data=rss_model, error=normDataSub.unnormalizedSpec()._error, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
-            res_out = RSS(wave=normDataSub.getWave(),
+            res_out = PyParadise.rss.RSS(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - rss_model,
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'CUBE':
-            model_out = Cube(wave=normDataSub.getWave(), data=cube_model, error=normDataSub.unnormalizedSpec()._error, mask=mask,
+            model_out = PyParadise.cube.Cube(wave=normDataSub.getWave(), data=cube_model, error=normDataSub.unnormalizedSpec()._error, mask=mask,
                 header=self.__inputData.getHeader(), normalization=normDataSub.getNormalization())
-            res_out = Cube(wave=normDataSub.getWave(),
+            res_out = PyParadise.cube.Cube(wave=normDataSub.getWave(),
                 data=self.__inputData.subWaveLimits(start_wave, end_wave).getData() - cube_model,
                 header=self.__inputData.getHeader())
         if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
@@ -315,10 +317,10 @@ class ParadiseApp(object):
         - `outprefix`.eline_table.fits contains the parameters of the best
           fit, like flux, velocity and the FWHM.
         """
-        parList = ParameterList(parfile)
+        parList = PyParadise.parameters.ParameterList(parfile)
         eCompFile = parList['eCompFile'].getValue()
         vel_guess = float(parList['vel_guess'].getValue())
-        line_fit = CustomMasks(parList['line_fit_region'].getValue())
+        line_fit = PyParadise.parameters.CustomMasks(parList['line_fit_region'].getValue())
         efit_method = parList['efit_method'].getValue()
         efit_ftol = float(parList['efit_ftol'].getValue())
         efit_xtol = float(parList['efit_xtol'].getValue())
@@ -336,11 +338,11 @@ class ParadiseApp(object):
         elif self.__datatype == 'RSS':
             fiber = stellar_table.field('fiber')
 
-        line_par = fit_profile.parFile(eCompFile, self.__instrFWHM)
+        line_par = PyParadise.fit_profile.parFile(eCompFile, self.__instrFWHM)
         if self.__datatype == 'CUBE':
-            res_out = loadCube(self.__outPrefix + '.cont_res.fits')
+            res_out = PyParadise.cube.loadCube(self.__outPrefix + '.cont_res.fits')
         elif self.__datatype == 'RSS':
-            res_out = loadRSS(self.__outPrefix + '.cont_res.fits')
+            res_out = PyParadise.rss.loadRSS(self.__outPrefix + '.cont_res.fits')
         disp1 = res_out._wave[1]-res_out._wave[0]
         res_wave_start = res_out._wave[0]-disp1/2.0
         disp2 = res_out._wave[-1]-res_out._wave[-2]
@@ -351,15 +353,15 @@ class ParadiseApp(object):
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_x, max_x, min_y, max_y, method=efit_method, guess_window=guess_window,
                 spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
-            model_line = Cube(wave=res_out.getWave(), data=out_lines[4], header=self.__inputData.getHeader())
-            line_res = Cube(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
+            model_line = PyParadise.cube.Cube(wave=res_out.getWave(), data=out_lines[4], header=self.__inputData.getHeader())
+            line_res = PyParadise.cube.Cube(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
         elif self.__datatype == 'RSS':
             out_lines = res_out.fitELines(line_par, line_fit.maskPixelsObserved(res_out.getWave(),
                 vel_guess / 300000.0), min_y, max_y, method=efit_method, guess_window=guess_window,
                 spectral_res=self.__instrFWHM, ftol=efit_ftol, xtol=efit_xtol, verbose=verbose, parallel=parallel)
-            model_line = RSS(wave=res_out.getWave(), data=out_lines[3], header=self.__inputData.getHeader())
-            line_res = RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
+            model_line = PyParadise.rss.RSS(wave=res_out.getWave(), data=out_lines[3], header=self.__inputData.getHeader())
+            line_res = PyParadise.rss.RSS(wave=res_out.getWave(), data=res_out.getData() - model_line.getData(),
                 header=self.__inputData.getHeader())
         if numpy.max(self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) - numpy.min(
                      self.__inputData.getWave()[1:] - self.__inputData.getWave()[:-1]) < 0.01:
@@ -438,7 +440,7 @@ class ParadiseApp(object):
         appended with information on the errors on the fitted parameters.
         """
         ## Read in parameter file and get values
-        parList = ParameterList(stellar_parfile)
+        parList = PyParadise.parameters.ParameterList(stellar_parfile)
         tmpldir = parList['tmpldir'].getValue()
         tmplfile = parList['tmplfile'].getValue()
         vel_guess = float(parList['vel_guess'].getValue())
@@ -447,8 +449,8 @@ class ParadiseApp(object):
         nwidth_norm = int(parList['nwidth_norm'].getValue())
         start_wave = float(parList['start_wave'].getValue())
         end_wave = float(parList['end_wave'].getValue())
-        excl_fit = CustomMasks(parList['excl_fit'].getValue())
-        excl_cont = CustomMasks(parList['excl_cont'].getValue())
+        excl_fit = PyParadise.parameters.CustomMasks(parList['excl_fit'].getValue())
+        excl_cont = PyParadise.parameters.CustomMasks(parList['excl_cont'].getValue())
         nlib_guess = int(parList['tmplinitspec'].getValue())
         kin_bootstrap = bool(int(parList['kin_bootstrap'].getValue()))
 
@@ -485,16 +487,16 @@ class ParadiseApp(object):
             disp_err = None
 
         if eline_parfile is not None:
-            parList = ParameterList(eline_parfile)
+            parList = PyParadise.parameters.ParameterList(eline_parfile)
             eCompFile = parList['eCompFile'].getValue()
             vel_guess = float(parList['vel_guess'].getValue())
-            line_fit = CustomMasks(parList['line_fit_region'].getValue())
+            line_fit = PyParadise.parameters.CustomMasks(parList['line_fit_region'].getValue())
             efit_method = parList['efit_method'].getValue()
             efit_ftol = float(parList['efit_ftol'].getValue())
             efit_xtol = float(parList['efit_xtol'].getValue())
             guess_window = int(parList['eguess_window'].getValue())
 
-            line_par = fit_profile.parFile(eCompFile, self.__instrFWHM)
+            line_par = PyParadise.fit_profile.parFile(eCompFile, self.__instrFWHM)
 
             hdu = pyfits.open(self.__outPrefix + '.eline_table.fits')
             eline_table = hdu[1].data
@@ -506,7 +508,7 @@ class ParadiseApp(object):
 
         if verbose:
             print("The stellar population library is being prepared.")
-        lib = SSPlibrary(filename=tmpldir + '/' + tmplfile)
+        lib = PyParadise.ssplibrary.SSPlibrary(filename=tmpldir + '/' + tmplfile)
         min_wave = (start_wave / (1 + (vel_max + 2000) / 300000.0))
         max_wave = (end_wave / (1 + (vel_min - 2000) / 300000.0))
 

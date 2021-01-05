@@ -226,7 +226,7 @@ class RSS(Data):
                         walkers, burn, samples, thin, sample_out)
                 if cpus > 1:
                     results.append([m, pool.apply_async(spec.fit_Kin_Lib_simple, args,
-                                                        callback=partial(extract_result, i=m, sample_out=sample_out))])
+                                                        callback=partial(extract_result, j=m, sample_out=sample_out))])
                     sleep(0.01)
                 else:
                     try:

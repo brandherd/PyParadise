@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-from PyParadise import *
+import PyParadise
 from matplotlib import pyplot as plt
 
 __author__ = "Bernd Husemann"
@@ -29,18 +29,18 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='SpectrumPlotting')
     args = parser.parse_args()
     
     try:
-        rss = loadSpectrum(args.input)
+        rss = PyParadise.spectrum1d.loadSpectrum(args.input)
     except IOError:
         print("Input data not found. Please check the file names.")
         sys.exit()
     try:
-        cont = loadSpectrum('%s.cont_model.fits'%(args.prefix))
-        res = loadSpectrum('%s.cont_res.fits'%(args.prefix))
+        cont = PyParadise.spectrum1d.loadSpectrum('%s.cont_model.fits'%(args.prefix))
+        res = PyParadise.spectrum1d.loadSpectrum('%s.cont_res.fits'%(args.prefix))
     except IOError:
         print("PyParadise output data cannot be found. Please check the prefix for the file names.")
         sys.exit()
     try:
-        line = loadSpectrum('%s.eline_model.fits'%(args.prefix))
+        line = PyParadise.spectrum1d.loadSpectrum('%s.eline_model.fits'%(args.prefix))
         line_model_present=True
     except IOError:
         print("No emission line model found. Plot without the line model.")
@@ -84,7 +84,7 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='SpectrumPlotting')
     leg.draw_frame(True)
     
     if args.mask_cont is not None:
-        cont_mask = CustomMasks(args.mask_cont)
+        cont_mask = PyParadise.parameters.CustomMasks(args.mask_cont)
         for i in range(len(cont_mask['rest_frame'])):
             ax1.axvspan(cont_mask['rest_frame'][i][0]*(1+z),cont_mask['rest_frame'][i][1]*(1+z),color='k',alpha=0.2)
         for i in range(len(cont_mask['observed_frame'])):
@@ -100,7 +100,7 @@ formatter_class=argparse.ArgumentDefaultsHelpFormatter, prog='SpectrumPlotting')
         leg2 = ax2.legend(loc='upper left',fontsize=16)
         leg2.draw_frame(True)
         if args.fit_line is not None:
-            line_mask = CustomMasks(args.fit_line)
+            line_mask = PyParadise.parameters.CustomMasks(args.fit_line)
         for i in range(len(line_mask['rest_frame'])):
             ax2.axvspan(line_mask['rest_frame'][i][0]*(1+z),line_mask['rest_frame'][i][1]*(1+z),color='b',alpha=0.2)
     ax1.set_ylabel(r'$f_\lambda$',fontsize=16)

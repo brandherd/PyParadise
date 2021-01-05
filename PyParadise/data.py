@@ -1,4 +1,4 @@
-from .header import *
+from .header import Header
 import astropy.io.fits as pyfits
 import numpy
 from scipy import ndimage
@@ -330,7 +330,7 @@ class Data(Header):
             if hdu[0].data is not None:
                 self._data = hdu[0].data
                 self._dim = self._data.shape
-                self.setHeader(header=hdu[extension_hdr].header, origin=file)
+                self.setHeader(header=hdu[extension_hdr].header, origin=filename)
                 try:
                     self.getHdrValue('ARRAY1')
                     for i in range(self._dim[0]):
@@ -398,7 +398,7 @@ class Data(Header):
                         pass
                 self._dim = self._data.shape
         else:
-            self.setHeader(header=hdu[extension_hdr].header, origin=file)
+            self.setHeader(header=hdu[extension_hdr].header, origin=filename)
             if extension_data is not None:
                 self._data = hdu[extension_data].data
                 self._dim = self._data.shape
@@ -438,7 +438,7 @@ class Data(Header):
                                  self.getHdrValue('CRVAL1')
 
         if extension_hdr is not None:
-            self.setHeader(hdu[extension_hdr].header, origin=file)
+            self.setHeader(hdu[extension_hdr].header, origin=filename)
 
     def loadTxtData(self, filename):
         file_in = open(filename)

@@ -1,5 +1,5 @@
 import numpy
-import fit_profile
+from .fit_profile import fit_linearComb
 from .data import Data
 from scipy import ndimage
 from scipy import interpolate
@@ -11,7 +11,6 @@ try:
     import pymc
 except ImportError:
     pymc = None
-import pylab
 
 from copy import deepcopy
 try:
@@ -346,9 +345,9 @@ class Spectrum1D(Data):
         else:
             tempLib = SSPLibrary
         if SSPLibrary.getBaseNumber() == 1:
-            libFit = fit_profile.fit_linearComb(tempLib.getBase(), coeff=numpy.array([1], dtype=numpy.float32))
+            libFit = fit_linearComb(tempLib.getBase(), coeff=numpy.array([1], dtype=numpy.float32))
         else:
-            libFit = fit_profile.fit_linearComb(tempLib.getBase())
+            libFit = fit_linearComb(tempLib.getBase())
             libFit.fit(self._data, error, self._mask, negative=negative)
         bestfit_spec = Spectrum1D(self._wave, data=libFit(), normalization=self.getNormalization(), mask=self.getMask())
         chi2 = libFit.chisq(self._data, sigma=error, mask=self._mask)
