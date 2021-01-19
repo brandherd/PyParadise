@@ -20,14 +20,14 @@ system like conda (or similar)
    
 If the image looks like the one below your PyParadise installation works.
 
-![](examples/test.png)
+![](examples/NGC2691.spec_fit_temp.png)
 
 ## Basic usage and commands
 For the ease of simplicity and usage, PyParadise is primarly executed from the command line. There
 are a view primary commands to execute PyParadise:
 
-1. PyParadiseApp.py INPUT_DATA OUTPUT_PREFIX SPEC_FWHM_DATA --SSP_par FILE_PAR_STELLAR
-2. PyParadiseApp.py INPUT_DATA OUTPUT_PREFIX SPEC_FWHM_DATA --line_par FILE_PAR_ELINES
+1. ParadiseApp.py INPUT_DATA OUTPUT_PREFIX SPEC_FWHM_DATA --SSP_par FILE_PAR_STELLAR
+2. ParadiseApp.py INPUT_DATA OUTPUT_PREFIX SPEC_FWHM_DATA --line_par FILE_PAR_ELINES
 3. (optional) ParadiseApp.py INPUT_DATA OUTPUT_PREFIX SPEC_FWHM_DATA --SSP_par FILE_PAR_STELLAR
    --line_par FILE_PAR_ELINES --bootstraps N_ITERATIONS --modkeep PERCENT_OF_SSPs 
 
