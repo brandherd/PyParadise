@@ -322,17 +322,17 @@ class Cube(Data):
         fitted = numpy.zeros(len(x_pos), dtype="bool")
         coeff = numpy.zeros((len(x_pos), SSPLib.getBaseNumber()), dtype=numpy.float32)
 
-        def extract_result(result, i, x_cor, y_cor):
-            fitted[i] = True
-            coeff[i, :] = result[0]
-            chi2[i] = result[2]
-            x_pix[i] = x_cor
-            y_pix[i] = y_cor
+        def extract_result(result, j, x_cor, y_cor):
+            fitted[j] = True
+            coeff[j, :] = result[0]
+            chi2[j] = result[2]
+            x_pix[j] = x_cor
+            y_pix[j] = y_cor
             cube_model[:, y_cor, x_cor] = result[1].unnormalizedSpec().getData()
             mask[:, y_cor, x_cor] = result[1].getMask()
             if verbose:
-                print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y, x))
-                print("chi2: %.2f" % (chi2[i]))
+                print("Fitting of SSP(s) to spectrum (y, x) = (%d, %d) finished." % (y_cor, x_cor))
+                print("chi2: %.2f" % (chi2[j]))
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -350,7 +350,7 @@ class Cube(Data):
                         mask_fit.maskPixelsObserved(spec.getWave(), vel[m] / 300000.0))
                 if cpus > 1:
                     results.append([m, pool.apply_async(spec.fitSuperposition, args,
-                                                        callback=partial(extract_result, i=m, x=x, y=y))])
+                                                        callback=partial(extract_result, j=m, x_cor=x, y_cor=y))])
                     sleep(0.01)
                 else:
                     try:
@@ -442,18 +442,18 @@ class Cube(Data):
                 model['fwhm'] = numpy.zeros((self._dim_y * self._dim_x), dtype=numpy.float32)
             maps[n] = model
 
-        def extract_result(result, i, x, y):
-            fitted[i] = True
-            x_pix[i] = x
-            y_pix[i] = y
+        def extract_result(result, j, x, y):
+            fitted[j] = True
+            x_pix[j] = x
+            y_pix[j] = y
             cube_model[:, y, x] = result[1]
             if verbose:
                 print("Fitting of emission lines to spectrum (y, x) = (%d, %d) finished." % (y, x))
             for n in par._names:
                 if par._profile_type[n] == 'Gauss':
-                    maps[n]['flux'][i] = result[0][n][0]
-                    maps[n]['vel'][i] = result[0][n][1]
-                    maps[n]['fwhm'][i] = result[0][n][2]
+                    maps[n]['flux'][j] = result[0][n][0]
+                    maps[n]['vel'][j] = result[0][n][1]
+                    maps[n]['fwhm'][j] = result[0][n][2]
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -468,7 +468,7 @@ class Cube(Data):
                 if spec.hasData() and x >= (min_x - 1) and x <= (max_x - 1) and y >= (min_y - 1) and y <= (max_y - 1):
                     args = (par, select_wave, method, guess_window, spectral_res, ftol, xtol, 1)
                     if cpus > 1:
-                        pool.apply_async(spec.fitELines, args, callback=partial(extract_result, i=m, x=x, y=y))
+                        pool.apply_async(spec.fitELines, args, callback=partial(extract_result, j=m, x=x, y=y))
                         sleep(0.01)
                     else:
                         try:
@@ -507,18 +507,18 @@ class Cube(Data):
             x_line = None
             y_line = None
 
-        def extract_result(result, i, x, y):
-            coeffs[i, :] = result[0]
-            x_line[i] = x
-            y_line[i] = y
+        def extract_result(result, j, x, y):
+            coeffs[j, :] = result[0]
+            x_line[j] = x
+            y_line[j] = y
             if verbose:
                 print("Bootstrapping spectrum (y, x) = (%d, %d) finished." % (y, x))
             if par_eline is not None:
                 for n in par_eline._names:
                     if par_eline._profile_type[n] == 'Gauss':
-                        maps[n]['flux_err'][i] = result[1][n]['flux']
-                        maps[n]['vel_err'][i] = result[1][n]['vel']
-                        maps[n]['fwhm_err'][i] = result[1][n]['fwhm']
+                        maps[n]['flux_err'][j] = result[1][n]['flux']
+                        maps[n]['vel_err'][j] = result[1][n]['vel']
+                        maps[n]['fwhm_err'][j] = result[1][n]['fwhm']
 
         if parallel == 'auto':
             cpus = cpu_count()
@@ -535,7 +535,7 @@ class Cube(Data):
                     spectral_res, ftol, xtol, bootstraps, modkeep, 1)
             if cpus > 1:
                 pool.apply_async(spec.fit_Lib_Boots, args,
-                                 callback=partial(extract_result, i=m, x=x_cor[m], y=y_cor[m]))
+                                 callback=partial(extract_result, j=m, x=x_cor[m], y=y_cor[m]))
                 sleep(0.01)
             else:
                 result = spec.fit_Lib_Boots(*args)
