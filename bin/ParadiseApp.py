@@ -54,7 +54,7 @@ class ParadiseApp(object):
             self.__inputData.correctError()
             self.__datatype = 'RSS'
         elif self.__inputData._datatype == 'Spectrum1D':
-            data = PyParadise.spectrum1D.loadSpectrum(input_file)
+            data = PyParadise.spectrum1d.loadSpectrum(input_file)
             data.correctError()
             self.__datatype = 'RSS'
             if data._error is not None:
