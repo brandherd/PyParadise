@@ -1,5 +1,6 @@
 % Version 1: Bernd
 % Version 2: Omar
+% Version New: Bernd
 \documentclass[usenatbib,usegraphicx,useAMS,onecolumn]{mn2e}
 \usepackage[T1]{fontenc}
 %\usepackage{txfonts}
@@ -9,6 +10,7 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{enumitem}
+\usepackage{tcolorbox}
 \newcommand{\COzero}{${}^{12}\mathrm{CO}(1-0)$}
 \newcommand{\COtwo}{${}^{12}\mathrm{CO}(2-1)$}
 \newcommand{\Fe}{\textsc{feii}}
@@ -37,19 +39,21 @@
 \newcommand{\fname}[1]{\textcolor{magenta}{\codeline{#1}}}
 \newcommand{\headerkw}[1]{\textcolor{ForestGreen}{\codeline{#1}}}
 \newcommand{\headerval}[1]{\textcolor{YellowGreen}{\codeline{#1}}}
-
-\newcommand{\myemail}{bhuseman@eso.org}
+\newcommand{\PyPar}{\mbox{\textsc{PyParadise}}}
+\newcommand{\myemail}{husemann@mpia.de}
 %\bibpunct{(}{)}{;}{a}{}{,}
+
 
 \definecolor{deepblue}{rgb}{0,0,0.5}
 \definecolor{deepred}{rgb}{0.6,0,0}
 \definecolor{deepgreen}{rgb}{0,0.5,0}
+\setlength\parindent{0pt}
 
 \begin{document}
 
 \title{PyParadise User Manual}
 
-\author[Husemann et al.]{B.~Husemann$^{1}$\thanks{ESO fellow, bhuseman@eso.org}, O. S. Choudhury$^{2}$, C. J. Walcher$^{2}$\newauthor\\
+\author[Husemann et al.]{B.~Husemann$^{1}$, O. S. Choudhury$^{2}$, C. J. Walcher$^{2}$\newauthor\\
 $^1$European Southern Observatory, Karl-Schwarzschild-Str. 2, 85748 Garching b. M\"unchen, Germany\\
 $^2$Leibniz-Institut f\"ur Astrophysik Potsdam (AIP), An der Sternwarte 16, 14482 Potsdam, Germany\\
 }
@@ -60,93 +64,207 @@ $^2$Leibniz-Institut f\"ur Astrophysik Potsdam (AIP), An der Sternwarte 16, 1448
 %\begin{keywords}
 %\end{keywords}
 
-\section{Introduction}
-\label{sec:introduction}
-There are a number of codes available for deriving stellar population properties from full-spectral fitting and/or emission lines, each with various advantages and disadvantages.
-In general, there are three different approaches to obtain derive the star-formation histories from stellar populations: codes that parametrise the star-formation histories, codes that regularise the star-formation histories and codes that do neither.
-For a full discussion of different codes and analysis, we refer to {Walcher2011}.
-List of codes: \textsc{STARLIGHT}, \textsc{STECKMAP}, \textsc{ULYSS}, \textsc{pPXF}, \textsc{FIT3D}.
-
-\textsc{STECMAP} is developed by {Ocvirk2006a} to obtain the star-formation histories with fixed kinematics.
-There is an extension named \textsc{STECKMAP} {Ocvirk2006b}, which can also fit the kinematics.
-The codes use a penalised maximum-likelihood analysis to smooth the star-formation histories and applies Monte-Carlo simulations to derive uncertainties.
-
-\textsc{pPXF} is a code developed by {Cappellari2004} and is a powerful for obtaining the kinematics, but can also be used to obtain the star-formation histories and emission-line features.
-It penalises the kinematic derivation and regularises the star-formation histories by smoothing it as long as the fit quality stays constant. 
-\textsc{pPXF} was originally developed for the ATLAS$^{3D}$ project on early-type galaxies, which are believed to have steadily varying star-formation histories.
-
-\textsc{STARLIGHT} is a Fortran 77 code written and uses Markov Chain Monte Carlo (MCMC) methods to derive weights, extinction, and kinematics from a spectrum.
-Of all the codes \textsc{STARLIGHT}'s approach is the most comparable to \textsc{PyParadise}, with the exceptions that it simultaneously fits the stellar populations and the kinematics, and that there is not option to fit emission lines.
-
-\textsc{Fit3D} is code that is based on the former {lookup-reference}
-
-Probable strong advantage and disadvantage, high degree of freedom to the user, usable as a Python module and can therefore be integrated in other projects, decoupled fitting of kinematics and stellar populations, decoupled fitting of stellar populations and emission lines.
-Example with library usage needed, possibly with IPython Notebooks.
-
-\textsc{paradise}, on which \textsc{PyParadise} is based on, is a code written in Fortran by C. J. Walcher, does not apply parametrisation or penalisation of the star-formation histories.
-It instead relies upon bootstrapping to obtain realistic uncertainties on the star-formation histories.
-
-Unlike \textsc{GANDALF}, the SSP fitting and the emission line fitting, are two separate procedures.
-This is possible because regions with emission lines are masked out from the stellar population fitting.
-
-Throughout the paper we assume a cosmological model with 
-$H_0=70\,\mathrm{km}\,\mathrm{s}^{-1}\,\mathrm{Mpc}^{-1}$, $\Omega_{\mathrm{m}}=0.3$, and $\Omega_\Lambda=0.7$.
-
 \section{Installation}
 \label{sec:installation}
-\textsc{PyParadise} depends on the following software:
+\subsection{Software dependencies}
+\PyPar\ depends on the following software:
 \begin{itemize}
-    \item Python version 2.7 or 3.x.
-        The code might work on earlier Python versions by supplying the argument \codeline{--parallel 1} to every call of \codeline{ParadiseApp.py}, although this is only tested with Python 2.6.
-        Python 2.7 or higher is required in order for multi-threading to function properly.
-    \item numpy, tested with versions \ldots
-    \item scipy, tested with versions \ldots
-    \item Either pyfits, tested with versions \ldots, or astropy, tested with versions \ldots.
-        In case you are in doubt which package to install, it is recommended to install astropy as the development of pyfits ceased except for possible bug fixes.
-    \item PyMC 2.x, tested with versions \ldots.
-        At the moment of writing, PyMC 3 is still in beta status and is a big overhaul with respect to PyMC 2.x.
-        If an official release of PyMC 3 comes out, we recommend using PyMC 2.x, until further notice.
-    \item emcee, tested with versions \ldots
-        Can be used instead of PyMC.
+    \item python version 2.7 or 3.X
+    \item numpy, version 1.12.1 or later
+    \item scipy, version 0.19.0 or later
+    \item astropy, version 2.X or later
+\end{itemize}
+For the MCMC algorithm two options are available of which only one needs to be installed:
+\begin{itemize}
+    \item pymc, version 2.3.6 or later
+    \item emcee, version 2.2.1 or later
 \end{itemize}
 
-In order to install \textsc{PyParadise}, you can obtain the code from BitBucket, and install by running the following command from the main directory
+While different combination of package version may work as well, we suggest to create a dedicated python environment with miniconda (https://docs.conda.io/en/latest/miniconda.html). All packages can be easily install within the conda environment using the command 
+\begin{lstlisting}[language=sh]
+    conda install PACKAGE=VERSION
+\end{lstlisting}
+This allows the user to select the necessary specific versions described above to be installed under a common environment. This ensures stable operations of \PyPar. Running \PyPar\ with different version than the once listed above is at the users risk.
+
+
+\subsection{Package Installation}
+In order to install \PyPar, you can obtain the code from BitBucket, and install by running the following command from the main directory (ideally within the prepared conda environment)
 \begin{lstlisting}[language=sh]
     python setup.py install
 \end{lstlisting}
-If you get permissions errors, please consider running the command with superuser-permissions, inside a virtual environment or to change the command to either of the following commands
+If the user does not want to create a dedicate environment with conda, you need to consider running the command with superuser-permissions or to change the command to either of the following commands
 \begin{lstlisting}[language=sh]
     python setup.py install --user
     python setup.py install --home
 \end{lstlisting}
-with the first option being the preferred option and the second option requires a correct setup of the \codeline{PYTHONPATH} environment variable.
+while the preferred option is clearly the first, the second option requires a correct setup of the \codeline{PYTHONPATH} environment variable.
 
-Note that the installation procedure \textbf{will not} copy the template files to a new location, but will stay in the \fname{templates} directory.
-Feel free to move this files to any location, as the location of the template files need to be specified in the parameter-files.
+\subsection{Spectral stellar population templates library and example files}
+\PyPar\ is shiped with several spectral stellar population template libraries and some example files with the purpose to get the user familiar with the necessary parameter files, input files and output files. \bigskip\\
+\textbf{Important:} The installation procedure \textbf{will not} copy the template files nor the example files to a new location, but will stay in the \fname{templates} and \fname{examples} directory. The user is free to move thes files to any location. The location of the template files will be specified in the parameter files and is totally independent of the internal \PyPar\ installation directory.
 
-\section{Quick Start}
-\label{sec:quickstart}
-Copy the example template files from the test directory and adjust the path to the template directory accordingly.
-Update the \paramdef{vel_guess} parameter to a velocity close to the final velocity.
-Adjust the minimum and maximum values for the allowed ranges for the velocity $v$ and velocity dispersion $\sigma$.
-Have a look if the \paramdef{start_wave} and \paramdef{end_wave} contains the wavelength range where you want to perform the fitting.
-Similarly, make sure that \paramdef{min_x}, \paramdef{max_x} and \paramdef{min_y}, \paramdef{max_y} cut up your cube/rss file correctly.
-You can now run the stellar population fitting by running
+\section{Quick start}\label{sec:quickstart}
+Please read this section if you want to start working with \PyPar\ quickly. This section provides the minimum information to run \PyPar\ successfully on a certain data set. It is based on the example files provided with \PyPar\ and we recommend that new users first run \PyPar\ on the example files and have a careful look at them before applying \PyPar\ to their own data. More details on the algorithms and full explanations on all parameters and functionality is given in Sect.~\ref{}. For the most common mistakes we refer to the toubleshooting Sect.~\ref{sec:trouble} for further details.
+
+\subsubsection{List of distributed files and their purpose}
+
+
+\subsection{Running \PyPar}
+\PyPar\ can be applied on single spectra, a collection of spectra (i.e. row-stacked spectra or RSS), and a 3-dimensional cube from integral field spectroscopy. The necessary data format for all three cases is explained in Sect.~\ref{sec:data}. Below we provide the sequence of commands to process the example RSS file \fname{NGC2691.COMB.RSS.fits}.\\
+The \textbf{stellar continuum fit}
 \begin{lstlisting}[language=sh]
-    ParadiseApp.py <input_file> <prefix> <spec_res> --SSP_par <ssp_par.txt>
+    ParadiseApp.py NGC2691.COMB.RSS.fits NGC2691 6.0 --SSP_par parameters_stellar --parallel 1
 \end{lstlisting}
-which will produce the following three output files \fname{<prefix>.cont_model.fits}, \fname{<prefix>.cont_res.fits} and \fname{<prefix>.stellar_table.fits}.
 
-\section{Stellar population modelling}
-\label{sec:ssp_model}
-\subsection{Algorithm}
-\label{subsec:ssp_algo}
-The kinematics and the stellar populations determination are computationally two different steps and use different methods.
-\textsc{PyParadise} iterates through the fitting of the kinematics and stellar populations, e.g. the kinematics of an input spectrum is determined from a certain template spectrum.
-These kinematics are then applied to the template library and the best-fitting combination of template spectra are determined.
+\noindent The \textbf{emission line fit} in the residual spectra
+\begin{lstlisting}[language=sh]
+    ParadiseApp.py NGC2691.COMB.RSS.fits NGC2691 6.0 --line_par parameters_eline --parallel 1
+\end{lstlisting}
 
-\subsubsection{Kinematics}
-\label{subsec:ssp_kin}
+\noindent The \textbf{bootstrap run to construct proper errors} for all parameters
+\begin{lstlisting}[language=sh]
+    ParadiseApp.py NGC2691.COMB.RSS.fits NGC2691 6.0 --SSP_par parameters_stellar --line_par parameters_eline --bootstraps 100 --parallel 4
+\end{lstlisting}
+
+\noindent In the command lines above \fname{NGC2691} is a output file prefix, \fname{6.0} is the spectral resolution of the input spectra in unit wavelength (FWHM), \fname{parameter_stellar} and \fname{parameters_eline} are setup parameter files. The number of CPU cores to be used is given by the \fname{--parallel}  and the size of bootstrap sample is given by the \fname{--bootstraps} command line parameters.
+
+\subsection{Basic content of output files}
+Once the user ran the commands as indicated in the above example several output file will occur for the three stages. 
+\subsubsection{Stellar continuum fit result}
+The best-fit stellar continua spectra and the residual spectra are stored as a FITS image in the files \fname{<PREFIX>.cont_model.fits} and \fname{<PREFIX>.cont_res.fits} with the same dimension as in the input data. An example for the resulting stellar continuum model for the test case \fname{NGC2691} is shown in Fig.~\ref{fig:NGC2691_example}. 
+
+In addition, a FITS table \fname{<PREFIX>.stellar_table.fits} is stored which lists inferred measurements from the best-fit for each spectrum. It contains the stellar kinematic parameters including errors from the MCMC run and various stellar population parameters such as luminosity-weighted age (\fname{lum\_age\_total}) or luminosity-weighted iron abundance (\fname{lum\_[Fe/H]\_total}). We highly recommend to use the software \textsc{TOPCAT} (http://www.star.bris.ac.uk/$\sim$mbt/topcat/) to quickly visualize the output table content. 
+
+\subsubsection{Emission line fit result}
+The best-fit emission-line model and the residual spectra are stored as a FITS image in the files \fname{<PREFIX>.eline_model.fits} and \fname{<PREFIX>.eline_res.fits} with the same dimension as in the input data. An example of the resulting emission line model for the test case \fname{NGC2691} is shown in Fig.~\ref{fig:NGC2691_example}. 
+
+In addition, a FITS table \fname{<PREFIX>.eline_table.fits} is stored which lists inferred measurements from the best-fit for each spectrum. For all fitted lines it lists the  line flux \fname{<LINE>\_flux}, line velocity \fname{<LINE>\_vel} in km/s, and intrinsic line width \fname{<LINE>\_fwhm} in km/s. 
+
+\subsubsection{Bootstrap error estimation result}
+The bootstraps run repeats the measurements for each spectrum $N$ times as specified in the \fname{--bootstraps <N>} parameter. In each repetition the input spectrum is randomly modulated within the associated error budget and only a random subsect from the template spectral library is use to model the spectrum.
+
+Errors on each parameter are derived by taking a standard deviation of the repeated measurements and assumming a normal distribution. The tables \fname{<PREFIX>.stellar_table.fits} and \fname{<PREFIX>.eline_table.fits} are expanded with additional error columns for each parameter and columns names \fname{<COLUMN>_err}. 
+
+\begin{figure}
+ \includegraphics[width=\textwidth]{figs/example_spec/NGC2619_COMB_RSS_0.pdf}
+  \caption{\PyPar\ results for the first spectrum in the provided RSS file \fname{NGC2619.COMB.RSS.fits}. The upper panel shows the best fit stellar continuum with respect to the observed data and associated errors an bad pixel flag (==0 if good pixel). The grey and red area highlight wavelength regions masked out in the rest frame (for emission lines) and observed frame (for sky lines), respectively. The lower panel shows the best-fit emission line model with single Gaussians coupled in redshift and line dispersion. The blue area highlights the wavelength regions which are taken into accout to compute the $\chi^2$ for the fitting of emission lines. Failure of providing a mask that does not cover all emission line components will results in wrong results.}\label{fig:NGC2691_example}
+\end{figure}
+
+
+\subsection{Quick visualization of results}
+
+\subsection{A quick look at the necessary parameter files}
+To successfully run \PyPar\ a correct setup of the necessary parameters are crucial. Most of the parameters may only be changed by expert users and can be left safely unchanged for most circumstances. We refer to Sect.~\ref{} to gain deep insight into the underlying algorithms and purpose of all parameters that can be set to optimize \PyPar. Below we briefly explain the necessary files to run \PyPar\ and should be available in the example directory:
+\begin{itemize}
+ \item \fname{NGC2691.COMB.RSS.fits} $\rightarrow$ Input spectral data to fit
+ \item \fname{parameters\_stellar} $\rightarrow$ Parameter file for stellar continuum fit
+ \item \fname{excl.cont} $\rightarrow$ Wavelength mask for continuum normalization
+ \item \fname{excl.fit} $\rightarrow$ Wavelength mask for continuum fitting
+ \item \fname{parameters\_eline} $\rightarrow$ Parameter file for emission line fit
+ \item \fname{par.lines} $\rightarrow$ Definition of line component model
+ \item \fname{lines.fit} $\rightarrow$ Wavelength region considered for emission-line fit
+\end{itemize}
+Please check that all those files are available in the example directory of the downloaded package. 
+
+
+\subsubsection{Example stellar continuum parameter file}
+The parameter file for the continuum fit is an ASCII file which sets several important parameters. Each line defines a certain parameter with a parameter name,  a parameter value, and optionally followed by a comment separated with a '!' sign from the parameter. For the stellar contiuum fit an example parameter file \fname{parameters\_stellar} is available in the example directory. The most important parameters to be updated by the users are the following:\bigskip\\
+\textcolor{red}{\codeline{tmpldir         ../Paradise/templates}}\\
+\textcolor{red}{\codeline{tmplfile        CB09_templates.fits}}\\   
+\textcolor{red}{\codeline{vel_guess       4040.0}}\\ 
+\textcolor{red}{\codeline{vel_min         3900.0}}\\
+\textcolor{red}{\codeline{vel_max         4200.0}}\\ 
+\textcolor{red}{\codeline{start_wave      3701.0}}\\  
+\textcolor{red}{\codeline{end_wave        7499.0}}\bigskip\\  
+These parameters usually need to be updated for every data set by the user. The absolute or relative path to the templates directory containing the stellar continuum template library \fname{tmpldir} need to be set properly. Ideally a common absolute path is set and re-used for a given computer. The spectral library template file \fname{tmplfile} need to be specified \textbf{and must exist in the specified template directory}. It is crucial to set a good guess \fname{vel\_guess} for the mean systemic redshift of the input spectra expressed in km/s as $cz$. The MCMC algorithm is only exploring the stellar kinematics within certain bondaries, so the minimum \fname{vel\_min} and maximum \fname{vel\_max} velocities around the systemic one needs to be chosen. Depending on the wavelength range covered and whether only a partial wavelength range should be modelled, the start \fname{start\_wave} and end \fname{end\_wave} wavelength. All other parameters can be left unchanged except the user is familiar with the details of parameters, explained in the Sect.~\ref{}, and known the consequences.
+
+
+\subsubsection{Example emission line parameter file}
+\PyPar\ can also fit Gaussian emission line profiles to the residual spectra after the best-fit continuum model is subtracted. Another parameter file is needed for this second processing step which has a similar syntax as the parameter file for the continuum fit. An exmple parameter file \fname{parameters_eline} is available in the example directory. From the file the most curcial lines to be updated by the users are:\bigskip\\
+\textcolor{red}{\codeline{eCompFile  par_lines}}\\
+\textcolor{red}{\codeline{vel\_guess   4040.0}}\\
+\textcolor{red}{\codeline{eguess\_window 20}}\bigskip\\
+Those parameters usually need to be updated for every data set by the user. A dedicated file is needed to describe the emission line model to be fitted. The absolute path/file name of this emission line components file is registered in the \fname{eCompFile} parameter. Similar to the stellar continuum model, the systemic redshift of the emission lines need to be set as an initial guess \fname{vel\_guess} expressed as $cz$ in km/s. In most case the same initially velocity guess as for the stellar continuum model can be used. The non-linear emission line fitting needs good starting values to converge. Those starting values for each Gaussian emission line component will be empirically determined from the spectra in pixel window around the redshifted central pixel of each emission line in the spectrum. This windows may be adjusted depending on the expected width of lines given based on spectral resolution and spectral sampling. 
+
+\subsubsection{Emission line model file}
+The associated model component file is a ASCII file that defines a list of different line components to be modelled. There is no limit on the number of components. Each component consistents of a block of several parameters depending on the specific component as described below. An example file \fname{par.lines} is available in the example directory.\bigskip\\
+Each component block starts with a line that defines the component profile (i.e. Gaussian) and a unique component name (i.e. an identifier for the emission line). All parameters of the Gaussian such as flux, redshift (as velocity cz) and velocity dispersion in km/s, can also be tied to other lines based on the unique identifier. Also a factor to apply a fixed flux ratio is possible as indicated in case of the OIII doublet. \bigskip\\
+The example file \fname{par.lines} lists a large number of potential emission lines of which a sub-sample of optical lines can be easily drawn for any specific case. For more complex situation and a full description of all features please read Sect.~\ref{} for more details on the line modelling.
+
+\subsubsection{Wavelength selection files}
+Certain wavelength windows need to be masked or selected at various instances during the fitting. Such spectral windows can be defined in an ASCII file either as spectral windows in the rest-frame (e.g. for emission lines) or observed-frame (e.g. for sky line residuals or detector artefacts). Examples of such spectral window files (\fname{excl.cont}, \fname{excl.fit}, \fname{lines.fit}) are available in the example directory.\bigskip\\
+
+\PyPar\ requires three wavelength selection files for different purposes: 1) exclusion of emission lines, sky line residuals and detector artefacts during the continuum normalization $\rightarrow$ \fname{excl_cont} in \fname{parameter_stellar}, 2) exclusion of non-continuum emission for the actual stellar continuum fit $\rightarrow$ \fname{excl_fit} for \fname{parameter_stellar}, and 3) wavelength windows covering ALL emission lines to be fit $\rightarrow$ \fname{lines.fit} for \fname{parameter_eline}.  For most practical purposes \fname{excl_cont} and \fname{excl_fit} use the same spectral windows and can point to the same file for simplicity.\bigskip\\
+\textbf{Important:} Failure in providing correct and complete wavelength selection files will usually lead to incorrect fitting of the spectra. This will be recognized as certain artefacts in the results. Some examples to identify common problems in the masking will be described in Sect.~\ref{}. 
+
+
+
+\subsection{Available stellar template libraries}
+
+\begin{tabular}{|l|c|c|c|c|c|c|}
+ File name                     & spectra & coverage           & sampling & resolution & type & Reference\\\hline
+ CB09\_templates.fits          &   85    &  3500\AA--9500\AA  & 0.9\AA   &  2.5\AA    & SSP  &          \\
+ MIUSCAT\_BaSTI\_K\_baseFe.fits&   636   &  3465\AA--9470\AA  & 0.9\AA   &  2.5\AA    & SSP  &          \\
+ RG04\_templates.fits          &    39   &  3001\AA--6998\AA  & 0.3\AA   &  0.6\AA    & SSP  &          \\
+ INDO\_US\_random\_100.fits    &   100   &  3500\AA--9400\AA  & 0.4\AA   &  1.0\AA    & stars&    
+\end{tabular}
+
+
+
+%Copy the example template files from the test directory and adjust the path to the template directory accordingly.
+%Update the \paramdef{vel_guess} parameter to a velocity close to the final velocity.
+%Adjust the minimum and maximum values for the allowed ranges for the velocity $v$ and velocity dispersion $\sigma$.
+%Have a look if the \paramdef{start_wave} and \paramdef{end_wave} contains the wavelength range where you want to perform the fitting.
+%Similarly, make sure that \paramdef{min_x}, \paramdef{max_x} and \paramdef{min_y}, \paramdef{max_y} cut up your cube/rss file correctly.
+%You can now run the stellar population fitting by running
+%\begin{lstlisting}[language=sh]
+%    ParadiseApp.py <input_file> <prefix> <spec_res> --SSP_par <ssp_par.txt>
+%\end{lstlisting}
+%which will produce the following three output files \fname{<prefix>.cont_model.fits}, \fname{<prefix>.cont_res.fits} and \fname{<prefix>.stellar_table.fits}.
+
+\section{Stellar population modelling}\label{sec:ssp_model}
+\subsection{\PyPar\ philosophie of fitting stellar continuum spectra}\label{subsec:ssp_algo}
+The fitting of galaxy continuum spectra is a complex process and usually needs optimization of a highly multi-dimensional parameter space. All galaxy spectra can be described by the super-position of stellar template spectra which are convolved with the kinematics of the stars as described by a radial velocity (including cosmological redshift) and a velocity dispersion. Optimizing the mix of template spectra and the kinematics together is a non-linear optimization process.
+
+\PyPar\ is breaking up the non-linear kinematic optimization and the linear super-position of template spectra into 2 indpendent steps using an iterative procedure. This has the advantage that only the few non-linear parameters are fitted with non-linear optimization methods, while the super-position of template spectra are preformed with very fast linear optimization methods. 
+
+Since real spectra are never perfect and dust extinction may significantly affect the shape of the spectra and would not provide a good match to the any super-position of the template spectra. This issue is often solved by adding additional functions to the optimization, such as polynomials. However, even polynominals may not capture all the arteficial variation in the spectra correctly. Instead, \PyPar\ is normalizing the global continuum shape of the input spectra and template spectra in a non-parametric way before the algorithms is actually trying to match them.
+
+\begin{tcolorbox}
+\textbf{Important:} Due to the continuum normalization, \PyPar\ finds the best template super-position by reducing only the residuals of absorption line features and basically ignores the different continuum slopes of young and old stellar populations. Also the dust extinction cannot be determined during the fitting this way. Obviously this has clear advantages or disadvantages depending on the type of input spectra and the scientific objectives of the user. 
+\end{tcolorbox}
+
+\subsection{Template broadening to match instrumental spectral resolution}
+The template library of continuum spectra has an intrinsic spectral resolution and spectral sampling, which is usually inhereted from the spectrograph the data are taken with. Before fitting the template spectra to the input data \PyPar\ therefore needs to match the spectral resolution by properly degrading the resolution of the template spectra, which is the first step in the process. Given that the input spectra are usually galaxy spectra with a significant redshift $z$, the redshifting of the templates need to be taken into account when computing the difference in spectral resolution of the templates ($\sigma_\mathrm{temp}$ in unit wavelength) and input data ($\sigma_\mathrm{data}(\lambda)$ in unit wavelength). The dispersion ($\sigma_\mathrm{smooth}$) of the Gaussian convolution kernel applied by \PyPar\ to the spectral template library is therefore given by
+\begin{equation}
+ \sigma_\mathrm{smooth}(\lambda) = \sqrt{\sigma_\mathrm{data}(\lambda)^2-\left(\left(1+\frac{v_\mathrm{guess}}{c}\right)\times \sigma_\mathrm{temp}\right)^2}
+\end{equation}
+Here, $v_\mathrm{guess}$ will be initially computed by \PyPar\ from the \fname{vel_guess} parameter in the \fname{parameter_stellar} stellar configuration file. 
+While the templates spectra are usually generated such that the spectral resolution is constant with wavelength this may not be true for the input data. \PyPar\ is able to work with both cases and can adaptively adjust the width of the convolution kernel as a function of wavelength when smoothing the template library. When running \fname{PyParadiseApp.py} the user needs to provide a value for the spectral resolution of the data which can either be a single float number for the spectral resolution expressed in terms of Full Width at Half Maximum (FWHM) which is $\mathrm{FWHM}_\mathrm{data}=2.354\times\sigma_\mathrm{data}$, or the path to an ASCII file which describes the wavelength-dependent spectral resolution. The format of the file is rather simple with just two columns for the wavelength and the spectral resolution (FWHM). When applying the wavelengt-dependent spectral resolution, \PyPar\ is linearly interpolating the provide wavelength grid to the redshifted wavelength grid of the template spectra. The wavelength coverage in the file therefore needs to cover the entire wavelength range of the input spectra. An exmaple file for MUSE based on the measured wavelength-dependent spectral resolution \citep{} is available in the example directory with the name \fname{MUSE_spec_res.txt}.
+
+\begin{tcolorbox}
+ \textbf{Important}: When the spectral resolution of the redshifted template spectra become worse than the input data, a correct machting of the spectra becomes impossible. This would lead to an incorrect determinations of the stellar kinematics and possible wrong mix of template spectra. \PyPar\ will refuse to fit but provides the minimum spectral resolution of the redshfit template spectra according to \fname{vel_guess}. There are 2 options to solve that issue:
+ \begin{itemize}
+  \item select a template library of spectra with higher spectral resolution
+  \item artifically set the input data spectral resolution to the redshifted spectral resolution of the templates
+ \end{itemize}
+\end{tcolorbox}
+
+\subsection{Continuum normalization of input data and template spectra}
+The next crucial step in the pre-fitting stage is the continuum normalization of the input data and the template spectra. This dependes crucially on masking all features that do not belong to the continuum such as emission lines, strong sky line residuals, detector artefact and bad pixels.  While bad pixels should already be provided with the input data (see Sect.~\ref{} for details of the input data format), wavelength regions covering emission lines and sky line residuals need to be defined by the user in the \fname{excl.cont} file as described in Sect.~\ref{} and available in the exmple directory. Here, wavelength windows can be defined in rest-frame and observed-frame seperately to aid the definition of masked wavelength regions.
+
+The masked wavelength regions are then linearly interpolated to approximate a continuum singal in those regions. A running mean is then applied to the pure input spectra to create highly smooth version of the continuum shape. The with of the running mean average box size is set by the user in the \fname{nwidth_norm} parameter in the \fname{parameter_stellar} parameter file. The input spectra are then devided by their respective smoothed continuum spectra to achieve a normalization of the continuum close to 1 across the entire wavelength range. An example of the normalization process is shown in Fig.~\ref{}. The template spectra are similarly normalized after redshifting to \fname{vel_guess} and matching to the spectral resolution. Here, the box size of the running mean is automatically adjusted to match the same size in wavelength space based on the respective wavelength sampling of the input data and the template spectra. 
+
+While the subsequent fitting is done with the continuum normalized spectra, the normalization information is stored throughout the process so that the results can be de-normalized at the end of the process to go back to normal space. 
+
+\begin{tcolorbox}
+ \textbf{Important:} The process crucially depends on propoer wavelength masks provided by the user. If artefact and emission lines are not properly masked in the input spectra, \PyPar\ will not be able to determine a good fit. It is therefore strongly encouraged, to review the definiation of the wavelength window by performing a test fit on a few characteristic spectra and use the visualization tools to check whether the provided wavelength masks are appropriate. General rule is that the wavelength regions should be broad enough to cover all non-continuum feature but small enough that enoug continuum signal remains to do a good continuum normalization. If the input spectra are nearly entirely dominated by non-continuum signal, \PyPar\ would not be the ideal software, but this is rarely the case.
+\end{tcolorbox}
+
+
+
+
+\subsection{Determination of stellar kinematics}\label{subsec:ssp_kin}
 A Markov Chain Monte Carlo (MCMC) lies on the basis of the determination of the kinematics.
 The constraints are the provided limits on the values that $v$ and $\sigma$ can take.
 A random value for $v$ and $\sigma$ are taken between these limits, followed by a random walk consisting of $n$ steps.
@@ -165,8 +283,7 @@ This then produces a correction value to $v$ and $\sigma$, which are the values 
 
 From the sample, $(n - m) / k$ points will be used to derive the mean and the errors of the $v$ and the $\sigma$.
 
-\subsubsection{Stellar populations}
-\label{subsec:ssp_ssp}
+\subsection{Super-position of template spectra}\label{subsec:ssp_ssp}
 Before the stellar populations are fitted, there are a few preparatory steps.
 Due to issues that often arise with in the data reduction and analysis of spectra, the continuum level is uncertain.
 To address this problem, \textsc{PyParadise} normalises the input spectra and the template library before fitting.
@@ -181,6 +298,9 @@ The NNLS therefore does not provide a unique solution and the recovery of the st
 We therefore provided a bootstrapping procedure, which re-fits the spectra a number of times with a subset of models.
 If a contributing SSP in the fiducial fit is real and is removed during the bootstrapping procedure, it should be recovered by the similar SSPs during the bootstrapping.
 See the paper for more details on recovery of stellar parameters from simulated galaxy spectra and a validation of bootstrapping to recover trustworthy star-formation histories.
+
+
+\subsection{Best-fit sellar population parameters}
 
 \subsection{Template handling}
 \label{subsec:ssp_template}
@@ -215,10 +335,9 @@ The emission lines and artefacts are therefore masked twice, while the strong ab
         \end{itemize}
     \item \paramdef{tmplinitspec} (\texttt{int}) The initial spectrum to start the fitting with.
         A good guess can lead to a faster convergence, and a lower \paramdef{iterations} value might therefore be sufficient.
-    \item \paramdef{vel_guess} (\texttt{float}) 
+    \item \paramdef{vel_guess} (\texttt{float}). \paramdef{vel_guess} is the best guess for the systemic velocity corresponding to $cz$ for the object. 
     \item \paramdef{vel_min}, \paramdef{vel_max}, \paramdef{disp_min}, \paramdef{disp_max} (\texttt{float}).
-        The \paramdef{vel_min} and \paramdef{vel_max} define the lower and the upper boundary between which the MCMC calculations will try to converge to the best-fitting $v$.
-        The \paramdef{disp_min} and \paramdef{disp_max} values give the boundaries for $\sigma$.
+        The parameters \paramdef{vel_min} and \paramdef{vel_max} are the absolute upper and lower velocity boundaries expressed as $cz_\mathrm{min}$ and $cz_\mathrm{max}$ in km/s, respectively, which define the search range for systemtic velocity during MCMC iteration. The \paramdef{disp_min} and \paramdef{disp_max} values similarly define the absolute boundaries for $\sigma$ in km/s.
     \item \paramdef{kin_fix} (0 or 1)
         If the \paramdef{kin_fix} parameter is set to 1, the kinematics will not be fitted, but will instead be read from \fname{<prefix>.kin_table.fits}.
         This table is located as the second HDU unit, and should have the values for the kinematics of each spectrum in the columns named \tblcol{vel_fit} and \tblcol{disp_fit}.
@@ -255,12 +374,6 @@ The emission lines and artefacts are therefore masked twice, while the strong ab
         The disadvantage of a high-value is that the total sample size needs to increase to obtain a statistically sufficient sample size.
     \item \paramdef{agebins} (\texttt{string})
         Currently implemented and being tested, but not distributed.
-    \item \paramdef{Ael} (\texttt{string})
-        Not implemented yet.
-    \item \paramdef{efflam} (\texttt{string})
-        Not implemented yet.
-   \item \paramdef{Rv} (\texttt{string})
-        Not implemented yet.
 \end{itemize}
 
 \subsubsection{Choosing parameter-values}
@@ -371,7 +484,7 @@ During the bootstrapping a random number of spectra is discarded.
 The command-line argument \textsc{modkeep} gives the percentage of spectra that will be kept during each bootstrapping step.
 It is recommended to keep this value relatively high, e.g. 80$\%$.
 
-\section{Data input formats}
+\section{Data formats}
 \label{sec:data}
 Like any software package \textsc{PyParadise} also requires that data is provided in certain pre-defined formats to run successfully.
 Failure of the program may often be related to invalid input. 
@@ -561,55 +674,10 @@ The data is located as a FITS table in the second HDU, with the column structure
     \item[] The last three columns are repeated for each emission line specified in the file .
 \end{itemize}
 
-\section{Using PyParadise as a python module}
-\label{sec:paradise_lib}
-\textsc{PyParadise} can be imported and used as a python module.
-In the case you simply want to fit a spectrum inside a data cube, print the kinematics and check the model parameters for convergence and $\chi^2$ and plot the spectrum and the best-fit, running the following should suffice.
-There is some work required in transforming the library to the same resolution, sampling and wavelength grid as the input data.
-\begin{lstlisting}[language=python, showstringspaces=False, frame=tb,
-                   keywordstyle=\color{deepblue}, emphstyle=\color{deepred}, stringstyle=\color{deepgreen}]
-from Paradise import *
-import matplotlib.pyplot as plt
 
-vel_guess = 1400.0  # Guessing velocity is 1400 km/s
-z = vel_guess / 300000.
-norm_window = 100   # Normalization window of 100 pixels
 
-# Load in a spectrum from a cube
-cube = loadCube('spectra.fits')
-spec = cube.getSpec(20, 25).normalizeSpec(norm_window)
-
-# Load and prepare the stellar population library
-# assumed is that the instrumental dispersion for the cube is 3.0 FWHM angstrom
-lib = SSPLibrary('templates.fits') 
-lib = lib.matchInstFWHM(3.0, vel_guess)
-lib = lib.subWaveLibrary(spec.getWave()[0], spec.getWave()[-1])
-lib = lib.resampleWaveStepLinear(spec.getWaveStep(), z)
-lib = lib.normalizeBase(norm_window).rebinLogarithmic()
-
-# Fit the data with the model
-model = spec.fit_Kin_Lib_simple(templates, nlib_guess=20, vel_min=1200,
-                                vel_max=1600, vel_guess=1400, disp_min=50,
-                                disp_max=150)
-model_spec = model[6]
-
-# Print velocity + error + conversion value which should be close to 1
-print('Fitted velocity = {} +/-'.format(model[0], model[1]))
-print('Gelman-Rubin parameter for velocity conversion = {}'.format(mode[2]))
-
-# Print velocity dispersion + error + conversion value which should be close to 1
-print('Fitted velocity dispersion = {} +/-'.format(model[3], model[4]))
-print('The Gelman-Rubin parameter for velocity dispersion conversion = {}'.format(mode[5]))
-
-print('The chi^2 value from the fitting of the stellar population = {}'.format(mode[-1]))
-
-plt.plot(spec.getWave(), spec.getData())                # Plot the data
-plt.plot(model_spec.getWave(), model_spec.getData())    # Plot the model
-\end{lstlisting}
-
-\section{Guidelines}
-\label{sec:guidelines}
-\subsection{}
+\section{Troubleshooting}
+\label{sec:trouble}
 \subsection{Distinguishing bad from good fit results}
 \label{subsec:guidelines_bad_vs_good}
 A good starting point for determining the quality of the fit is to check whether the \paramdef{chi2} value is close to \paramdef{dof}.
@@ -641,16 +709,20 @@ One method involves making the limits \paramdef{vel_min}, \paramdef{vel_max} and
 Another method is to increase the values for length of the chain, which has the unfortunate side effect that the computation will take longer and that more memory will be allocated.
 
 \section{Frequently asked questions}
+
 \begin{description}[font=\normalfont\itshape]
     \item [My velocity dispersion value is too high?]
         If the fitted $\sigma$ is too high, check the initial guess for the template spectrum.
         In case your initial guess is a relatively old model, but the expectation is a young stellar population, try adjusting the initial guess to a young stellar population.
-        If this does not help immediately, try adjusting the the limits on \paramdef{disp_min} and \paramdef{disp_max}
+        If this does not help immediately, try adjusting the the limits on \paramdef{disp_min} and \paramdef{disp_max}\\
     \item [\textsc{PyParadise} crashed during a run, what do I do now?]
         First of all, if the error message that \textsc{PyParadise} prints to the screen contains both \codeline{multiprocessing/pool.py} and \codeline{raise self._value}, rerun \textsc{PyParadise} with additional command line argument \codeline{--parallel 1} and also consider adding \codeline{--verbose}.
         The error message indicates that something went wrong when \textsc{PyParadise} entered the part of the code which can run in parallel.
-        Unfortunately due to the way that Python propagates the error message, it removes the indication to where actually the program ran into trouble and it is therefore not easy to understand where the code breaks.
-\end{description}
+        Unfortunately due to the way that Python propagates the error message, it removes the indication to where actually the program ran into trouble and it is therefore not easy to understand where the code breaks.\\
+      \item[My emission lines are badly fitted. What went wrong?]
+              First, check if the stellar continuum fit is ok. If this went wrong there are problem with the emission line fit, too. If this is ok, check if all the fitted emission lines defined in the file \fname{par_lines} are in the fitted ranges defined in the file \fname{lines.fit}. If the lines are not in the fitted range, the initial guesses for the lines are not adjusted and may therefore not fit the real lines.\\
+      \item[The fitted stellar continuum equals 0. Why is that?] Most likely there is a problem with the input data. First, check if the complete spectrum has a badpixel flag (in the second extension of your input data). This problem could also be caused by ''NaNs'' in the spectrum. Another problem could be zeros (or very small numbers) in the error spectrum (first extension of the input data). Then the $\chi^2$ value is not defined and no stellar continuum can be fitted.
+\end{description} 
 
 \section{Conclusions}
 \label{sec:conclusions}
