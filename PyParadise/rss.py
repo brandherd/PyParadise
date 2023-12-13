@@ -308,7 +308,7 @@ class RSS(Data):
             combination of template spectra.
         """
         rss_model = numpy.zeros(self.getShape(), dtype=numpy.float32)
-        mask = numpy.zeros(self.getShape(), dtype=bool)
+        mask = numpy.zeros(self.getShape(), dtype="bool")
         chi2 = numpy.zeros(self._fibers, dtype=numpy.float32)
         fiber = numpy.zeros(self._fibers, dtype=numpy.int16)
         fitted = numpy.zeros(self._fibers, dtype="bool")
